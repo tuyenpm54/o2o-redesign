@@ -1,0 +1,28 @@
+{
+  "u1_100": {
+    "items": [
+      {
+        "item": {
+          "id": 101,
+          "name": "Salad Rong Nho",
+          "price": 89000
+        },
+        "quantity": 1
+      }
+    ],
+    "total": 89000
+  },
+  "u2_100": {
+    "items": [
+      {
+        "item": {
+          "id": 502,
+          "name": "Coca Cola Tươi",
+          "price": 15000
+        },
+        "quantity": 2
+      }
+    ],
+    "total": 30000
+  }
+}

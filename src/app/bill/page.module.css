@@ -1,0 +1,740 @@
+.container {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background-color: #F8FAFC;
+    font-family: 'Inter', sans-serif;
+    color: #0F172A;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: white;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid #E2E8F0;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.backButton {
+    background: none;
+    border: none;
+    color: #334155;
+    cursor: pointer;
+    padding: 4px;
+    margin-left: -4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pageTitle {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.content {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Receipt Card */
+.receiptCard {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #F1F5F9;
+    position: relative;
+}
+
+.receiptCard::before,
+.receiptCard::after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: #F8FAFC;
+    border-radius: 50%;
+    top: 100px;
+    /* roughly around the divider */
+}
+
+.receiptCard::before {
+    left: -12px;
+}
+
+.receiptCard::after {
+    right: -12px;
+}
+
+.receiptHeader {
+    text-align: center;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px dashed #E2E8F0;
+    margin-bottom: 1.5rem;
+}
+
+.storeName {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+}
+
+.storeAddress {
+    font-size: 0.85rem;
+    color: #64748B;
+    margin-bottom: 1rem;
+}
+
+.billInfo {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    padding: 0.5rem 0.75rem;
+    background: #F8FAFC;
+    border-radius: 8px;
+}
+
+.itemList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px dashed #E2E8F0;
+}
+
+.itemRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.itemNameGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    padding-right: 1rem;
+}
+
+.itemName {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.itemQty {
+    font-size: 0.8rem;
+    color: #64748B;
+}
+
+.itemTotal {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+/* Voucher */
+.voucherSection {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px dashed #E2E8F0;
+}
+
+.voucherInvite {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #F59E0B;
+    margin-bottom: 0.75rem;
+}
+
+.voucherInput {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    color: #64748B;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.voucherInput.hasVoucher {
+    background: #ECFDF5;
+    border-color: #10B981;
+    color: #047857;
+}
+
+.voucherCodeText {
+    flex: 1;
+    text-align: left;
+    margin-left: 0.75rem;
+    font-size: 0.9rem;
+}
+
+/* Summary */
+.summarySection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    color: #475569;
+}
+
+.discountRow {
+    color: #10B981;
+    font-weight: 600;
+}
+
+.summaryTotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #E2E8F0;
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.totalPrice {
+    font-size: 1.35rem;
+    color: #F97316;
+}
+
+.footerNote {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #94A3B8;
+    font-style: italic;
+    margin-top: 1rem;
+}
+
+/* Payment Button */
+.paymentBtn {
+    width: 100%;
+    background: #0F172A;
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2);
+}
+
+.paymentBtn:active {
+    transform: scale(0.98);
+}
+
+.btnLoading {
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Success State */
+.successState {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.successHeader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.successIconWrapper {
+    width: 64px;
+    height: 64px;
+    background: #10B981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
+}
+
+.successText h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem 0;
+}
+
+.successText p {
+    font-size: 0.95rem;
+    color: #64748B;
+    margin: 0;
+}
+
+/* Feedback Section */
+.feedbackDivider {
+    height: 1px;
+    background: #E2E8F0;
+    margin: 2rem 0;
+}
+
+.feedbackTitle {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 1.5rem 0;
+}
+
+.ratingOptions {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.ratingBtn {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: #94A3B8;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ratingBtn span {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.ratingActiveHappy {
+    color: #10B981;
+    transform: scale(1.1);
+}
+
+.ratingActiveSad {
+    color: #EF4444;
+    transform: scale(1.1);
+}
+
+.feedbackDetailAnim {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tagGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.tagItem {
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid #E2E8F0;
+    padding: 0.5rem 1rem;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tagActive {
+    background: #0F172A;
+    color: white;
+    border-color: #0F172A;
+}
+
+.commentInput {
+    width: 100%;
+    min-height: 80px;
+    padding: 1rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: vertical;
+    margin-bottom: 1.5rem;
+    background: #F8FAFC;
+}
+
+.commentInput:focus {
+    outline: none;
+    border-color: #0F172A;
+    background: white;
+}
+
+.sendFeedbackBtn {
+    width: 100%;
+    background: #0F172A;
+    color: white;
+    font-weight: 700;
+    padding: 1rem;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+}
+
+.returnBtn {
+    width: 100%;
+    background: #F1F5F9;
+    color: #475569;
+    font-weight: 700;
+    padding: 1rem;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+}
+
+/* Modal */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+}
+
+.voucherSheet {
+    background: white;
+    width: 100%;
+    border-radius: 24px 24px 0 0;
+    padding: 1.5rem;
+    animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sheetSlideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.sheetHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.sheetHeader h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.sheetHeader button {
+    background: #F1F5F9;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748B;
+    cursor: pointer;
+}
+
+.voucherList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.voucherGroupLabel {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #64748B;
+    margin-bottom: 0.5rem;
+}
+
+.voucherItem {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.voucherItem:active {
+    transform: scale(0.98);
+}
+
+.voucherActive {
+    border-color: #F97316;
+    background: #FFF7ED;
+}
+
+.voucherIcon {
+    width: 48px;
+    height: 48px;
+    background: #F1F5F9;
+    color: #64748B;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.voucherActive .voucherIcon {
+    background: white;
+    color: #F97316;
+}
+
+.voucherInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.voucherCode {
+    font-weight: 800;
+    color: #0F172A;
+}
+
+.voucherLabel {
+    font-size: 0.85rem;
+    color: #475569;
+    font-weight: 500;
+}
+
+.voucherMin {
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+
+.voucherRadio {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #E2E8F0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.voucherActive .voucherRadio {
+    border-color: #F97316;
+}
+
+/* Toast Popup */
+.toastPopup {
+    position: fixed;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    width: calc(100% - 2rem);
+    max-width: 440px;
+    animation: toastSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toastContent {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: white;
+    border-radius: 14px;
+    padding: 0.875rem 1rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #E2E8F0;
+}
+
+.toastIcon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    background: #10B981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.25);
+}
+
+.toastText {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.toastText strong {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+.toastText span {
+    font-size: 0.8rem;
+    color: #64748B;
+}
+
+.toastClose {
+    background: none;
+    border: none;
+    color: #94A3B8;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.toastClose:hover {
+    background: #F1F5F9;
+    color: #475569;
+}
+
+@keyframes toastSlideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Payment Confirmed Badge */
+.paymentConfirmedBadge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #ECFDF5;
+    color: #047857;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-top: 0.5rem;
+}
+
+.staffNote {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #F59E0B;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+
+/* Feedback Card */
+.feedbackCard {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #F1F5F9;
+    text-align: center;
+    animation: slideUp 0.4s ease-out;
+}
+
+/* Thank You Section */
+.thankYouSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 0;
+}
+
+.thankYouIcon {
+    width: 56px;
+    height: 56px;
+    background: #10B981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
+    margin-bottom: 0.25rem;
+}
+
+.thankYouSection h4 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0;
+    color: #0F172A;
+}
+
+.thankYouSection p {
+    font-size: 0.9rem;
+    color: #64748B;
+    margin: 0;
+}

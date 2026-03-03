@@ -1,0 +1,499 @@
+/* UI/UX Pro Max Design System */
+.container {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background-color: #F8FAFC;
+    /* Slate 50 */
+    padding-bottom: 160px;
+    /* Safe area for rich cart */
+    position: relative;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #0F172A;
+    /* Slate 900 */
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- Glass Header --- */
+.header {
+    background: rgba(255, 255, 255, 0.85);
+    /* Proper Glass */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    width: 100%;
+    max-width: 480px;
+    position: fixed;
+    top: 0;
+    z-index: 50;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+    transition: all 0.3s ease;
+}
+
+.headerContent {
+    display: flex;
+    flex-direction: column;
+}
+
+.topBar {
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logoBox {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1E293B, #0F172A);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FACC15;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+}
+
+.brandInfo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.brandName {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0F172A;
+}
+
+.tableBadge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #F59E0B;
+    background: #FFF7ED;
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: fit-content;
+    margin-top: 2px;
+}
+
+/* Context Strip within Header */
+.contextStrip {
+    padding: 0 1.25rem 0.75rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.paxTag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748B;
+    background: #F1F5F9;
+    padding: 6px 10px;
+    border-radius: 20px;
+}
+
+.tierSelector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #FFFBEB;
+    /* Light Amber */
+    color: #B45309;
+    /* Dark Amber */
+    border: 1px solid #FDE68A;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* --- Hero Section (Best Choice) --- */
+.heroSection {
+    margin-top: 130px;
+    /* Header Offset */
+    padding-bottom: 2rem;
+}
+
+.sectionHeader {
+    padding: 0 1.25rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fireIcon {
+    font-size: 1.25rem;
+}
+
+.heroTitle {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0F172A;
+    letter-spacing: -0.02em;
+}
+
+.heroScroll {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 0 1.25rem 1.5rem 1.25rem;
+    /* Bottom padding for shadow */
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+}
+
+.heroScroll::-webkit-scrollbar {
+    display: none;
+}
+
+.heroCard {
+    scroll-snap-align: center;
+    min-width: 280px;
+    width: 280px;
+    height: 200px;
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.heroImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.heroCard:active .heroImg {
+    transform: scale(1.05);
+}
+
+.heroOverlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    display: flex;
+    align-items: flex-end;
+    padding: 1.25rem;
+}
+
+.heroInfo {
+    color: white;
+    width: 100%;
+}
+
+.heroName {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.heroAddBtn {
+    position: absolute;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    color: #0F172A;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+/* --- Standard & Recommended Grid --- */
+.gridSection {
+    padding: 0 1.25rem;
+    margin-bottom: 2.5rem;
+}
+
+.gridTitle {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #334155;
+    margin-bottom: 1rem;
+}
+
+.menuGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.listItem {
+    display: flex;
+    gap: 1rem;
+    background: white;
+    padding: 12px;
+    border-radius: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    border: 1px solid #F1F5F9;
+}
+
+.listImg {
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: #E2E8F0;
+}
+
+.listContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.listName {
+    font-weight: 700;
+    color: #0F172A;
+    font-size: 1rem;
+}
+
+.listDesc {
+    font-size: 0.8rem;
+    color: #64748B;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.listAction {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.smAddBtn {
+    padding: 6px 16px;
+    background: #F1F5F9;
+    color: #0F172A;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+/* --- Premium Upsell (Dark/Gold Theme) --- */
+.upsellContainer {
+    margin: 2rem 1.25rem;
+    background: #1E293B;
+    /* Slate 800 */
+    border-radius: 20px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.3);
+}
+
+/* Gold Gradient Border Effect */
+.upsellContainer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    padding: 2px;
+    background: linear-gradient(135deg, #F59E0B, transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.upsellHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 1.25rem;
+}
+
+.upsellTitle {
+    color: #F59E0B;
+    /* Gold */
+    font-weight: 800;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.upsellDesc {
+    color: #CBD5E1;
+    font-size: 0.9rem;
+}
+
+.upsellGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.previewCard {
+    position: relative;
+    aspect-ratio: 1/1;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.previewImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.7;
+}
+
+.lockBadge {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.upgradeBtn {
+    width: 100%;
+    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    cursor: pointer;
+}
+
+/* --- Floating Cart --- */
+.floatingCart {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+    max-width: 440px;
+    z-index: 100;
+}
+
+.cartBtn {
+    width: 100%;
+    background: #0F172A;
+    color: white;
+    padding: 0 6px 0 0;
+    /* Padding for inner layout */
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    height: 64px;
+    cursor: pointer;
+}
+
+.cartIconCircle {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2563EB;
+    /* Primary Blue */
+    border-radius: 50%;
+    position: relative;
+    margin-right: 12px;
+}
+
+.cartCountBadge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: #EF4444;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #2563EB;
+}
+
+.cartText {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.cartLabel {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: #94A3B8;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.cartTotal {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.cartArrow {
+    padding-right: 20px;
+    color: #94A3B8;
+}
+
+/* --- Generic Util --- */
+.emptyState {
+    text-align: center;
+    padding: 3rem;
+    color: #94A3B8;
+}
+
+/* --- Modal Styles (Copy from prev if needed, or simple) --- */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    backdrop-filter: blur(4px);
+}
+
+.modalSheet {
+    width: 100%;
+    background: white;
+    border-radius: 24px 24px 0 0;
+    padding: 1.5rem;
+    max-height: 80vh;
+    overflow-y: auto;
+}

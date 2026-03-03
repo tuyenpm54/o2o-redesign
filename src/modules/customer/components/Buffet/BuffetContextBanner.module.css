@@ -1,0 +1,60 @@
+.banner {
+    position: sticky;
+    top: 56px;
+    /* Below Main Header */
+    z-index: 40;
+    background: #1F2937;
+    color: white;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+.left {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.infoPill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.kidBadge {
+    font-size: 11px;
+    background: #F59E0B;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.tierName {
+    font-size: 13px;
+    font-weight: 600;
+    color: #FDBA74;
+}
+
+.crownIcon {
+    color: #FDBA74;
+}
+
+.chevron {
+    opacity: 0.6;
+}

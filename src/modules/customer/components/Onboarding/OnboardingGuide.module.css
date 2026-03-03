@@ -1,0 +1,155 @@
+/* Full Screen Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.75);
+    /* Dark Slate Dim */
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    /* Very high z-index */
+    opacity: 0;
+    animation: fadeIn 0.4s forwards;
+    pointer-events: auto;
+    /* Block interactions below */
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+/* Container for positioning cloned elements */
+.spotlightContainer {
+    position: absolute;
+    bottom: 100px;
+    /* Default matches SinglePageOrder */
+    right: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.shifted {
+    bottom: 135px;
+    /* Matches supportShift in page.module.css */
+}
+
+/* The Cloned Fake Button (Visual Only) */
+.fakeFab {
+    background: white;
+    border-radius: 99px;
+    padding: 0.5rem 1rem 0.5rem 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2), 0 0 0 8px rgba(255, 255, 255, 0.1);
+    border: 2px solid white;
+    /* Emphasize highlight */
+    cursor: default;
+    position: relative;
+    z-index: 1001;
+    /* Above overlay */
+    pointer-events: none;
+    /* Let clicks pass to overlay -> dismiss */
+}
+
+.staffIconWrapper {
+    width: 40px;
+    height: 40px;
+    background: #e2e8f0;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.fakeAvatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.fakeLabel {
+    font-weight: 700;
+    color: #0F172A;
+    font-size: 0.9rem;
+    padding-right: 0.25rem;
+}
+
+/* Chat Guide Bubble */
+.guideBubble {
+    background: white;
+    padding: 1rem 1.25rem;
+    border-radius: 16px 16px 4px 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    margin-bottom: 12px;
+    max-width: 260px;
+    position: relative;
+    z-index: 1001;
+    transform-origin: bottom right;
+    animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.guideText {
+    font-size: 0.95rem;
+    color: #334155;
+    line-height: 1.4;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+}
+
+.dismissBtn {
+    background: #0F172A;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 0.1s;
+}
+
+.dismissBtn:active {
+    transform: scale(0.95);
+}
+
+/* Pulse Animation for Fake FAB */
+.pulseRing {
+    position: absolute;
+    inset: -4px;
+    border-radius: 99px;
+    border: 2px solid white;
+    opacity: 0;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1.4);
+        opacity: 0;
+    }
+}

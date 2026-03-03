@@ -1,0 +1,218 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal {
+    background: white;
+    width: 100%;
+    max-width: 360px;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.closeBtn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    border: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.closeBtn:active {
+    transform: scale(0.9);
+    background: #e2e8f0;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.aiIconWrapper {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.5), 0 4px 6px rgba(59, 130, 246, 0.1);
+}
+
+.aiIcon {
+    color: #3b82f6;
+    fill: #3b82f6;
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.questionContainer {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.questionText {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.optionsList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.optionBtn {
+    background: white;
+    border: 2px solid #e2e8f0;
+    padding: 16px;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.optionBtn:active,
+.optionBtn:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    color: #1d4ed8;
+    transform: scale(0.98);
+}
+
+.skipBtn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    font-weight: 500;
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 0;
+    text-align: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #eff6ff;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 24px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingText {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.glowBall {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+    top: -50px;
+    right: -50px;
+    border-radius: 50%;
+    z-index: 0;
+    pointer-events: none;
+}

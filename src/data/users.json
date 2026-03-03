@@ -1,0 +1,75 @@
+[
+  {
+    "id": "u1",
+    "phone": "0901234567",
+    "name": "Minh Tuyền",
+    "points": 688,
+    "tier": "Hạng Bạc",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Minh",
+    "preferences": [
+      "vegetarian",
+      "lessSpicy"
+    ]
+  },
+  {
+    "id": "u2",
+    "phone": "0901234568",
+    "name": "Anh Quân",
+    "points": 450,
+    "tier": "Hạng Vàng",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Quan",
+    "preferences": [
+      "seafood"
+    ]
+  },
+  {
+    "id": "g1",
+    "phone": "Guest",
+    "name": "Pink Guest",
+    "points": 0,
+    "tier": "Guest",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Pink",
+    "preferences": [],
+    "isGuest": true
+  },
+  {
+    "id": "g2",
+    "phone": "Guest",
+    "name": "Teal Guest",
+    "points": 0,
+    "tier": "Guest",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Teal",
+    "preferences": [],
+    "isGuest": true
+  },
+  {
+    "id": "g_1772435996460",
+    "phone": "Guest",
+    "name": "Purple Guest",
+    "points": 0,
+    "tier": "Guest",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=g_1772435996460",
+    "preferences": [],
+    "isGuest": true
+  },
+  {
+    "id": "g_1772436071690",
+    "phone": "Guest",
+    "name": "Yellow Guest",
+    "points": 0,
+    "tier": "Guest",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=g_1772436071690",
+    "preferences": [],
+    "isGuest": true
+  },
+  {
+    "id": "g_1772440321650",
+    "phone": "Guest",
+    "name": "Yellow Guest",
+    "points": 0,
+    "tier": "Guest",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=g_1772440321650",
+    "preferences": [],
+    "isGuest": true
+  }
+]

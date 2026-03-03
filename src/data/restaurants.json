@@ -1,0 +1,26 @@
+[
+    {
+        "id": "r1",
+        "name": "O2O Restaurant",
+        "table": "A-12",
+        "address": "123 Discovery Way, Tech City",
+        "rating": 4.8,
+        "image": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800"
+    },
+    {
+        "id": "r2",
+        "name": "Green Garden",
+        "table": "G-05",
+        "address": "456 Eco Park, Green City",
+        "rating": 4.5,
+        "image": "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800"
+    },
+    {
+        "id": "100",
+        "name": "O2O Demo Restaurant",
+        "table": "100",
+        "address": "Hồ Chí Minh, Việt Nam",
+        "rating": 5.0,
+        "image": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800"
+    }
+]

@@ -1,0 +1,33 @@
+.container {
+    padding: 0 1.25rem;
+    margin-top: 1rem;
+}
+
+.content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+.icon {
+    font-size: 1.25rem;
+}
+
+.userName {
+    color: #2563EB;
+    /* Matching the primary blue for now, or use brand color */
+    font-weight: 700;
+}
+
+.editBtn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    cursor: pointer;
+}

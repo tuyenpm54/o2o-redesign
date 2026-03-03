@@ -1,0 +1,77 @@
+[
+  {
+    "id": "msg-1772441274857-ord",
+    "userId": "g_1772436071690",
+    "resid": "100",
+    "tableid": "A-12",
+    "sender": "restaurant",
+    "time": "15:47",
+    "timestamp": 1772441274857,
+    "type": "Gọi món",
+    "content": "Các món bạn gọi vừa được gửi đi. Nhân viên sẽ xác nhận sau vài giây."
+  },
+  {
+    "id": "msg-1772442064805-ord",
+    "userId": "g_1772435996460",
+    "resid": "100",
+    "tableid": "A-12",
+    "sender": "restaurant",
+    "time": "16:01",
+    "timestamp": 1772442064805,
+    "type": "Gọi món",
+    "content": "Các món bạn gọi vừa được gửi đi. Nhân viên sẽ xác nhận sau vài giây."
+  },
+  {
+    "id": "msg-1772445716288",
+    "userId": "g_1772435996460",
+    "resid": "100",
+    "tableid": "A-12",
+    "sender": "user",
+    "time": "17:01",
+    "type": "Yêu cầu hỗ trợ",
+    "content": "Lấy thêm bát đũa"
+  },
+  {
+    "id": "msg-1772446588504",
+    "userId": "g_1772435996460",
+    "resid": "100",
+    "tableid": "A-12",
+    "sender": "user",
+    "time": "17:16",
+    "type": "Yêu cầu hỗ trợ",
+    "content": "Gọi thanh toán"
+  },
+  {
+    "id": "msg-1772504844048",
+    "userId": "g_1772435996460",
+    "resid": "100",
+    "tableid": "A-12",
+    "sender": "user",
+    "time": "09:27",
+    "timestamp": 1772504844055,
+    "type": "Yêu cầu hỗ trợ",
+    "content": "Mang khăn giấy"
+  },
+  {
+    "id": "msg-1772504849074-staff-confirm",
+    "userId": "g_1772435996460",
+    "resid": "100",
+    "tableid": "A-12",
+    "sender": "restaurant",
+    "time": "09:27",
+    "timestamp": 1772504849074,
+    "type": "Xác nhận hỗ trợ",
+    "content": "Nhân viên đã nhận yêu cầu và đang mang khăn giấy ra bàn bạn."
+  },
+  {
+    "id": "msg-1772504858893-staff-done",
+    "userId": "g_1772435996460",
+    "resid": "100",
+    "tableid": "A-12",
+    "sender": "restaurant",
+    "time": "09:27",
+    "timestamp": 1772504858893,
+    "type": "Hoàn thành hỗ trợ",
+    "content": "Khăn giấy đã được đặt tại bàn. Nếu cần thêm gì, bạn cứ nhắn nhé! 😊"
+  }
+]

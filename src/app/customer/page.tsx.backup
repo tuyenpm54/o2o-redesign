@@ -1,0 +1,1349 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+    ReceiptText, Search, ChefHat, BellRing, GlassWater, Snowflake,
+    Plus, Minus, ShoppingBag, ChevronRight, MapPin, User as UserIcon,
+    Crown, Star, X, RotateCcw, CookingPot, Trash2, ClipboardList, Bell, ArrowLeft,
+    HelpCircle, ChefHat as ChefHatIcon, CheckCircle2, Sparkles, UtensilsCrossed, Info, ChevronDown, Users,
+    Heart
+} from 'lucide-react';
+
+import styles from './page.module.css';
+
+import { ContextBanner, Order } from '@/modules/customer/components/ContextBanner/ContextBanner';
+import { MemberLobby } from '@/modules/customer/components/MemberLobby/MemberLobby';
+import { useAuth } from '@/context/AuthContext';
+import { usePathname } from 'next/navigation';
+
+
+
+// Mock Categories
+const CATEGORIES = [
+    { id: 'combo', label: 'Combo tiết kiệm' },
+    { id: 'veg', label: 'Chay' },
+    { id: 'appetizer', label: 'Khai vị' },
+    { id: 'main', label: 'Món chính' },
+    { id: 'side', label: 'Ăn kèm' },
+    { id: 'snack', label: 'Ăn chơi' },
+    { id: 'drink', label: 'Đồ uống' },
+    { id: 'dessert', label: 'Tráng miệng' },
+];
+
+
+// Mock Menu Items
+const DEFAULT_IMAGE = '/food/default-food.jpg';
+
+const MENU_ITEMS = [
+    // Khai vị
+    { id: 101, name: 'Salad Rong Nho', price: 89000, cat: 'appetizer', img: '/food/salad-rong-nho.jpg', desc: 'Rong nho biển tươi giòn, sốt mè rang béo ngậy.' },
+    { id: 102, name: 'Khoai Tây Chiên', price: 45000, cat: 'appetizer', img: '/food/khoai-tay-chien.jpg', desc: 'Khoai tây chiên giòn rụm, lắc phô mai thơm lừng.' },
+    { id: 103, name: 'Gỏi Cuốn Tôm Thịt', price: 65000, cat: 'appetizer', img: '/food/goi-cuon.jpg', desc: 'Tôm thịt tươi ngon, chấm mắm nêm đậm đà.' },
+    { id: 104, name: 'Súp Bí Đỏ Kem Tươi', price: 55000, cat: 'appetizer', img: '/food/sup-bi-do.jpg', desc: 'Súp bí đỏ sánh mịn, kem tươi béo ngậy.' },
+
+    // Món chính
+    { id: 201, name: 'Sườn Nướng Tảng BBQ', price: 259000, cat: 'main', img: '/food/suon-nuong.jpg', desc: 'Sườn heo nướng sốt BBQ đậm đà, mềm mọng.' },
+    { id: 202, name: 'Ba Chỉ Bò Mỹ Cuộn', price: 129000, cat: 'main', img: '/food/ba-chi-bo.jpg', desc: 'Ba chỉ bò Mỹ cuộn nấm kim châm, nướng than hoa.' },
+    { id: 203, name: 'Cơm Rang Hải Sản', price: 115000, cat: 'main', img: '/food/com-rang.jpg', desc: 'Cơm rang giòn hạt, hải sản tôm mực tươi ngon.' },
+    { id: 204, name: 'Mì Ý Sốt Kem Nấm', price: 99000, cat: 'main', img: '/food/mi-y.jpg', desc: 'Mì Ý dai ngon, sốt kem nấm truffle thượng hạng.' },
+    { id: 205, name: 'Bò Beefsteak Sốt Tiêu', price: 189000, cat: 'main', img: '/food/beefsteak.jpg', desc: 'Thăn ngoại bò Úc, sốt tiêu đen cay nồng.' },
+
+    // Ăn kèm
+    { id: 301, name: 'Kim Chi Hàn Quốc', price: 15000, cat: 'side', img: '/food/kim-chi.jpg', desc: 'Kim chi cải thảo muối cay chuẩn vị Hàn.' },
+    { id: 302, name: 'Cơm Trắng', price: 10000, cat: 'side', img: '/food/com-trang.jpg', desc: 'Cơm gạo tám thơm dẻo.' },
+    { id: 303, name: 'Bánh Mì Bơ Tỏi', price: 25000, cat: 'side', img: '/food/banh-mi-bo-toi.jpg', desc: 'Bánh mì nướng bơ tỏi giòn tan.' },
+
+    // Ăn chơi
+    { id: 401, name: 'Gà Rán Giòn', price: 79000, cat: 'snack', img: '/food/ga-ran.jpg', desc: 'Đùi gà tẩm bột chiên giòn, da giòn thịt mềm.' },
+    { id: 402, name: 'Xúc Xích Nướng', price: 49000, cat: 'snack', img: '/food/xuc-xich.jpg', desc: 'Xúc xích Đức nướng than, chấm mù tạt vàng.' },
+    { id: 403, name: 'Nem Chua Rán', price: 39000, cat: 'snack', img: '/food/nem-chua.jpg', desc: 'Nem chua rán phố cổ, ăn kèm tương ớt.' },
+
+    // Đồ uống
+    { id: 501, name: 'Trà Đào Cam Sả', price: 45000, cat: 'drink', img: '/food/tra-dao.jpg', desc: 'Trà đào thanh mát, hương sả thơm lừng.' },
+    { id: 502, name: 'Coca Cola Tươi', price: 15000, cat: 'drink', img: '/food/coca.jpg', desc: 'Coca Cola tươi mát lạnh, giải khát sảng khoái.' },
+    { id: 503, name: 'Sinh Tố Bơ', price: 55000, cat: 'drink', img: '/food/sinh-to-bo.jpg', desc: 'Bơ sáp dẻo quánh, sữa đặc ngọt ngào.' },
+
+    // Tráng miệng
+    { id: 601, name: 'Bánh Tiramisu', price: 69000, cat: 'dessert', img: '/food/tiramisu.jpg', desc: 'Bánh Tiramisu mềm mịn, vị cafe cacao nồng nàn.' },
+    { id: 602, name: 'Kem Dâu Tây', price: 35000, cat: 'dessert', img: '/food/kem-dau.jpg', desc: 'Kem dâu tây chua ngọt, mát lạnh.' },
+];
+
+const COMBOS = [
+    {
+        id: 701,
+        name: 'Combo Tiết Kiệm: Cơm Gà BBQ + Trà Đào',
+        desc: 'Cơm gà nướng mềm tan kèm trà đào cam sả thanh mát.',
+        price: 285000,
+        originalPrice: 304000,
+        save: 19000,
+        img: '/food/combo-ga.jpg',
+        people: 2
+    },
+    {
+        id: 702,
+        name: 'Combo Gia Đình 4-6 Người',
+        desc: 'Đầy đủ các món ăn kèm, khai vị và 4 lon Coca.',
+        price: 520000,
+        originalPrice: 580000,
+        save: 60000,
+        img: '/food/combo-family.jpg',
+        people: 4
+    },
+    {
+        id: 703,
+        name: 'Combo Văn Phòng: Mì Ý + Coca',
+        desc: 'Bữa trưa nhanh gọn, giàu dinh dưỡng cho dân công sở.',
+        price: 105000,
+        originalPrice: 114000,
+        save: 9000,
+        img: '/food/combo-van-phong.jpg',
+        people: 2
+    },
+    {
+        id: 704,
+        name: 'Combo Đại Tiệc 8-10 Người',
+        desc: 'Đầy đủ các món từ khai vị đến tráng miệng, kèm rượu vang.',
+        price: 1850000,
+        originalPrice: 2100000,
+        save: 250000,
+        img: '/food/combo-tiec.jpg',
+        people: 8
+    },
+    {
+        id: 705,
+        name: 'Combo Bạn Thân 2 Người',
+        desc: 'Phù hợp cho các cặp đôi hoặc bạn thân đi 2 người.',
+        price: 345000,
+        originalPrice: 400000,
+        save: 55000,
+        img: '/food/combo-ban-than.jpg',
+        people: 2
+    },
+    {
+        id: 706,
+        name: 'Combo Liên Hoan 4-6 Người',
+        desc: 'Set hải sản tổng hợp và bia lạnh cho nhóm bạn.',
+        price: 890000,
+        originalPrice: 990000,
+        save: 100000,
+        img: '/food/combo-lien-hoan.jpg',
+        people: 4
+    }
+];
+
+
+
+// Status Priority for Banner (Smallest = Highest Priority)
+const STATUS_PRIORITY: Record<string, number> = {
+    'READY': 1,
+    'PENDING': 2,
+    'COOKING': 3,
+    'CONFIRMED': 4,
+    'SERVED': 5,
+    'IDLE': 99
+};
+
+const PROMO_THRESHOLD = 200000;
+const PROMO_REWARD = 'giảm 10%';
+
+
+
+import { TABLE_MEMBERS, MEMBER_ORDERS, MEMBER_DRAFTS } from '@/data/mock-table';
+
+import { OnboardingGuide } from '@/modules/customer/components/Onboarding/OnboardingGuide'; // Import new component
+import { AIOnboardingModal, AIPreferences } from '@/modules/customer/components/AIOnboardingModal/AIOnboardingModal';
+import { FilterTagsBar } from '@/modules/customer/components/FilterTagsBar/FilterTagsBar';
+
+export default function SinglePageOrder() {
+    // Onboarding State
+    const [showOnboarding, setShowOnboarding] = useState(false);
+
+    useEffect(() => {
+        // Show onboarding on load (simulate 'reload' guide)
+        // In real app, check localStorage to show only once
+        const timer = setTimeout(() => setShowOnboarding(true), 1000); // Small delay for entrance
+        return () => clearTimeout(timer);
+    }, []);
+    const [activeTab, setActiveTab] = useState('main');
+    const [cart, setCart] = useState<Record<number, number>>({});
+
+    // NEW: Fine-Dining Interactive AI Flow State
+    const [showAIModal, setShowAIModal] = useState(false);
+    const [aiPreferences, setAiPreferences] = useState<AIPreferences | null>(null);
+    const [activeTags, setActiveTags] = useState<string[]>([]);
+
+    useEffect(() => {
+        // Show AI Onboarding shortly after page load
+        const timer = setTimeout(() => setShowAIModal(true), 1200);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const handleAIComplete = (prefs: AIPreferences) => {
+        setAiPreferences(prefs);
+        setShowAIModal(false);
+        const tags: string[] = [];
+        if (prefs.peopleCount) tags.push(prefs.peopleCount);
+        if (prefs.dietary) tags.push(prefs.dietary);
+        setActiveTags(tags);
+    };
+
+    const handleRemoveTag = (tag: string) => {
+        setActiveTags(prev => prev.filter(t => t !== tag));
+        // Simple mock to clear prefs based on tag removed
+        setAiPreferences(prev => {
+            if (!prev) return prev;
+            return {
+                peopleCount: prev.peopleCount === tag ? null : prev.peopleCount,
+                dietary: prev.dietary === tag ? null : prev.dietary
+            };
+        });
+    };
+
+    const isRecommended = (item: any): boolean => {
+        if (!aiPreferences || activeTags.length === 0) return false;
+        // Mock heuristics to simulate AI personalized sorting
+        if (activeTags.includes('Không cay') && [101, 104, 204, 501, 602].includes(item.id)) return true;
+        if (activeTags.includes('Có trẻ em') && [102, 204, 401, 503, 601].includes(item.id)) return true;
+        if (activeTags.includes('1-2 người') && [204, 205].includes(item.id)) return true;
+        if (activeTags.includes('3-4 người') && [201, 203].includes(item.id)) return true;
+        return false;
+    };
+
+    const [showInfoModal, setShowInfoModal] = useState(false);
+    const [showSupportMenu, setShowSupportMenu] = useState(false);
+    const [showCartModal, setShowCartModal] = useState(false);
+    const [showTableDetailModal, setShowTableDetailModal] = useState(false);
+
+    // User Info State
+    const [showUserModal, setShowUserModal] = useState(false);
+    const [userProfile, setUserProfile] = useState({
+        name: 'Minh Tuyền',
+        phone: '0901234567',
+        email: 'minhtuyen@gmail.com'
+    });
+
+    // Combo Filter State
+    const [selectedPeopleCount, setSelectedPeopleCount] = useState<number | null>(null);
+
+    const handleSaveProfile = () => {
+        setShowUserModal(false);
+    };
+
+    // Social & Voting State
+    const [votes, setVotes] = useState<Record<number, number>>({ 201: 3, 204: 5, 501: 2 }); // Mock initial votes
+    const [likedItems, setLikedItems] = useState<Record<number, boolean>>({});
+
+
+    const handleVote = (id: number) => {
+        setLikedItems(prev => {
+            const isLiked = !prev[id];
+            // Simulate socket update for votes
+            setVotes(v => ({ ...v, [id]: (v[id] || 0) + (isLiked ? 1 : -1) }));
+            return { ...prev, [id]: isLiked };
+        });
+    };
+
+
+
+    // --- UI State ---
+    const { isLoggedIn, user } = useAuth();
+    const router = useRouter();
+    const pathname = usePathname();
+
+
+    // --- Dynamic Order State Management ---
+    const [activeOrders, setActiveOrders] = useState<any[]>([]);
+
+    // --- Table Modal Logic ---
+    const [selectedMemberId, setSelectedMemberId] = useState<'me' | 'all' | string>('me');
+
+    // Helper: Get orders to display based on selection
+    const getDisplayOrders = () => {
+        if (selectedMemberId === 'me') {
+            return activeOrders; // Current user's orders
+        }
+        if (selectedMemberId === 'all') {
+            // Aggregate ALL confirmed orders from everyone
+            const otherOrders = Object.values(MEMBER_ORDERS).flat();
+            return [...activeOrders, ...otherOrders];
+        }
+        // Specific member
+        return MEMBER_ORDERS[selectedMemberId] || [];
+    };
+
+    const displayOrders = getDisplayOrders();
+
+    const getSelectedMemberName = () => {
+        if (selectedMemberId === 'me') return 'Tôi';
+        if (selectedMemberId === 'all') return 'Cả bàn';
+        const mem = TABLE_MEMBERS.find(m => m.id === selectedMemberId);
+        return mem ? mem.name : 'Khách';
+    };
+
+    // Unified Header State
+    const [showCategoryBar, setShowCategoryBar] = useState(false);
+    const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+    const headerRef = React.useRef<HTMLElement>(null);
+
+    // Scroll Logic: Show Category Bar only when scrolled
+    useEffect(() => {
+        const handleScroll = () => {
+            const threshold = 100; // Show after scrolling 100px (past banner)
+            setShowCategoryBar(window.scrollY > threshold);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const handlePlaceOrder = () => {
+        const orderId = `ord-${Date.now()}`;
+        const newOrder = {
+            id: orderId,
+            status: 'PENDING',
+            items: { ...cart }, // Store the current cart items
+            timestamp: Date.now()
+        };
+
+        setActiveOrders(prev => [...prev, newOrder]);
+        setCart({});
+        setShowCartModal(false);
+
+        // Simulation Flow: PENDING (5s) -> CONFIRMED (5s) -> COOKING (5s) -> READY (5s) -> SERVED
+        const sequence = ['CONFIRMED', 'COOKING', 'READY', 'SERVED'];
+
+        sequence.forEach((status, index) => {
+            setTimeout(() => {
+                setActiveOrders(prev => prev.map(o =>
+                    o.id === orderId ? { ...o, status, timestamp: Date.now() } : o
+                ));
+            }, (index + 1) * 5000);
+        });
+    };
+
+    // Support Request States
+    type ChatMessage = {
+        id: string;
+        sender: 'user' | 'restaurant';
+        time: string;
+        type?: string;     // e.g "Gọi nhân viên", "Gọi món", "Đánh giá"
+        content: string | React.ReactNode;
+        avatar?: boolean;
+    };
+
+    const SUPPORT_OPTIONS = [
+        { id: 'cutlery', label: 'Lấy thêm bát đũa' },
+        { id: 'napkin', label: 'Mang khăn giấy' },
+        { id: 'clean', label: 'Dọn bàn' },
+        { id: 'payment', label: 'Gọi thanh toán' },
+        { id: 'other', label: 'Khác' },
+    ];
+
+    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
+        {
+            id: 'msg-1',
+            sender: 'user',
+            time: '18:30',
+            type: 'Gọi món',
+            content: (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span>1 x Bò xào bơ tỏi</span>
+                    <span>1 x Gà xào xả ớt (ghi chú nếu có)</span>
+                    <span>2 x Trà sữa trân châu nghệ nhân</span>
+                </div>
+            )
+        },
+        {
+            id: 'msg-2',
+            sender: 'restaurant',
+            time: '18:31',
+            content: (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span>Các món bạn gọi đã gửi tới nhân viên, bạn chờ chút để nhân viên xác nhận.</span>
+                    <div style={{ background: '#F1F5F9', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', color: '#475569' }}>
+                        Lưu ý: Nếu đợi quá lâu hoặc có thay đổi về món đã gọi, bạn có thể dùng chức năng "<b>Gọi nhân viên</b>" ở màn hình chính.
+                    </div>
+                </div>
+            )
+        },
+        {
+            id: 'msg-3',
+            sender: 'restaurant',
+            time: '18:35',
+            avatar: true,
+            content: 'Các món bạn gọi đã được nhân viên xác nhận và chuyển qua bộ phận làm đồ.'
+        }
+    ]);
+
+    const chatScrollRef = React.useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (chatScrollRef.current) {
+            chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+    }, [chatHistory, showSupportMenu]);
+
+    const handleSupportRequest = (optionId: string, customText?: string) => {
+        let label = customText;
+        if (!label) {
+            const opt = SUPPORT_OPTIONS.find(o => o.id === optionId);
+            if (opt) label = opt.label;
+        }
+        if (!label) return;
+
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        const newMsg: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            sender: 'user',
+            time: timeStr,
+            type: optionId === 'payment' ? 'Gọi thanh toán' : 'Gọi nhân viên',
+            content: label
+        };
+
+        setChatHistory(prev => [...prev, newMsg]);
+
+        // Auto reply
+        setTimeout(() => {
+            setChatHistory(prev => [...prev, {
+                id: `msg-${Date.now() + 1}`,
+                sender: 'restaurant',
+                time: timeStr,
+                content: 'Yêu cầu đã được gửi tới nhân viên.'
+            }]);
+
+            // Final reply
+            setTimeout(() => {
+                setChatHistory(prev => [...prev, {
+                    id: `msg-${Date.now() + 2}`,
+                    sender: 'restaurant',
+                    time: timeStr,
+                    avatar: true,
+                    content: 'Nhân viên đã nhận yêu cầu và đang tới rồi ạ.'
+                }]);
+            }, 2000);
+        }, 1000);
+    };
+
+    const [supportView, setSupportView] = useState<'OPTIONS' | 'INPUT_OTHER'>('OPTIONS');
+    const [otherRequestText, setOtherRequestText] = useState('');
+
+    const handleCloseSupportMenu = () => {
+        setShowSupportMenu(false);
+        setTimeout(() => setSupportView('OPTIONS'), 300);
+    };
+
+    const handleSubmitOtherRequest = () => {
+        if (!otherRequestText.trim()) return;
+        handleSupportRequest('other', otherRequestText.trim());
+        setOtherRequestText('');
+        setSupportView('OPTIONS');
+    };
+
+    // Cart Actions
+    const addToCart = (id: number) => setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    const removeFromCart = (id: number) => {
+        setCart(prev => {
+            const newCount = (prev[id] || 0) - 1;
+            if (newCount <= 0) { const { [id]: _, ...rest } = prev; return rest; }
+            return { ...prev, [id]: newCount };
+        });
+    };
+
+    const cartTotalCount = Object.values(cart).reduce((a, b) => a + b, 0);
+    const cartTotalPrice = Object.entries(cart).reduce((acc, [id, qty]) => {
+        const item = MENU_ITEMS.find(i => i.id === Number(id));
+        return acc + (item ? item.price * qty : 0);
+
+    }, 0);
+
+    const handleQuickAdd = (name: string, price: number) => {
+        // Mock add to cart logic for flash sale items (simplified)
+        // In real app, would find ID by name or pass ID
+        alert(`Đã thêm ${name} vào giỏ!`);
+    };
+
+
+
+
+
+
+    const scrollToCategory = (id: string) => {
+        setActiveTab(id);
+        const element = document.getElementById(`cat-${id}`);
+        if (element) {
+            const headerOffset = 140;
+            const elementPosition = element.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+            window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        }
+    };
+
+
+    return (
+        <div className={styles.container}>
+            {/* 1. New Unified Header */}
+            <header className={styles.header} ref={headerRef}>
+                <div className={styles.headerTopRow}>
+                    <button
+                        className={styles.restaurantInfo}
+                        onClick={() => setShowTableDetailModal(true)}
+                        aria-label="Thông tin nhà hàng"
+                    >
+                        <div className={styles.logoWrapper}>
+                            {/* Fallback Logo since generation failed */}
+                            <div className={styles.fallbackLogo}>
+                                <UtensilsCrossed size={20} color="white" />
+                            </div>
+                        </div>
+                        <div className={styles.restaurantTextCol}>
+                            <div className={styles.restaurantNameRow}>
+                                <span className={styles.restaurantTitle}>Biển Đông</span>
+                                <span className={styles.infoIcon} aria-hidden="true">ⓘ</span>
+                            </div>
+                            <div className={styles.tableTag}>Bàn A-12</div>
+                        </div>
+                    </button>
+                    {/* ... User Info remains same ... */}
+                    {/* User Info from AuthContext */}
+                    <button
+                        className={styles.userInfo}
+                        onClick={() => router.push(`/account?from=${pathname}`)}
+                        aria-label="Thông tin cá nhân"
+                    >
+                        {isLoggedIn && user ? (
+                            <>
+                                <div className={styles.avatarWrapper}>
+                                    <img
+                                        src={user.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest"}
+                                        className={styles.userAvatar}
+                                        alt="User Avatar"
+                                        width={40}
+                                        height={40}
+                                    />
+                                    {user.tier !== 'Khách' && <div className={styles.rankBadge}>👑</div>}
+                                </div>
+                                <div className={styles.userInfoColLocal}>
+                                    {user.tier === 'Khách' ? (
+                                        <span className={styles.guestLabelLocal}>Guest</span>
+                                    ) : (
+                                        <div className={styles.userPoints}>
+                                            {user.points?.toLocaleString()} P
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <div className={styles.loginWrapper}>
+                                <div className={styles.loginIconCircle}>
+                                    <UserIcon size={20} color="#4B5563" />
+                                </div>
+                                <span className={styles.loginText}>Đăng nhập</span>
+                            </div>
+                        )}
+                    </button>
+                </div>
+
+                {/* 2. Hidden Category Row (Appears on Scroll) */}
+                <div className={`${styles.headerCategoryRow} ${showCategoryBar ? styles.visible : ''}`}>
+                    <div className={styles.barLeftContent}>
+                        <button
+                            className={styles.catDropdown}
+                            onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+                        >
+                            Dành cho bạn <ChevronDown size={14} />
+                        </button>
+                    </div>
+
+                    <div className={styles.catRightContent}>
+                        <button className={styles.catSearchBtn}>
+                            <Search size={18} />
+                        </button>
+                    </div>
+
+                    {/* Dropdown Menu inside Header Scope */}
+                    {showCategoryMenu && (
+                        <>
+                            <div
+                                className={styles.dropdownBackdrop}
+                                onClick={() => setShowCategoryMenu(false)}
+                            />
+                            <div className={styles.categoryDropdownMenu}>
+                                {CATEGORIES.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        className={`${styles.dropdownItem} ${activeTab === cat.id ? styles.active : ''}`}
+                                        onClick={() => {
+                                            scrollToCategory(cat.id);
+                                            setShowCategoryMenu(false);
+                                        }}
+                                    >
+                                        {cat.label}
+                                        {activeTab === cat.id && <CheckCircle2 size={16} />}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+            </header>
+
+            {/* Info Modal */}
+            {showInfoModal && (
+                <div className={styles.infoModal} onClick={() => setShowInfoModal(false)}>
+                    <div className={styles.infoCard} onClick={e => e.stopPropagation()}>
+                        <div className={styles.infoTitle}>Nhà Hàng Biển Đông</div>
+
+                        <div className={styles.infoRow}>
+                            <span className={styles.infoLabel}>Địa chỉ</span>
+                            <span className={styles.infoValue}>123 Nguyễn Văn Linh, Q.7, TP.HCM</span>
+                        </div>
+
+                        <div className={styles.infoRow}>
+                            <span className={styles.infoLabel}>Wifi Password</span>
+                            <span className={styles.infoValue}>biendong1234</span>
+                        </div>
+
+                        <div className={styles.infoRow}>
+                            <span className={styles.infoLabel}>Hotline</span>
+                            <span className={styles.infoValue}>1900 123 456</span>
+                        </div>
+
+                        <button className={styles.closeInfoBtn} onClick={() => setShowInfoModal(false)}>
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* User Profile Modal */}
+            {showUserModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowUserModal(false)}>
+                    <div className={styles.modalCard} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3>Thông tin khách hàng</h3>
+                            <button className={styles.closeBtn} onClick={() => setShowUserModal(false)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className={styles.profileSummary}>
+                            <img
+                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                                className={styles.largeAvatar}
+                                alt="User Avatar"
+                            />
+                            <div className={styles.profileStats}>
+                                <div className={styles.rankBadgeLarge}>Gold Member</div>
+                                <div className={styles.pointsLarge}>1,250 điểm</div>
+                            </div>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Họ và tên</label>
+                            <input
+                                type="text"
+                                className={styles.formInput}
+                                value={userProfile.name}
+                                onChange={e => setUserProfile({ ...userProfile, name: e.target.value })}
+                            />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Số điện thoại</label>
+                            <input
+                                type="tel"
+                                className={styles.formInput}
+                                value={userProfile.phone}
+                                onChange={e => setUserProfile({ ...userProfile, phone: e.target.value })}
+                            />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>Email</label>
+                            <input
+                                type="email"
+                                className={styles.formInput}
+                                value={userProfile.email}
+                                onChange={e => setUserProfile({ ...userProfile, email: e.target.value })}
+                            />
+                        </div>
+
+                        <button className={styles.saveBtn} onClick={handleSaveProfile}>
+                            Lưu thay đổi
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* 2. Smart Context Banner & Member Lobby */}
+            <section className={styles.statusWidgetSection}>
+                <ContextBanner
+                    model="A"
+                    tableId="A-12"
+                    activeOrders={activeOrders}
+                />
+
+
+
+                <MemberLobby
+                    tableId="A-12"
+                    members={TABLE_MEMBERS}
+                />
+
+
+            </section>
+
+            {showAIModal && (
+                <AIOnboardingModal
+                    onComplete={handleAIComplete}
+                    onDismiss={() => setShowAIModal(false)}
+                />
+            )}
+
+
+
+            {/* NEW: Savings Combo Category Section */}
+            <section className={styles.comboSection} id="cat-combo">
+                <div className={styles.sectionHeader}>
+                    <div className={styles.titleGroup}>
+                        <h2 className={styles.sectionTitle}>Combo tiết kiệm</h2>
+                        <span className={styles.titleBadge}>HOT</span>
+                    </div>
+                </div>
+
+                {/* Filter Options */}
+                <div className={styles.filterRow}>
+                    {[
+                        { label: 'Tất cả', value: null },
+                        { label: '2 người', value: 2 },
+                        { label: '4 - 6 người', value: 4 },
+                        { label: '8 - 10 người', value: 8 }
+                    ].map(opt => (
+                        <button
+                            key={opt.label}
+                            className={`${styles.filterBtn} ${selectedPeopleCount === opt.value ? styles.active : ''}`}
+                            onClick={() => setSelectedPeopleCount(opt.value)}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div className={styles.comboScroll}>
+                    {[...COMBOS].sort((a, b) => {
+                        if (selectedPeopleCount === null) return 0;
+                        if (a.people === selectedPeopleCount && b.people !== selectedPeopleCount) return -1;
+                        if (a.people !== selectedPeopleCount && b.people === selectedPeopleCount) return 1;
+                        return 0;
+                    }).map(combo => (
+                        <div key={combo.id} className={`${styles.comboCard} ${selectedPeopleCount && combo.people !== selectedPeopleCount ? styles.dimmed : ''}`}>
+                            <div className={styles.comboImgWrapper}>
+                                <img src={combo.img} alt={combo.name} className={styles.comboImg} />
+                                <div className={styles.saveBadge}>Tiết kiệm {combo.save.toLocaleString('vi-VN')}đ</div>
+                                <div className={styles.peopleBadge}>{combo.people}{combo.people === 2 ? '' : '-' + (combo.people + 2)} người</div>
+                            </div>
+                            <div className={styles.comboInfo}>
+                                <h3 className={styles.comboName}>{combo.name}</h3>
+                                <p className={styles.comboDesc}>{combo.desc}</p>
+                                <div className={styles.comboPriceRow}>
+                                    <div className={styles.priceGroup}>
+                                        <span className={styles.comboPrice}>{combo.price.toLocaleString('vi-VN')}đ</span>
+                                        <span className={styles.comboOriginal}>{combo.originalPrice.toLocaleString('vi-VN')}đ</span>
+                                    </div>
+                                    <button className={styles.addComboBtn} onClick={() => addToCart(combo.id)}>
+                                        <Plus size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* 3. Main Menu */}
+            <div className={styles.menuSection}>
+
+                {/* AI Active Filters Bar */}
+                <FilterTagsBar
+                    tags={activeTags}
+                    onRemoveTag={handleRemoveTag}
+                    onClearAll={() => { setActiveTags([]); setAiPreferences(null); }}
+                />
+
+                {/* Menu List */}
+                <div className={styles.menuList}>
+                    {CATEGORIES.map(cat => {
+                        const items = MENU_ITEMS.filter(i => i.cat === cat.id);
+                        if (items.length === 0) return null;
+
+                        // Apply Dynamic AI Sorting
+                        const sortedItems = [...items].sort((a, b) => {
+                            const aRec = isRecommended(a);
+                            const bRec = isRecommended(b);
+                            if (aRec && !bRec) return -1;
+                            if (!aRec && bRec) return 1;
+                            return 0;
+                        });
+
+                        return (
+                            <div key={cat.id} id={`cat-${cat.id}`} className={styles.categorySection}>
+                                <div className={styles.categoryHeader}>
+                                    <h3 className={styles.categoryGroupTitle}>{cat.label}</h3>
+                                    <span className={styles.categoryCount}>{items.length} món</span>
+                                </div>
+                                <div className={styles.menuItemGrid}>
+                                    {sortedItems.map(item => {
+                                        const isRec = isRecommended(item);
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className={`${styles.menuItemCard} ${isRec ? styles.menuItemCardRecommended : ''}`}
+                                            >
+                                                <div className={styles.itemImgWrapper}>
+                                                    <img
+                                                        src={`${item.img}?w=300&h=300&fit=crop`}
+                                                        alt={item.name}
+                                                        className={styles.itemImg}
+                                                        onError={(e) => { e.currentTarget.src = DEFAULT_IMAGE; }}
+                                                    />
+                                                    {/* Quantity Control Overlay (New Design) */}
+                                                    {!cart[item.id] ? (
+                                                        <button className={styles.quickAddBtn} onClick={() => addToCart(item.id)}>
+                                                            <Plus size={18} />
+                                                        </button>
+                                                    ) : (
+                                                        <div className={styles.qtyControlOverlay}>
+                                                            <button className={styles.qtyBtnOverlay} onClick={() => removeFromCart(item.id)}>
+                                                                <Minus size={16} />
+                                                            </button>
+                                                            <span className={styles.qtyValueOverlay}>{cart[item.id]}</span>
+                                                            <button className={styles.qtyBtnOverlay} onClick={() => addToCart(item.id)}>
+                                                                <Plus size={16} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className={styles.itemInfo}>
+                                                    <div className={styles.itemHeader}>
+                                                        <div className={styles.itemNameMain}>
+                                                            <span>{item.name}</span>
+                                                            {isRecommended(item) && (
+                                                                <span className={styles.suggestBadgeMenu}>
+                                                                    <Sparkles size={12} fill="currentColor" /> Lựa chọn hoàn hảo
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Description instead of Likes */}
+                                                    <p className={styles.itemDesc}>{item.desc}</p>
+
+                                                    <div className={styles.itemFooter}>
+                                                        <div className={styles.itemPriceMain}>{item.price.toLocaleString('vi-VN')}đ</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* 4. Staff Support FAB & Active Requests Summary */}
+            <div className={`${styles.supportWrapper} ${cartTotalCount > 0 && cartTotalPrice < PROMO_THRESHOLD ? styles.supportShift : ''}`}>
+                {/* Show smart summary of active requests */}
+                {/* Legacy chat bubble removed for proper chat integration */}
+
+                <button
+                    className={`${styles.staffFab}`}
+                    onClick={() => setShowSupportMenu(true)}
+                >
+                    <div className={styles.staffIconWrapper}>
+                        <img
+                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff"
+                            alt="Staff"
+                            className={styles.staffAvatar}
+                        />
+                        <div className={styles.onlineBadge} />
+                    </div>
+                    <span className={styles.staffLabel}>Hỗ trợ</span>
+                </button>
+            </div >
+
+            {/* Chat Support Modal */}
+            {
+                showSupportMenu && (
+                    <div className={styles.chatModalOverlay} onClick={handleCloseSupportMenu}>
+                        <div className={styles.chatModalContainer} onClick={e => e.stopPropagation()}>
+                            {/* Header */}
+                            <div className={styles.chatHeader}>
+                                <div className={styles.chatHeaderTitleGroup}>
+                                    <h3 className={styles.chatTitle}>Phản hồi từ nhà hàng</h3>
+                                    <button className={styles.orderedItemsLink} onClick={() => {
+                                        setShowSupportMenu(false);
+                                        setShowTableDetailModal(true);
+                                    }}>
+                                        Các món đã gọi <ChevronRight size={14} />
+                                    </button>
+                                </div>
+                                <button className={styles.chatCloseBtn} onClick={handleCloseSupportMenu}>
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            {/* Chat Messages Body */}
+                            <div className={styles.chatBody} ref={chatScrollRef}>
+                                {chatHistory.map((msg, index) => {
+                                    if (msg.sender === 'user') {
+                                        return (
+                                            <div key={msg.id} className={styles.msgUserWrapper}>
+                                                <div className={styles.msgUserBubble}>
+                                                    <div className={styles.msgUserMeta}>
+                                                        {msg.type && <span className={styles.msgTimeType}>{msg.time} | {msg.type}</span>}
+                                                        {!msg.type && <span className={styles.msgTimeType}>{msg.time}</span>}
+                                                        <span className={styles.msgSenderName}>Bạn</span>
+                                                    </div>
+                                                    <div className={styles.msgContent}>{msg.content}</div>
+                                                </div>
+                                            </div>
+                                        )
+                                    } else {
+                                        return (
+                                            <div key={msg.id} className={styles.msgRestWrapper}>
+                                                {msg.avatar ? (
+                                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff" alt="Staff" className={styles.msgRestAvatar} />
+                                                ) : (
+                                                    <div className={styles.msgRestAvatarPlaceholder} />
+                                                )}
+                                                <div className={styles.msgRestBubble}>
+                                                    {/* Show meta only for the first message in a group from restaurant, but for simplicity always show or based on previous */}
+                                                    <div className={styles.msgRestMeta}>
+                                                        <span className={styles.msgSenderName}>Nhà hàng</span>
+                                                        <span className={styles.msgTimeType}>{msg.time}</span>
+                                                    </div>
+                                                    <div className={styles.msgContent}>{msg.content}</div>
+                                                </div>
+                                            </div>
+                                        )
+                                    }
+                                })}
+                            </div>
+
+                            {/* Options Input Footer */}
+                            <div className={styles.chatFooter}>
+                                {supportView === 'OPTIONS' ? (
+                                    <div className={styles.chatOptionsScroll}>
+                                        {SUPPORT_OPTIONS.map(opt => (
+                                            <button
+                                                key={opt.id}
+                                                className={styles.chatOptionBtn}
+                                                onClick={() => {
+                                                    if (opt.id === 'other') setSupportView('INPUT_OTHER');
+                                                    else handleSupportRequest(opt.id);
+                                                }}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className={styles.chatInputOtherRow}>
+                                        <button className={styles.chatOtherBack} onClick={() => setSupportView('OPTIONS')}>
+                                            <ArrowLeft size={20} />
+                                        </button>
+                                        <input
+                                            type="text"
+                                            className={styles.chatOtherInput}
+                                            value={otherRequestText}
+                                            onChange={(e) => setOtherRequestText(e.target.value)}
+                                            placeholder="Nhập yêu cầu khác..."
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSubmitOtherRequest();
+                                            }}
+                                        />
+                                        <button className={styles.chatOtherSendBtn} onClick={handleSubmitOtherRequest} disabled={!otherRequestText.trim()}>
+                                            Gửi
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* 5. Floating Cart Summary (Only if cart has items) */}
+            {
+                cartTotalCount > 0 && (
+                    <div className={styles.floatingCartContainer}>
+                        {/* Upsell Message */}
+                        {cartTotalPrice < PROMO_THRESHOLD && (
+                            <div className={styles.upsellMessage}>
+                                <span>
+                                    Thêm <b className={styles.highlight}>{(PROMO_THRESHOLD - cartTotalPrice).toLocaleString('vi-VN')}đ</b> để được giảm <b className={styles.highlight}>{PROMO_REWARD}</b>!
+                                </span>
+
+                            </div>
+                        )}
+
+                        {/* Main Primary Button */}
+                        <button className={styles.primaryCartBtn} onClick={() => setShowCartModal(true)}>
+                            <div className={styles.cartBtnContent}>
+                                <span className={styles.cartBtnLeft}>Giỏ hàng • {cartTotalCount} món</span>
+                                <span className={styles.cartBtnRight}>{cartTotalPrice.toLocaleString('vi-VN')}đ</span>
+                            </div>
+                        </button>
+                    </div>
+                )
+            }
+
+            {/* QUICK CART (Bottom Sheet) */}
+            {
+                showCartModal && (
+                    <div className={styles.bottomSheetOverlay} onClick={() => setShowCartModal(false)}>
+                        <div className={styles.bottomSheet} onClick={e => e.stopPropagation()}>
+                            <div className={styles.sheetHeader}>
+                                <h3>Giỏ hàng của bạn <span className={styles.sheetCount}>({cartTotalCount})</span></h3>
+                                <button className={styles.sheetCloseBtn} onClick={() => setShowCartModal(false)}>
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className={styles.sheetBody}>
+                                {cartTotalCount > 0 ? (
+                                    <>
+                                        {/* Upsell in Cart */}
+                                        {cartTotalPrice < PROMO_THRESHOLD && (
+                                            <div className={styles.cartUpsell}>
+                                                <div className={styles.upsellIcon}>🎁</div>
+                                                <span>Thêm <b>{(PROMO_THRESHOLD - cartTotalPrice).toLocaleString('vi-VN')}đ</b> để giảm <b>{PROMO_REWARD}</b></span>
+                                            </div>
+                                        )}
+
+                                        <div className={styles.sheetItemList}>
+                                            {Object.entries(cart).map(([id, qty]) => {
+                                                const item = MENU_ITEMS.find(i => i.id === Number(id));
+                                                if (!item) return null;
+                                                return (
+                                                    <div key={`quick-${id}`} className={styles.itemRowContainer}>
+                                                        <img src={`${item.img}?w=120&h=120&fit=crop`} alt={item.name} className={styles.itemThumb} />
+
+                                                        <div className={styles.itemInfoCol}>
+                                                            <div className={styles.itemNameRef}>{item.name}</div>
+                                                            {/* Mock addons for visual match */}
+                                                            {/* <div className={styles.itemAddons}>Trà Quất, Lavie</div> */}
+                                                            <button className={styles.itemEditBtn}>Chỉnh sửa</button>
+                                                        </div>
+
+                                                        <div className={styles.itemPriceCol}>
+                                                            <span className={styles.itemPriceRef}>{item.price.toLocaleString('vi-VN')}</span>
+                                                            {/* Mock original price */}
+                                                            {/* <span className={styles.itemOriginalPrice}>{(item.price * 1.2).toLocaleString('vi-VN')}</span> */}
+
+                                                            <div className={styles.qtyCircleBadge}>
+                                                                <span>{qty}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className={styles.emptySheet}>
+                                        <ShoppingBag size={40} color="#CBD5E1" />
+                                        <p>Giỏ hàng đang trống</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={styles.sheetFooter}>
+                                <div className={styles.sheetTotalRow}>
+                                    <span>Tạm tính</span>
+                                    <b>{cartTotalPrice.toLocaleString('vi-VN')}đ</b>
+                                </div>
+                                <div className={styles.sheetActions}>
+                                    <button
+                                        className={styles.viewTableBtn}
+                                        onClick={() => {
+                                            setShowTableDetailModal(true);
+                                        }}
+                                    >
+                                        <span>Giỏ hàng</span>
+                                        <span>nhóm</span>
+                                    </button>
+                                    <button
+                                        className={styles.sheetPlaceOrderBtn}
+                                        onClick={() => {
+                                            handlePlaceOrder();
+                                            setShowCartModal(false);
+                                        }}
+                                        disabled={cartTotalCount === 0}
+                                    >
+                                        Gửi gọi món <ChevronRight size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Social Notification Toast */}
+
+
+
+            {/* FULL TABLE DETAILS MODAL (Header Trigger) */}
+            {
+                showTableDetailModal && (
+                    <div className={styles.modalFullOverlay}>
+                        {/* Header */}
+                        <div className={styles.orderHeader}>
+                            <button className={styles.backBtn} onClick={() => setShowTableDetailModal(false)}>
+                                <ArrowLeft size={24} />
+                            </button>
+                            <div className={styles.headerTitleCol}>
+                                <h3>Chi tiết bàn A-12</h3>
+                                <span>4 người • {displayOrders.length > 0 ? 'Đã gọi món' : 'Chưa gọi món'}</span>
+                            </div>
+                        </div>
+
+                        <div className={styles.orderBody}>
+                            {/* 1. Member List Filter */}
+                            <div className={styles.memberListScroll}>
+                                {/* Option: All Table */}
+                                <div
+                                    className={`${styles.memberItem} ${selectedMemberId === 'all' ? styles.active : ''}`}
+                                    onClick={() => setSelectedMemberId('all')}
+                                >
+                                    <div className={`${styles.memberAvatarWrapper} ${styles.allWrapper}`}>
+                                        <Users size={20} color="#64748B" />
+                                    </div>
+                                    <span className={styles.memberName}>Cả bàn</span>
+                                </div>
+
+                                {/* Option: Me */}
+                                <div
+                                    className={`${styles.memberItem} ${selectedMemberId === 'me' ? styles.active : ''}`}
+                                    onClick={() => setSelectedMemberId('me')}
+                                >
+                                    <div className={styles.memberAvatarWrapper}>
+                                        <img
+                                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                                            alt="Tôi"
+                                            className={styles.memberAvatar}
+                                        />
+                                        <div className={styles.activeDot} />
+                                    </div>
+                                    <span className={styles.memberName}>Tôi</span>
+                                </div>
+
+                                {/* Separator */}
+                                <div className={styles.memberSeparator} />
+
+                                {/* Other Members */}
+                                {TABLE_MEMBERS.filter(m => m.id !== 'm1').map(mem => (
+                                    <div
+                                        key={mem.id}
+                                        className={`${styles.memberItem} ${selectedMemberId === mem.id ? styles.active : ''}`}
+                                        onClick={() => setSelectedMemberId(mem.id)}
+                                    >
+                                        <div className={styles.memberAvatarWrapper}>
+                                            <img src={mem.avatar} alt={mem.name} className={styles.memberAvatar} />
+                                        </div>
+                                        <span className={styles.memberName}>{mem.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* 2. Content Header */}
+                            <div className={styles.userSectionHeader}>
+                                <div className={styles.userNameBlock}>
+                                    <h1>{getSelectedMemberName()}</h1>
+                                    {/* Show status for Me or All */}
+                                    {(selectedMemberId === 'me' || selectedMemberId === 'all') && (cartTotalCount > 0 || Object.keys(MEMBER_DRAFTS).length > 0) && (
+                                        <span className={styles.statusTextOrange}>Đang chọn món</span>
+                                    )}
+                                </div>
+                                <span className={styles.totalItemBadge}>
+                                    {/* Count both drafts and confirmed */}
+                                    {displayOrders.reduce((acc, o) => acc + (o.qty || 1), 0) + (selectedMemberId === 'all' ? (cartTotalCount + Object.values(MEMBER_DRAFTS).flat().length) : (selectedMemberId === 'me' ? cartTotalCount : 0))} món
+                                </span>
+                            </div>
+
+                            {/* 3. DRAFT ITEMS (The 'Multi-User Cart' part) */}
+                            {(selectedMemberId === 'me' || selectedMemberId === 'all') && (
+                                <div className={styles.groupSection}>
+                                    <h5 className={styles.subGroupTitle}>Món đang chọn (Giỏ hàng nhóm)</h5>
+
+                                    {/* My Drafts */}
+                                    {cartTotalCount > 0 && Object.entries(cart).map(([id, qty]) => {
+                                        const item = MENU_ITEMS.find(i => i.id === Number(id));
+                                        if (!item) return null;
+                                        return (
+                                            <div key={`draft-me-${id}`} className={styles.itemRowContainer}>
+                                                <div className={styles.itemUserBadge}>Tôi</div>
+                                                <img src={`${item.img}?w=120&h=120&fit=crop`} alt={item.name} className={styles.itemThumb} />
+                                                <div className={styles.itemInfoCol}>
+                                                    <div className={styles.itemNameRef}>{item.name}</div>
+                                                    <button className={styles.itemEditBtn}>Chỉnh sửa</button>
+                                                </div>
+                                                <div className={styles.itemPriceCol}>
+                                                    <span className={styles.itemPriceRef}>{item.price.toLocaleString('vi-VN')}</span>
+                                                    <div className={styles.qtyCircleBadge}><span>{qty as number}</span></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Others Drafts (Only if 'all' is selected) */}
+                                    {selectedMemberId === 'all' && Object.entries(MEMBER_DRAFTS).map(([memId, items]) => {
+                                        const member = TABLE_MEMBERS.find(m => m.id === memId);
+                                        return items.map(dItem => {
+                                            const item = MENU_ITEMS.find(i => i.id === dItem.id);
+                                            if (!item) return null;
+                                            return (
+                                                <div key={`draft-${memId}-${dItem.id}`} className={styles.itemRowContainer}>
+                                                    <div className={styles.itemUserBadge} style={{ background: '#CBD5E1', color: '#475569' }}>
+                                                        {member?.name || 'Khách'}
+                                                    </div>
+                                                    <img src={`${item.img}?w=120&h=120&fit=crop`} alt={item.name} className={styles.itemThumb} />
+                                                    <div className={styles.itemInfoCol}>
+                                                        <div className={styles.itemNameRef}>{item.name}</div>
+                                                        <span className={styles.checkingTag}>Đang kiểm tra...</span>
+                                                    </div>
+                                                    <div className={styles.itemPriceCol}>
+                                                        <span className={styles.itemPriceRef}>{item.price.toLocaleString('vi-VN')}</span>
+                                                        <div className={styles.qtyCircleBadge}><span>{dItem.qty}</span></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        });
+                                    })}
+
+                                    {selectedMemberId === 'me' && cartTotalCount > 0 && (
+                                        <button className={styles.sendDraftBtn} onClick={() => {
+                                            handlePlaceOrder();
+                                            setShowTableDetailModal(false);
+                                        }}>
+                                            Gửi yêu cầu của tôi
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* 4. CONFIRMED ITEMS (Dynamic List) */}
+                            {displayOrders.length > 0 && (
+                                <div className={styles.groupSection}>
+                                    <h5 className={styles.subGroupTitle}>Món đã gọi</h5>
+                                    {selectedMemberId === 'all'
+                                        ? // Simple list for 'All' (aggregated)
+                                        displayOrders.map((order, idx) => (
+                                            <div key={`all-ord-${idx}`} className={styles.orderCardItem}>
+                                                <div className={styles.orderItemInfo}>
+                                                    <h4>{order.name || (MENU_ITEMS.find(i => i.id === Number(Object.keys(order.items || {})[0]))?.name)}</h4>
+                                                    <div className={styles.orderItemMeta}>
+                                                        <span className={styles.qtyBadge}>x{order.qty || Object.values(order.items || {})[0]}</span>
+                                                        <span className={styles.priceText}>{(order.price || 0).toLocaleString('vi-VN')}đ</span>
+                                                    </div>
+                                                </div>
+                                                <div className={styles.orderItemStatus}>
+                                                    <span className={`${styles.statusPill} ${styles[(order.status || 'CONFIRMED').toLowerCase()]}`}>
+                                                        {order.status || 'CONFIRMED'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                        : // Complex list for Me/Specific (grouped)
+                                        displayOrders.map(order =>
+                                            // Handle both structure types (My Orders vs Mock Orders)
+                                            order.items ? (
+                                                Object.entries(order.items).map(([id, qty]) => {
+                                                    const item = MENU_ITEMS.find(i => i.id === Number(id));
+                                                    if (!item) return null;
+                                                    return (
+                                                        <div key={`ord-${order.id}-${id}`} className={styles.orderCardItem}>
+                                                            <div className={styles.orderItemInfo}>
+                                                                <h4>{item.name}</h4>
+                                                                <div className={styles.orderItemMeta}>
+                                                                    <span className={styles.qtyBadge}>x{qty as number}</span>
+                                                                    <span className={styles.priceText}>{item.price.toLocaleString('vi-VN')}đ</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className={styles.orderItemStatus}>
+                                                                <span className={`${styles.statusPill} ${styles[order.status.toLowerCase()]}`}>
+                                                                    {order.status}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div key={`mem-ord-${order.id}`} className={styles.orderCardItem}>
+                                                    <div className={styles.orderItemInfo}>
+                                                        <h4>{order.name}</h4>
+                                                        <div className={styles.orderItemMeta}>
+                                                            <span className={styles.qtyBadge}>x{order.qty}</span>
+                                                            <span className={styles.priceText}>{order.price.toLocaleString('vi-VN')}đ</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className={styles.orderItemStatus}>
+                                                        <span className={`${styles.statusPill} ${styles[order.status.toLowerCase()]}`}>
+                                                            {order.status}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )
+                                        )
+                                    }
+                                </div>
+                            )}
+
+                            {cartTotalCount === 0 && activeOrders.length === 0 && (
+                                <div className={styles.emptyState}>
+                                    <ShoppingBag size={48} color="#CBD5E1" />
+                                    <p>Bạn chưa chọn món nào</p>
+                                </div>
+                            )}
+
+                        </div>
+
+                        {/* Footer */}
+                        <div className={styles.orderFooter}>
+                            <div className={styles.totalRow}>
+                                <span>Tổng cộng</span>
+                                <span className={styles.totalPrice}>{(cartTotalPrice + activeOrders.reduce((acc, o) => {
+                                    return acc + Object.entries(o.items || {}).reduce((sum: any, [id, qty]: any) => {
+                                        const p = MENU_ITEMS.find(i => i.id == Number(id))?.price || 0;
+                                        return sum + p * Number(qty);
+                                    }, 0);
+                                }, 0)).toLocaleString('vi-VN')}đ</span>
+                            </div>
+                            <button
+                                className="btn-footer-primary"
+                                style={{ marginTop: '1rem' }}
+                                onClick={() => setShowCartModal(true)}
+                            >
+                                Xem giỏ hàng & Thanh toán
+                            </button>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* NEW: Onboarding Guide Overlay */}
+            <OnboardingGuide
+                visible={showOnboarding}
+                onDismiss={() => setShowOnboarding(false)}
+                isShifted={cartTotalCount > 0 && cartTotalPrice < PROMO_THRESHOLD}
+            />
+        </div >
+    );
+}

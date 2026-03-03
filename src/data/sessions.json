@@ -1,0 +1,48 @@
+{
+  "s1": {
+    "userId": "u1",
+    "expires": 2772512697089,
+    "resid": "100",
+    "tableid": "99",
+    "lastActive": 2772512697089
+  },
+  "s2": {
+    "userId": "u2",
+    "expires": 2772512697089,
+    "resid": "100",
+    "tableid": "99",
+    "lastActive": 2772512697089
+  },
+  "s3": {
+    "userId": "g1",
+    "expires": 2772512697089,
+    "resid": "100",
+    "tableid": "99",
+    "lastActive": 2772512697089
+  },
+  "s4": {
+    "userId": "g2",
+    "expires": 2772512697089,
+    "resid": "100",
+    "tableid": "99",
+    "lastActive": 2772512697089
+  },
+  "4e970b5b-7b12-4575-90ba-01a509f88b06": {
+    "userId": "g_1772435996460",
+    "expires": 2772512697089,
+    "resid": "100",
+    "tableid": "A-12",
+    "lastActive": 1772506508885
+  },
+  "c03155ca-3019-4f47-b135-e4e075c0505a": {
+    "userId": "g_1772436071690",
+    "expires": 2772512697089,
+    "resid": "100",
+    "tableid": "A-12",
+    "lastActive": 1772506497254
+  },
+  "ee5407f3-5bd1-4aa3-b4ff-0bd338601230": {
+    "userId": "g_1772440321650",
+    "expires": 1772526721664
+  }
+}

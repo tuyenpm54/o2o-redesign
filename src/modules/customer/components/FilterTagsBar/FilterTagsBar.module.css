@@ -1,0 +1,94 @@
+.container {
+    width: 100%;
+    background: #ffffff;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 10;
+}
+
+.label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.tagsWrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+    flex: 1;
+}
+
+.tagsWrapper::-webkit-scrollbar {
+    display: none;
+}
+
+.tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    padding: 6px 12px;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.tagIcon {
+    color: #3b82f6;
+}
+
+.removeBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #60a5fa;
+    padding: 0;
+    margin-left: 2px;
+    cursor: pointer;
+}
+
+.removeBtn:hover {
+    color: #2563eb;
+}
+
+.clearAllBtn {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+}

@@ -1,0 +1,224 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 80px;
+}
+
+.subViewContainer {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.backBtn {
+    background: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #4b5563;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* Profile Header */
+.profileHeader {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: white;
+    padding: 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.profileHeader:active {
+    background: #f9fafb;
+}
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    background: #f3f4f6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+}
+
+.profileInfo {
+    flex: 1;
+}
+
+.userName {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 4px 0;
+}
+
+.userPhone {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.verifyBtn {
+    margin-top: 6px;
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chevron {
+    color: #d1d5db;
+}
+
+/* Groups */
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.groupTitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    margin: 0 0 4px 12px;
+}
+
+.menuItem {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: white;
+    padding: 14px 16px;
+    border-radius: 12px;
+    /* iOS style often uses connected list, but individual cards look more modern/Material here */
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.menuItem:active {
+    background: #f9fafb;
+}
+
+.iconBox {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconBox.blue {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.iconBox.green {
+    background: #ecfccb;
+    color: #65a30d;
+}
+
+.iconBox.orange {
+    background: #fff7ed;
+    color: #f97316;
+}
+
+.iconBox.purple {
+    background: #f3e8ff;
+    color: #9333ea;
+}
+
+.iconBox.teal {
+    background: #ccfbf1;
+    color: #14b8a6;
+}
+
+.iconBox.gray {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.menuItem span {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.menuChevron {
+    color: #d1d5db;
+}
+
+/* Toggle Switch Mock */
+.toggleSwitch {
+    width: 40px;
+    height: 24px;
+    background: #3b82f6;
+    border-radius: 12px;
+    position: relative;
+}
+
+.toggleKnob {
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Logout */
+.logoutBtn {
+    background: #fef2f2;
+    color: #ef4444;
+    border: none;
+    padding: 16px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.version {
+    text-align: center;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 16px;
+}

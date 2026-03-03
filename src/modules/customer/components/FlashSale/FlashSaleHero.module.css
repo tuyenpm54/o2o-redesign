@@ -1,0 +1,118 @@
+/* Hero Section */
+.hero {
+    padding: 20px;
+}
+
+.flashSaleCard {
+    background: #111827;
+    border-radius: 24px;
+    padding: 20px;
+    color: #FFFFFF;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.flashSaleHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 2;
+}
+
+.saleTitleGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.saleTag {
+    background: #D97706;
+    color: #000;
+    font-size: 9px;
+    font-weight: 900;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-transform: uppercase;
+}
+
+.saleHeading {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.timer {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.saleItems {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    position: relative;
+    z-index: 2;
+}
+
+.saleItems::-webkit-scrollbar {
+    display: none;
+}
+
+.miniCard {
+    flex-shrink: 0;
+    width: 240px;
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.miniImage {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    background: #F3F4F6;
+    object-fit: cover;
+}
+
+.miniDetails {
+    flex: 1;
+    min-width: 0;
+}
+
+.miniName {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.miniPrice {
+    font-size: 14px;
+    font-weight: 800;
+    color: #D97706;
+}
+
+.addBtn {
+    border: none;
+    background: #FDF2F2;
+    color: #B91C1C;
+    font-weight: 900;
+    padding: 6px;
+    border-radius: 8px;
+    cursor: pointer;
+}

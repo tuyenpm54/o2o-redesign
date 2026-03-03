@@ -1,0 +1,340 @@
+{
+    "r1": {
+        "categories": [
+            "Khai vị",
+            "Món chính",
+            "Món ăn kèm",
+            "Món ăn chơi",
+            "Đồ uống",
+            "Tráng miệng"
+        ],
+        "preferences": [
+            {
+                "id": "kids",
+                "label": "Có trẻ em"
+            },
+            {
+                "id": "noOnion",
+                "label": "Không ăn hành/tỏi"
+            },
+            {
+                "id": "noSeafood",
+                "label": "Dị ứng hải sản"
+            },
+            {
+                "id": "healthy",
+                "label": "Ăn thanh đạm"
+            },
+            {
+                "id": "vegetarian",
+                "label": "Đồ chay"
+            },
+            {
+                "id": "lessSpicy",
+                "label": "Ít cay"
+            }
+        ],
+        "items": [
+            {
+                "id": 101,
+                "name": "Lẩu Thuyền Chài Đặc Biệt",
+                "price": 1250000,
+                "img": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600",
+                "desc": "Hương vị biển cả với tôm hùm, cua Cà Mau và nước dùng bí truyền.",
+                "tags": [
+                    "Bán chạy",
+                    "Signature"
+                ],
+                "kidsFriendly": false,
+                "seafood": true,
+                "onionFree": false,
+                "status": "Trending",
+                "category": "Món chính"
+            }
+        ]
+    },
+    "100": {
+        "categories": [
+            "Khai vị",
+            "Món chính",
+            "Món ăn kèm",
+            "Món ăn chơi",
+            "Đồ uống",
+            "Tráng miệng"
+        ],
+        "preferences": [
+            {
+                "id": "kids",
+                "label": "Có trẻ em"
+            },
+            {
+                "id": "noOnion",
+                "label": "Không ăn hành/tỏi"
+            },
+            {
+                "id": "noSeafood",
+                "label": "Dị ứng hải sản"
+            },
+            {
+                "id": "healthy",
+                "label": "Ăn thanh đạm"
+            },
+            {
+                "id": "vegetarian",
+                "label": "Đồ chay"
+            },
+            {
+                "id": "lessSpicy",
+                "label": "Ít cay"
+            }
+        ],
+        "items": [
+            {
+                "id": 11,
+                "name": "Salad Cá Hồi",
+                "price": 185000,
+                "img": "/images/menu/salad_ca_hoi.png",
+                "desc": "Cá hồi áp chảo quyện sốt chanh leo chua ngọt, kèm rau củ hữu cơ.",
+                "tags": [
+                    "Thanh đạm",
+                    "Khai vị"
+                ],
+                "kidsFriendly": true,
+                "seafood": true,
+                "onionFree": true,
+                "status": "Healthy",
+                "category": "Khai vị"
+            },
+            {
+                "id": 12,
+                "name": "Súp Nấm Truffle",
+                "price": 250000,
+                "img": "/images/menu/sup_nam_truffle.png",
+                "desc": "Nấm truffle đen thượng hạng nấu chảy cùng nấm rơm béo ngậy.",
+                "tags": [
+                    "Thanh đạm",
+                    "Khai vị",
+                    "Signature"
+                ],
+                "kidsFriendly": false,
+                "seafood": false,
+                "onionFree": false,
+                "status": "Chef Pick",
+                "category": "Khai vị"
+            },
+            {
+                "id": 40,
+                "name": "Gỏi Cuốn Chay Cung Đình",
+                "price": 95000,
+                "img": "/images/menu/goi_cuon_chay.png",
+                "desc": "Gỏi cuốn thanh mát với nấm đùi gà xé sợi, rau thơm và nước chấm bơ đậu phộng đặc biệt.",
+                "tags": [
+                    "Đồ chay",
+                    "Thanh đạm",
+                    "Healthy"
+                ],
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Vegan",
+                "category": "Khai vị"
+            },
+            {
+                "id": 1,
+                "name": "Lẩu Thuyền Chài Đặc Biệt",
+                "price": 1250000,
+                "img": "/images/menu/lau_thuyen_chai.png",
+                "desc": "Hương vị biển cả với tôm hùm, cua Cà Mau và nước dùng bí truyền.",
+                "tags": [
+                    "Nhóm 4-6",
+                    "Hải sản",
+                    "Bán chạy"
+                ],
+                "kidsFriendly": false,
+                "seafood": true,
+                "onionFree": false,
+                "status": "Best Seller",
+                "category": "Món chính"
+            },
+            {
+                "id": 2,
+                "name": "Sườn Nướng Tảng BBQ",
+                "price": 450000,
+                "img": "/images/menu/suon_bbq.png",
+                "desc": "Sườn heo nhập khẩu nướng chậm 12h, sốt BBQ phong cách Texas đậm đà.",
+                "tags": [
+                    "Nhóm 2",
+                    "Đậm đà",
+                    "Món mới"
+                ],
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "New Arrival",
+                "category": "Món chính"
+            },
+            {
+                "id": 3,
+                "name": "Mì Ý Sốt Kem Parme",
+                "price": 85000,
+                "img": "/images/menu/mi_y_kem.png",
+                "desc": "Sợi mì thủ công hòa quyện cùng phô mai Parmesan và nấm tươi béo ngậy.",
+                "tags": [
+                    "Trẻ em",
+                    "Thanh đạm"
+                ],
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Kids Choice",
+                "category": "Món chính"
+            },
+            {
+                "id": 4,
+                "name": "Sashimi Tuyển Chọn",
+                "price": 890000,
+                "img": "/images/menu/sashimi.png",
+                "desc": "Cá hồi Na Uy, sò đỏ Nhật Bản và cá ngừ trứ danh.",
+                "tags": [
+                    "Hải sản",
+                    "Tươi sống",
+                    "Signature"
+                ],
+                "kidsFriendly": false,
+                "seafood": true,
+                "onionFree": false,
+                "status": "Chef Pick",
+                "category": "Món chính"
+            },
+            {
+                "id": 7,
+                "name": "Set Hải Sản Vương Giả",
+                "price": 2850000,
+                "img": "/images/menu/set_hai_san.png",
+                "desc": "Đại tiệc thượng hạng cho nhóm đông người với các loại hải sản cao cấp nhất.",
+                "tags": [
+                    "Nhóm 8-10",
+                    "Thượng lưu"
+                ],
+                "kidsFriendly": true,
+                "seafood": true,
+                "onionFree": false,
+                "status": "Party Set",
+                "category": "Món chính"
+            },
+            {
+                "id": 41,
+                "name": "Đậu Hũ Non Sốt Nấm Đông Cô",
+                "price": 145000,
+                "img": "/images/menu/dau_hu_non.png",
+                "desc": "Đậu hũ non mềm mịn sốt cùng nấm đông cô thơm lừng, vị mặn ngọt hài hòa, hoàn toàn không cay.",
+                "tags": [
+                    "Ít cay",
+                    "Đồ chay",
+                    "Trẻ em"
+                ],
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Family Choice",
+                "category": "Món chính"
+            },
+            {
+                "id": 5,
+                "name": "Cơm Rang Hải Sản Hoàng Kim",
+                "price": 155000,
+                "img": "/images/menu/com_rang.png",
+                "desc": "Hạt cơm tơi giòn tan, đầy ắp mực, tôm và trứng muối bùi béo.",
+                "tags": [
+                    "Hải sản",
+                    "Bán chạy"
+                ],
+                "kidsFriendly": true,
+                "seafood": true,
+                "onionFree": false,
+                "status": "Trending",
+                "category": "Món ăn kèm"
+            },
+            {
+                "id": 6,
+                "name": "Vườn Rau Củ Kho Quẹt",
+                "price": 95000,
+                "img": "/images/menu/rau_cu.png",
+                "desc": "Rau củ chuẩn Đà Lạt tươi xanh ăn liền cùng kho quẹt tôm khô.",
+                "tags": [
+                    "Thanh đạm",
+                    "Sức khỏe"
+                ],
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": false,
+                "status": "Healthy",
+                "category": "Món ăn kèm"
+            },
+            {
+                "id": 8,
+                "name": "Khoai Tây Lắc Phô Mai",
+                "price": 55000,
+                "img": "/images/menu/khoai_tay.png",
+                "desc": "Khoai tây cắt lát giòn rụm áo lớp phô mai nhập khẩu.",
+                "tags": [
+                    "Trẻ em",
+                    "Ăn chơi"
+                ],
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Snack",
+                "category": "Món ăn chơi"
+            },
+            {
+                "id": 21,
+                "name": "Trà Đào Cam Sả",
+                "price": 65000,
+                "img": "/images/menu/tra_dao.png",
+                "desc": "Thanh mát giải nhiệt, mix giữa cam tươi ngọt và sả thơm.",
+                "tags": [
+                    "Giải khát",
+                    "Trẻ em"
+                ],
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Refresh",
+                "category": "Đồ uống"
+            },
+            {
+                "id": 22,
+                "name": "Rượu Vang Đỏ Chile",
+                "price": 950000,
+                "img": "/images/menu/ruou_vang.png",
+                "desc": "Vang đỏ đậm đà cực kỳ phù hợp khi dùng chung với beefsteak, sườn BBQ.",
+                "tags": [
+                    "Đậm đà",
+                    "Hẹn hò"
+                ],
+                "kidsFriendly": false,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Best Pairing",
+                "category": "Đồ uống"
+            },
+            {
+                "id": 31,
+                "name": "Panna Cotta Dâu Rừng",
+                "price": 45000,
+                "img": "/images/menu/panna_cotta.png",
+                "desc": "Kem panna cotta mềm mịn tan chảy cùng sốt dâu rừng chua nhẹ.",
+                "tags": [
+                    "Trẻ em",
+                    "Tráng miệng"
+                ],
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Dessert",
+                "category": "Tráng miệng"
+            }
+        ]
+    }
+}

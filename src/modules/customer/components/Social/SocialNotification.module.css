@@ -1,0 +1,56 @@
+.notification {
+    position: fixed;
+    bottom: 100px;
+    /* Above bottom sheet/cart */
+    left: 20px;
+    z-index: 90;
+    pointer-events: none;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.toast {
+    background: rgba(17, 24, 39, 0.85);
+    /* Dark semi-transparent */
+    backdrop-filter: blur(8px);
+    border-radius: 50px;
+    padding: 8px 16px 8px 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #374151;
+}
+
+.toastText {
+    color: #F3F4F6;
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.2;
+    font-weight: 500;
+}
+
+.userName {
+    color: #FBBF24;
+    /* Amber/Gold for visibility */
+    font-weight: 700;
+}
