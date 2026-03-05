@@ -161,6 +161,46 @@
         "qty": 1,
         "status": "Chờ xác nhận",
         "timestamp": 1772692282565
+      },
+      {
+        "id": "o_1772694682051_wki8v",
+        "name": "Salad Cá Hồi",
+        "price": 185000,
+        "qty": 1,
+        "status": "Đã phục vụ",
+        "timestamp": 1772694682051
+      },
+      {
+        "id": "o_1772694682051_aj7bb",
+        "name": "Cơm Rang Hải Sản Hoàng Kim",
+        "price": 155000,
+        "qty": 1,
+        "status": "Đã phục vụ",
+        "timestamp": 1772694682051
+      },
+      {
+        "id": "o_1772694682051_s68l7",
+        "name": "Khoai Tây Lắc Phô Mai",
+        "price": 55000,
+        "qty": 1,
+        "status": "Đã phục vụ",
+        "timestamp": 1772694682051
+      },
+      {
+        "id": "o_1772694682051_6c5a0",
+        "name": "Trà Đào Cam Sả",
+        "price": 65000,
+        "qty": 1,
+        "status": "Đã phục vụ",
+        "timestamp": 1772694682051
+      },
+      {
+        "id": "o_1772694682051_6cvt4",
+        "name": "Panna Cotta Dâu Rừng",
+        "price": 45000,
+        "qty": 1,
+        "status": "Đã phục vụ",
+        "timestamp": 1772694682051
       }
     ]
   }

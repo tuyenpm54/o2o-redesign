@@ -114,16 +114,16 @@ export async function POST(request: Request) {
         };
 
         // Step 1: CONFIRMED
-        updateRound("Đã xác nhận", `Nhân viên đã xác nhận lượt gọi đồ cho bàn ${tableid}.`, 6000);
+        updateRound("Đã xác nhận", `Các món bạn gọi đã được xác nhận.`, 6000);
 
         // Step 2: COOKING
-        updateRound("Đang chế biến", `Lượt gọi đồ có món "${firstItemName}" đang được chuẩn bị trong bếp.`, 13000);
+        updateRound("Đang chế biến", `Các món bạn gọi đang được bếp chuẩn bị.`, 13000);
 
         // Step 3: READY
-        updateRound("Chờ phục vụ", `Món "${firstItemName}" đã làm xong, đang chờ nhân viên mang ra.`, 20000);
+        updateRound("Chờ phục vụ", `Các món bạn gọi đã làm xong, đang chờ nhân viên mang ra.`, 20000);
 
         // Step 4: SERVED
-        updateRound("Đã phục vụ", `Nhân viên đã mang ra, hoàn thành lượt gọi đồ cho món "${firstItemName}". Chúc bạn ngon miệng! 🎉`, 27000);
+        updateRound("Đã phục vụ", `Các món bạn gọi đã được phục vụ hoàn tất. Chúc bạn ngon miệng! 🎉`, 27000);
 
         return NextResponse.json({ success: true, orders: userOrders.items });
     } catch (e) {

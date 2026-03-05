@@ -74,7 +74,7 @@ function MemberLobbyLocal({ members }: any) {
   );
 }
 
-export default function DiscoveryPage() {
+function DiscoveryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resid = searchParams.get("resid");
@@ -648,5 +648,17 @@ export default function DiscoveryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function DiscoveryPage() {
+  return (
+    <Suspense fallback={
+      <div className={styles.loadingContainer}>
+        <div className={styles.loaderPill}><div className={styles.loaderDot}></div><span>Đang tải...</span></div>
+      </div>
+    }>
+      <DiscoveryPageContent />
+    </Suspense>
   );
 }

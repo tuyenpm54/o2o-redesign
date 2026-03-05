@@ -659,5 +659,94 @@
     "timestamp": 1772692282717,
     "type": "Gọi món",
     "content": "Yêu cầu gọi món đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận."
+  },
+  {
+    "id": "msg-1772693549589",
+    "userId": "g_1772614496429",
+    "resid": "100",
+    "tableid": "B-99",
+    "sender": "user",
+    "time": "13:52",
+    "timestamp": 1772693549598,
+    "type": "SUPPORT",
+    "typeId": "cutlery",
+    "content": "Lấy thêm bát đũa"
+  },
+  {
+    "id": "msg-1772693551108-684",
+    "userId": "g_1772614496429",
+    "resid": "100",
+    "tableid": "B-99",
+    "sender": "restaurant",
+    "time": "13:52",
+    "timestamp": 1772693551108,
+    "type": "WAITING",
+    "content": "Yêu cầu của bạn đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận"
+  },
+  {
+    "id": "msg-1772693556265-913",
+    "userId": "g_1772614496429",
+    "resid": "100",
+    "tableid": "B-99",
+    "sender": "restaurant",
+    "time": "13:52",
+    "timestamp": 1772693556265,
+    "type": "CONFIRMATION",
+    "content": "Nhân viên đã nhận được yêu cầu của bạn và đang xử lý"
+  },
+  {
+    "id": "msg-1772694682054-25",
+    "userId": "g_1772614496429",
+    "resid": "100",
+    "tableid": "B-99",
+    "sender": "restaurant",
+    "time": "14:11",
+    "timestamp": 1772694682054,
+    "type": "Gọi món",
+    "content": "Yêu cầu gọi món đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận."
+  },
+  {
+    "id": "msg-1772694688059-269",
+    "userId": "g_1772614496429",
+    "resid": "100",
+    "tableid": "B-99",
+    "sender": "restaurant",
+    "time": "14:11",
+    "timestamp": 1772694688059,
+    "type": "Gọi món",
+    "content": "Nhân viên đã xác nhận lượt gọi đồ cho bàn B-99."
+  },
+  {
+    "id": "msg-1772694695059-236",
+    "userId": "g_1772614496429",
+    "resid": "100",
+    "tableid": "B-99",
+    "sender": "restaurant",
+    "time": "14:11",
+    "timestamp": 1772694695059,
+    "type": "Gọi món",
+    "content": "Lượt gọi đồ có món \"Salad Cá Hồi\" đang được chuẩn bị trong bếp."
+  },
+  {
+    "id": "msg-1772694702060-100",
+    "userId": "g_1772614496429",
+    "resid": "100",
+    "tableid": "B-99",
+    "sender": "restaurant",
+    "time": "14:11",
+    "timestamp": 1772694702060,
+    "type": "Gọi món",
+    "content": "Món \"Salad Cá Hồi\" đã làm xong, đang chờ nhân viên mang ra."
+  },
+  {
+    "id": "msg-1772694709060-323",
+    "userId": "g_1772614496429",
+    "resid": "100",
+    "tableid": "B-99",
+    "sender": "restaurant",
+    "time": "14:11",
+    "timestamp": 1772694709060,
+    "type": "Gọi món",
+    "content": "Nhân viên đã mang ra, hoàn thành lượt gọi đồ cho món \"Salad Cá Hồi\". Chúc bạn ngon miệng! 🎉"
   }
 ]

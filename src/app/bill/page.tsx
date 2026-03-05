@@ -15,7 +15,7 @@ const MOCK_VOUCHERS = [
 import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 
-export default function BillPage() {
+function BillContent() {
     const searchParams = useSearchParams();
     const { t, language } = useLanguage();
     const resid = searchParams.get('resid') || '100';
@@ -355,6 +355,14 @@ export default function BillPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function BillPage() {
+    return (
+        <React.Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}><Loader2 className="animate-spin" /></div>}>
+            <BillContent />
+        </React.Suspense>
     );
 }
 

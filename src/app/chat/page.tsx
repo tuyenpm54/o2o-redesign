@@ -32,7 +32,7 @@ const SUPPORT_OPTIONS = [
     { id: 'other', label: 'Yêu cầu khác', icon: <MoreHorizontal size={20} /> },
 ];
 
-export default function ChatPage() {
+function ChatContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { t, language } = useLanguage();
@@ -177,5 +177,13 @@ export default function ChatPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function ChatPage() {
+    return (
+        <React.Suspense fallback={<div className={styles.chatPageContainer}><div className={styles.chatHeader}></div><div className={styles.chatBody}></div></div>}>
+            <ChatContent />
+        </React.Suspense>
     );
 }
