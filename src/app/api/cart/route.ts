@@ -3,17 +3,18 @@ import { cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
 
+import { getDb } from '@/lib/db';
+
 async function getAuthenticatedUser() {
     const cookieStore = await cookies();
     const sessionId = cookieStore.get('session_id')?.value;
     if (!sessionId) return null;
 
-    const sessionsPath = path.join(process.cwd(), 'src/data/sessions.json');
-    const sessions = JSON.parse(fs.readFileSync(sessionsPath, 'utf8'));
-    const session = sessions[sessionId];
+    const db = await getDb();
+    const session = await db.get('SELECT * FROM sessions WHERE id = ?', [sessionId]);
     if (!session || session.expires < Date.now()) return null;
 
-    return session.userId;
+    return session.user_id;
 }
 
 export async function GET(request: Request) {

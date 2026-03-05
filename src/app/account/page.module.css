@@ -67,3 +67,27 @@
     max-width: 600px;
     margin: 0 auto;
 }
+.personalInfoView {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.logoutBtn {
+    background: #fff1f2;
+    color: #e11d48;
+    border: 1px solid #ffe4e6;
+    padding: 18px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 800;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 12px;
+}
+
+.logoutBtn:hover {
+    background: #ffe4e6;
+    transform: scale(0.98);
+}

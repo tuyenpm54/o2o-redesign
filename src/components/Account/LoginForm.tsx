@@ -6,8 +6,8 @@ import styles from './LoginForm.module.css';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
-export const LoginForm = () => {
-    const { login, loginAsGuest } = useAuth();
+export const LoginForm = ({ from = '/' }: { from?: string }) => {
+    const { login, loginAsGuest, isGuest } = useAuth();
     const router = useRouter();
     const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
     const [phone, setPhone] = useState('');
@@ -34,7 +34,13 @@ export const LoginForm = () => {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <button className={styles.backBtn} onClick={() => router.back()}>
+                <button className={styles.backBtn} onClick={() => {
+                    if (from && from !== '/') {
+                        router.push(from);
+                    } else {
+                        router.back();
+                    }
+                }}>
                     <ArrowLeft size={24} color="#1F2937" />
                 </button>
                 <h1 className={styles.title}>Đăng nhập</h1>
@@ -71,9 +77,18 @@ export const LoginForm = () => {
                                 <span>Hoặc</span>
                             </div>
 
-                            <button className={styles.guestBtn} onClick={handleGuestLogin}>
-                                Tiếp tục với vai trò Khách
-                            </button>
+                            {isGuest ? (
+                                <button className={styles.guestBtn} onClick={() => {
+                                    if (from && from !== '/') router.push(from);
+                                    else router.back();
+                                }}>
+                                    Tiếp tục dùng quyền Khách
+                                </button>
+                            ) : (
+                                <button className={styles.guestBtn} onClick={handleGuestLogin}>
+                                    Tiếp tục với vai trò Khách
+                                </button>
+                            )}
                         </>
                     ) : (
                         <>

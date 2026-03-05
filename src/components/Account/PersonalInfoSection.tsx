@@ -56,7 +56,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ userDa
 
             <div className={styles.grid}>
                 {/* Name */}
-                <div className={styles.item}>
+                <div className={`${styles.item} ${isEditing ? styles.editMode : ''}`}>
                     <div className={styles.iconWrapper}>
                         <User size={20} />
                     </div>
@@ -67,6 +67,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ userDa
                                 className={styles.input}
                                 value={formData.name}
                                 onChange={(e) => handleChange('name', e.target.value)}
+                                autoFocus
                             />
                         ) : (
                             <div className={styles.value}>{userData.name}</div>
@@ -75,7 +76,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ userDa
                 </div>
 
                 {/* Gender */}
-                <div className={styles.item}>
+                <div className={`${styles.item} ${isEditing ? styles.editMode : ''}`}>
                     <div className={styles.iconWrapper}>
                         <UserCircle2 size={20} />
                     </div>
@@ -98,7 +99,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ userDa
                 </div>
 
                 {/* DOB */}
-                <div className={styles.item}>
+                <div className={`${styles.item} ${isEditing ? styles.editMode : ''}`}>
                     <div className={styles.iconWrapper}>
                         <Calendar size={20} />
                     </div>
@@ -119,7 +120,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ userDa
                 </div>
 
                 {/* Phone */}
-                <div className={styles.item}>
+                <div className={`${styles.item} ${isEditing ? styles.editMode : ''}`}>
                     <div className={styles.iconWrapper}>
                         <Phone size={20} />
                     </div>
@@ -138,20 +139,21 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ userDa
                 </div>
 
                 {/* Email */}
-                <div className={styles.item}>
+                <div className={`${styles.item} ${isEditing ? styles.editMode : ''}`}>
                     <div className={styles.iconWrapper}>
                         <Mail size={20} />
                     </div>
                     <div className={styles.content}>
-                        <label className={styles.label}>Email</label>
+                        <label className={styles.label}>Email (Tùy chọn)</label>
                         {isEditing ? (
                             <input
                                 className={styles.input}
                                 value={formData.email}
+                                placeholder="Chưa cập nhật"
                                 onChange={(e) => handleChange('email', e.target.value)}
                             />
                         ) : (
-                            <div className={styles.value}>{userData.email}</div>
+                            <div className={styles.value}>{userData.email || 'Chưa cập nhật'}</div>
                         )}
                     </div>
                 </div>

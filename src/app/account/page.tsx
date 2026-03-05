@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { MOCK_ROUNDS } from '@/data/mock-order-history';
 import styles from './page.module.css';
-import { UserData } from '@/components/Account/PersonalInfoSection';
+import { PersonalInfoSection, UserData } from '@/components/Account/PersonalInfoSection';
 import { AccountOverview } from '@/components/Account/AccountOverview';
 import { useAuth } from '@/context/AuthContext';
 import { LoginForm } from '@/components/Account/LoginForm';
@@ -31,7 +31,8 @@ const UserAccountContent = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const from = searchParams.get('from') || '/';
-    const { isLoggedIn, user, logout } = useAuth();
+    const { isLoggedIn, isGuest, user, logout } = useAuth();
+    const [view, setView] = useState<'OVERVIEW' | 'PERSONAL_INFO'>('OVERVIEW');
 
     // Mapped Data from Context
     const [userData, setUserData] = useState<UserData & { points: number, tier: string }>({
@@ -71,8 +72,25 @@ const UserAccountContent = () => {
         router.push('/order-history/rounds');
     };
 
-    if (!isLoggedIn) {
-        return <LoginForm />;
+    const handleUpdateProfile = (newData: UserData) => {
+        setUserData(prev => ({ ...prev, ...newData }));
+    };
+
+    const handleBack = () => {
+        if (view === 'PERSONAL_INFO') {
+            setView('OVERVIEW');
+        } else {
+            if (from && from !== '/') {
+                router.push(from);
+            } else {
+                router.back();
+            }
+        }
+    };
+
+    // If not logged in or is still a guest, show login form
+    if (!isLoggedIn || isGuest) {
+        return <LoginForm from={from} />;
     }
 
     // Define TOP_REWARDS_MOCK based on existing membershipData for consistency
@@ -83,23 +101,36 @@ const UserAccountContent = () => {
             {/* Header */}
             <header className={styles.header}>
                 <div className={styles.headerTop}>
-                    <button className={styles.backBtn} onClick={() => router.push(from)}>
+                    <button className={styles.backBtn} onClick={handleBack}>
                         <ChevronLeft size={24} />
                     </button>
-                    <h1 className={styles.pageTitle}>Tài khoản</h1>
+                    <h1 className={styles.pageTitle}>
+                        {view === 'PERSONAL_INFO' ? 'Thông tin cá nhân' : 'Tài khoản'}
+                    </h1>
                 </div>
             </header>
 
             <main className={styles.main}>
-                <AccountOverview
-                    userData={userData}
-                    nextTierPoints={2000} // Mock
-                    topRewards={TOP_REWARDS_MOCK}
-                    recentOrders={recentOrders}
-                    onNavigateToVouchers={() => router.push('/account/vouchers')}
-                    onNavigateToSettings={() => router.push('/account/settings')}
-                    onNavigateToHistory={handleNavigateToHistory}
-                />
+                {view === 'PERSONAL_INFO' ? (
+                    <div className={styles.personalInfoView}>
+                        <PersonalInfoSection
+                            userData={userData}
+                            onUpdate={handleUpdateProfile}
+                        />
+                        <button className={styles.logoutBtn} onClick={() => { logout(); router.push('/account'); }}> Đăng xuất </button>
+                    </div>
+                ) : (
+                    <AccountOverview
+                        userData={userData}
+                        nextTierPoints={2000} // Mock
+                        topRewards={TOP_REWARDS_MOCK}
+                        recentOrders={recentOrders}
+                        onNavigateToVouchers={() => router.push('/account/vouchers')}
+                        onNavigateToSettings={() => router.push('/account/settings')}
+                        onNavigateToHistory={handleNavigateToHistory}
+                        onNavigateToPersonalInfo={() => setView('PERSONAL_INFO')}
+                    />
+                )}
             </main>
         </div>
     );

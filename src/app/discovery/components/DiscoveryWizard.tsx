@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, ArrowRight, Settings, ChefHat, ShoppingBag, Send } from "lucide-react";
+import { Sparkles, ArrowRight, Settings, ChefHat, ShoppingBag, Send, ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "../page.module.css";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -301,8 +301,10 @@ export function DiscoveryWizard({
                                     <button
                                         className={styles.backBtnOnboarding}
                                         onClick={() => setOnboardingStep((prev) => Math.max(0, prev - 1))}
-                                        style={{ opacity: onboardingStep > 0 ? 1 : 0, pointerEvents: onboardingStep > 0 ? 'auto' : 'none' }}
-                                    >{t('Quay lại')}</button>
+                                        style={{ opacity: onboardingStep > 0 ? 1 : 0, pointerEvents: onboardingStep > 0 ? 'auto' : 'none', minWidth: 'auto', padding: '0 12px' }}
+                                    >
+                                        <ChevronLeft size={24} />
+                                    </button>
 
                                     <button
                                         className={`${styles.onboardingCartBtn} ${cartPulse ? styles.shaking : ""} ${onboardingStep === categories.length ? styles.expandedCart : ""} ${onboardingStep > categories.length ? styles.confirmOrderBtn : ""}`}
@@ -324,6 +326,7 @@ export function DiscoveryWizard({
                                     {onboardingStep < categories.length && (
                                         <button className={styles.cartActionBtn} onClick={handleNextOnboarding}>
                                             <span className={styles.btnNextText}>{categories[onboardingStep].toUpperCase()}</span>
+                                            <ChevronRight size={18} />
                                         </button>
                                     )}
                                 </div>

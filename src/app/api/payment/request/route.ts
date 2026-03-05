@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
+import { getDb } from '@/lib/db';
 
-const sessionsPath = path.join(process.cwd(), 'src/data/sessions.json');
 const messagesPath = path.join(process.cwd(), 'src/data/messages.json');
 const cartsPath = path.join(process.cwd(), 'src/data/carts.json');
 const ordersPath = path.join(process.cwd(), 'src/data/orders.json');
@@ -13,19 +13,21 @@ async function getAuthenticatedUser() {
     const sessionId = cookieStore.get('session_id')?.value;
     if (!sessionId) return null;
 
-    if (!fs.existsSync(sessionsPath)) return null;
-    const sessions = JSON.parse(fs.readFileSync(sessionsPath, 'utf8'));
-    const session = sessions[sessionId];
+    const db = await getDb();
+    const session = await db.get('SELECT * FROM sessions WHERE id = ?', [sessionId]);
     if (!session || session.expires < Date.now()) return null;
 
-    return { sessionId, userId: session.userId, tableid: session.tableid, resid: session.resid };
+    return { sessionId, userId: session.user_id, tableid: session.tableid, resid: session.resid };
 }
 
-export async function POST() {
+export async function POST(request: Request) {
     const auth = await getAuthenticatedUser();
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     try {
+        const { lang } = await request.json() || { lang: 'vi' };
+        const isEn = lang === 'en';
+
         const messages = fs.existsSync(messagesPath) ? JSON.parse(fs.readFileSync(messagesPath, 'utf8')) : [];
         const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
         const now = Date.now();
@@ -39,8 +41,8 @@ export async function POST() {
             sender: 'user',
             time: timeStr,
             timestamp: now,
-            type: 'Yêu cầu thanh toán',
-            content: 'Yêu cầu thanh toán'
+            type: 'PAYMENT', // Tech ID
+            content: isEn ? 'Payment request' : 'Yêu cầu thanh toán'
         });
 
         // 2. Restaurant auto-confirm after a short delay (simulated inline)
@@ -53,8 +55,10 @@ export async function POST() {
             sender: 'restaurant',
             time: confirmTime,
             timestamp: now + 5000,
-            type: 'Thanh toán',
-            content: 'Nhân viên đã xác nhận yêu cầu thanh toán và đang ra hỗ trợ bạn. Vui lòng chờ tại bàn nhé!'
+            type: 'PAYMENT', // Tech ID
+            content: isEn
+                ? 'Staff have confirmed your payment request and are on their way. Please wait at the table!'
+                : 'Nhân viên đã xác nhận yêu cầu thanh toán và đang ra hỗ trợ bạn. Vui lòng chờ tại bàn nhé!'
         });
 
         fs.writeFileSync(messagesPath, JSON.stringify(messages, null, 2));
@@ -77,7 +81,6 @@ export async function POST() {
                     fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2));
                 }
 
-                // Add a closing message
                 const msgs = fs.existsSync(messagesPath) ? JSON.parse(fs.readFileSync(messagesPath, 'utf8')) : [];
                 const closeTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                 msgs.push({
@@ -88,12 +91,12 @@ export async function POST() {
                     sender: 'restaurant',
                     time: closeTime,
                     timestamp: Date.now(),
-                    type: 'Hệ thống',
-                    content: 'Phiên ăn uống đã kết thúc. Cảm ơn bạn đã sử dụng dịch vụ! Chúc bạn một ngày tốt lành. 🎉'
+                    type: 'SYSTEM', // Tech ID
+                    content: isEn
+                        ? 'Dining session has ended. Thank you for using our service! Have a great day. 🎉'
+                        : 'Phiên ăn uống đã kết thúc. Cảm ơn bạn đã sử dụng dịch vụ! Chúc bạn một ngày tốt lành. 🎉'
                 });
                 fs.writeFileSync(messagesPath, JSON.stringify(msgs, null, 2));
-
-                console.log(`[Payment] Table ${auth.tableid} closed. Cart & orders cleared for user ${auth.userId}`);
             } catch (e) {
                 console.error('[Payment] Failed to close table:', e);
             }
@@ -101,7 +104,7 @@ export async function POST() {
 
         return NextResponse.json({
             success: true,
-            message: 'Yêu cầu thanh toán đã được gửi'
+            message: isEn ? 'Payment request sent' : 'Yêu cầu thanh toán đã được gửi'
         });
     } catch (e) {
         console.error('Payment request failed:', e);

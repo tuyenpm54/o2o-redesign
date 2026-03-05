@@ -1,0 +1,65 @@
+[
+    {
+        "itemId": 3,
+        "name": "Lẩu Thuyền Chài Đặc Biệt",
+        "recommendedPairings": [
+            {
+                "targetId": 101,
+                "name": "Bia Tháp Tươi",
+                "percentage": 85
+            },
+            {
+                "targetId": 7,
+                "name": "Cơm Rang Hải Sản Hoàng Kim",
+                "percentage": 70
+            },
+            {
+                "targetId": 8,
+                "name": "Ngô Chiên Bơ Tỏi",
+                "percentage": 65
+            },
+            {
+                "targetId": 10,
+                "name": "Rau Muống Xào Tỏi",
+                "percentage": 60
+            }
+        ]
+    },
+    {
+        "itemId": 4,
+        "name": "Sườn Nướng Tảng BBQ",
+        "recommendedPairings": [
+            {
+                "targetId": 102,
+                "name": "Coca-Cola Lạnh",
+                "percentage": 90
+            },
+            {
+                "targetId": 9,
+                "name": "Khoai Tây Chiên Lắc Phô Mai",
+                "percentage": 75
+            },
+            {
+                "targetId": 6,
+                "name": "Gỏi Đu Đủ Tai Heo",
+                "percentage": 55
+            }
+        ]
+    },
+    {
+        "itemId": 5,
+        "name": "Cá Tầm Nướng Muối Ớt",
+        "recommendedPairings": [
+            {
+                "targetId": 101,
+                "name": "Bia Tháp Tươi",
+                "percentage": 80
+            },
+            {
+                "targetId": 11,
+                "name": "Nấm Kim Châm Hấp Tỏi",
+                "percentage": 65
+            }
+        ]
+    }
+]

@@ -26,6 +26,37 @@ function TableOrdersContent() {
     const [selectedMemberId, setSelectedMemberId] = useState<'me' | 'all' | string>('me');
     const [members, setMembers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [unreadChatCount, setUnreadChatCount] = useState(0);
+    const [lastUnreadMsg, setLastUnreadMsg] = useState<string | null>(null);
+    const lastChatCheckRef = React.useRef<number>(Date.now() - 5000); // Check slightly in past to catch current order msg
+
+    // Poll for unread chat messages
+    useEffect(() => {
+        const checkUnread = async () => {
+            try {
+                const res = await fetch('/api/chat');
+                if (res.ok) {
+                    const msgs = await res.json();
+                    const restaurantMsgs = msgs.filter((m: any) =>
+                        m.sender === 'restaurant' &&
+                        m.timestamp &&
+                        m.timestamp > lastChatCheckRef.current
+                    );
+                    if (restaurantMsgs.length > 0) {
+                        setUnreadChatCount(prev => prev + restaurantMsgs.length);
+                        setLastUnreadMsg(restaurantMsgs[restaurantMsgs.length - 1].content);
+                        lastChatCheckRef.current = Date.now();
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to check unread chat:", err);
+            }
+        };
+
+        const interval = setInterval(checkUnread, 5000);
+        checkUnread(); // Initial check
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -306,6 +337,24 @@ function TableOrdersContent() {
                     </button>
                 </div>
             )}
+
+            <div className={styles.fabSupportWrapper}>
+                {unreadChatCount > 0 && lastUnreadMsg && (
+                    <div className={styles.supportBubble}>
+                        {lastUnreadMsg}
+                    </div>
+                )}
+                <button className={styles.fabSupportPill} onClick={() => { setUnreadChatCount(0); setLastUnreadMsg(null); lastChatCheckRef.current = Date.now(); router.push(`/chat?from=${encodeURIComponent(`/table-orders?resid=${resid}&tableid=${tableid}&from=${fromPath}`)}`); }}>
+                    <div className={styles.staffAvatarWrapper}>
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff&backgroundColor=ffdfbf" className={styles.staffAvatarMini} alt="Staff" />
+                        <div className={styles.onlineDot}></div>
+                    </div>
+                    <span className={styles.supportText}>{t('Hỗ trợ')}</span>
+                    {unreadChatCount > 0 && (
+                        <span className={styles.chatUnreadBadge}>{unreadChatCount}</span>
+                    )}
+                </button>
+            </div>
         </div>
     );
 }

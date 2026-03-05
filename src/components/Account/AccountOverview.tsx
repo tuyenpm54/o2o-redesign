@@ -1,6 +1,7 @@
 import React from 'react';
-import { Award, ChevronRight, Gift, History, Ticket, Settings } from 'lucide-react';
+import { Award, ChevronRight, Gift, History, Ticket, Settings, UserCircle2 } from 'lucide-react';
 import styles from './AccountOverview.module.css';
+import { UserData } from './PersonalInfoSection';
 
 // Reusing types from other components for consistency
 interface Reward {
@@ -20,8 +21,7 @@ interface RecentOrder {
 }
 
 interface AccountOverviewProps {
-    userData: {
-        name: string;
+    userData: UserData & {
         points: number;
         tier: string;
     };
@@ -30,8 +30,8 @@ interface AccountOverviewProps {
     recentOrders?: RecentOrder[];
     onNavigateToVouchers: () => void;
     onNavigateToSettings: () => void;
-    onNavigateToHistory: () => void; // Keep for internal history list if needed, or remove? Keeping for backwards compat inside list if needed, but not used in header button anymore.
-    // Actually, checking usage I see it's also used in recentOrder. But user wants specific change.
+    onNavigateToHistory: () => void;
+    onNavigateToPersonalInfo: () => void;
 }
 
 export const AccountOverview: React.FC<AccountOverviewProps> = ({
@@ -41,12 +41,27 @@ export const AccountOverview: React.FC<AccountOverviewProps> = ({
     recentOrders = [],
     onNavigateToVouchers,
     onNavigateToSettings,
-    onNavigateToHistory
+    onNavigateToHistory,
+    onNavigateToPersonalInfo
 }) => {
     const progress = Math.min((userData.points / nextTierPoints) * 100, 100);
 
     return (
         <div className={styles.container}>
+            {/* 0. Profile Header (New - Moved from Settings) */}
+            <div className={styles.profileHeader} onClick={onNavigateToPersonalInfo}>
+                <div className={styles.avatar}>
+                    <div className={styles.avatarInner}>
+                        <UserCircle2 size={36} />
+                    </div>
+                </div>
+                <div className={styles.profileInfo}>
+                    <h3 className={styles.userName}>{userData.name || 'Khách hàng mới'}</h3>
+                    <p className={styles.userPhone}>{userData.phone || 'Chưa cập nhật SĐT'}</p>
+                </div>
+                <ChevronRight size={20} className={styles.chevron} />
+            </div>
+
             {/* 1. Member Card */}
             <div className={styles.memberCard}>
                 <div className={styles.cardBg} />
@@ -80,20 +95,40 @@ export const AccountOverview: React.FC<AccountOverviewProps> = ({
                 <p className={styles.progressNote}>Còn <strong>{nextTierPoints - userData.points} điểm</strong> để lên hạng Vàng</p>
             </div>
 
-            {/* 3. Quick Actions */}
+            {/* 3. Account Group */}
+            <div className={styles.groupSection}>
+                <h4 className={styles.groupTitle}>TÀI KHOẢN</h4>
+                <div className={styles.groupCard}>
+                    <div className={styles.menuItem} onClick={onNavigateToPersonalInfo}>
+                        <div className={`${styles.iconBox} ${styles.blue}`}>
+                            <Award size={20} />
+                        </div>
+                        <span className={styles.menuLabel}>Thông tin cá nhân</span>
+                        <ChevronRight size={16} className={styles.menuChevron} />
+                    </div>
+                    <div className={styles.menuItem} onClick={onNavigateToSettings}>
+                        <div className={`${styles.iconBox} ${styles.gray}`}>
+                            <Settings size={20} />
+                        </div>
+                        <span className={styles.menuLabel}>Cài đặt tài khoản & Ứng dụng</span>
+                        <ChevronRight size={16} className={styles.menuChevron} />
+                    </div>
+                </div>
+            </div>
+
+            {/* 4. Quick Actions */}
             <div className={styles.quickActions}>
                 <button className={styles.actionBtn} onClick={onNavigateToVouchers}>
-                    <div className={`${styles.actionIcon} ${styles.blue}`}>
+                    <div className={`${styles.actionIcon} ${styles.pink}`}>
                         <Ticket size={24} />
                     </div>
                     <span>Voucher của tôi</span>
-
                 </button>
-                <button className={styles.actionBtn} onClick={onNavigateToSettings}>
-                    <div className={`${styles.actionIcon} ${styles.orange}`}>
-                        <Settings size={24} />
+                <button className={styles.actionBtn} onClick={onNavigateToHistory}>
+                    <div className={`${styles.actionIcon} ${styles.teal}`}>
+                        <History size={24} />
                     </div>
-                    <span>Cài đặt</span>
+                    <span>Lịch sử đặt món</span>
                 </button>
             </div>
 

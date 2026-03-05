@@ -1,14 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Sparkles,
   ChevronRight,
   Plus,
   ShoppingBag,
+  UserIcon,
   Users,
   X,
+  Wallet,
+  MoreHorizontal,
+  Check
 } from "lucide-react";
 import styles from "./page.module.css";
 import { useAuth } from '@/context/AuthContext';
@@ -20,6 +24,7 @@ import { DiscoveryFooter } from "./components/DiscoveryFooter";
 import { ItemDetailModal } from "./components/ItemDetailModal";
 import { CartDrawer } from "./components/CartDrawer";
 import { DiscoveryWizard } from "./components/DiscoveryWizard";
+import pairingsData from "@/data/pairings.json";
 
 const BanIcon = ({ size, color = "currentColor" }: any) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -97,8 +102,90 @@ export default function DiscoveryPage() {
   const [activeCategory, setActiveCategory] = useState("");
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [lastUnreadMsg, setLastUnreadMsg] = useState<string | null>(null);
   const membersRef = useRef<any[]>([]);
-  const lastChatCheckRef = useRef<number>(Date.now());
+  const lastChatCheckRef = useRef<number>(Date.now() - 5000); // 5s buffer to catch initial messages
+  const acknowledgedCollisions = useRef<Set<string>>(new Set());
+  const seenMemberIds = useRef<Set<string>>(new Set()); // track members we've already notified about
+  const [collisionData, setCollisionData] = useState<{ item: any; quantity: number; message: string } | null>(null);
+
+  const isItemConfirmed = (itemName: string) => {
+    return tableMembers.some(m => m.confirmedOrders?.some((o: any) => o.name === itemName));
+  };
+
+  const getPairingMessage = React.useCallback((item: any) => {
+    let bestPairing: { confirmedName: string; percentage: number } | null = null;
+
+    tableMembers.forEach(m => {
+      m.confirmedOrders?.forEach((confirmed: any) => {
+        const pairingConfig = (pairingsData as any[]).find(p => p.itemId === confirmed.id || p.name === confirmed.name);
+        if (pairingConfig) {
+          const matchingPair = pairingConfig.recommendedPairings.find((rp: any) => rp.targetId === item.id || rp.name === item.name);
+          if (matchingPair) {
+            if (!bestPairing || matchingPair.percentage > bestPairing.percentage) {
+              bestPairing = {
+                confirmedName: confirmed.name,
+                percentage: matchingPair.percentage
+              };
+            }
+          }
+        }
+      });
+    });
+
+    if (bestPairing) {
+      const bp = bestPairing as { confirmedName: string; percentage: number };
+      return `${bp.percentage}% khách ăn cùng với ${bp.confirmedName}`;
+    }
+    return null;
+  }, [tableMembers]);
+
+  const confirmedItemNames = useMemo(() => {
+    const names: string[] = [];
+    tableMembers.forEach(m => {
+      m.confirmedOrders?.forEach((o: any) => {
+        if (o.qty > 0) names.push(o.name);
+      });
+    });
+    return names;
+  }, [tableMembers]);
+
+  const pairingRecommendedItems = useMemo(() => {
+    return menuItems.filter(item => {
+      if (isItemConfirmed(item.name)) return false;
+      return getPairingMessage(item) !== null;
+    });
+  }, [menuItems, getPairingMessage]);
+
+  const showPerfectPairing = confirmedItemNames.length > 0 && pairingRecommendedItems.length > 2;
+
+  const topItems = useMemo(() => {
+    if (showPerfectPairing) return pairingRecommendedItems.slice(0, 5);
+    return menuItems.filter((item: any) => item.status === "Best Seller" || item.tags?.includes("Bán chạy")).slice(0, 5);
+  }, [showPerfectPairing, pairingRecommendedItems, menuItems]);
+
+  const displayMenuItems = useMemo(() => {
+    return menuItems.filter((i) => i.category === activeCategory);
+  }, [activeCategory, menuItems]);
+
+  const checkUnread = async () => {
+    try {
+      const res = await fetch('/api/chat');
+      if (res.ok) {
+        const msgs = await res.json();
+        const restaurantMsgs = msgs.filter((m: any) =>
+          m.sender === 'restaurant' &&
+          m.timestamp &&
+          m.timestamp > lastChatCheckRef.current
+        );
+        if (restaurantMsgs.length > 0) {
+          setUnreadChatCount(prev => prev + restaurantMsgs.length);
+          setLastUnreadMsg(restaurantMsgs[restaurantMsgs.length - 1].content);
+          lastChatCheckRef.current = Date.now();
+        }
+      }
+    } catch (e) { /* silently fail */ }
+  };
 
   useEffect(() => {
     if (!isLoadingAuth && !isLoggedIn) loginAsGuest();
@@ -106,26 +193,42 @@ export default function DiscoveryPage() {
 
   // Poll for unread chat messages
   useEffect(() => {
-    const checkUnread = async () => {
-      try {
-        const res = await fetch('/api/chat');
-        if (res.ok) {
-          const msgs = await res.json();
-          const restaurantMsgs = msgs.filter((m: any) =>
-            m.sender === 'restaurant' &&
-            m.timestamp &&
-            m.timestamp > lastChatCheckRef.current
-          );
-          if (restaurantMsgs.length > 0) {
-            setUnreadChatCount(prev => prev + restaurantMsgs.length);
-            lastChatCheckRef.current = Date.now();
-          }
-        }
-      } catch (e) { /* silently fail */ }
-    };
-    const interval = setInterval(checkUnread, 5000);
+    const interval = setInterval(checkUnread, 4000);
+    checkUnread(); // Initial check
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch only live member data (faster poll, independent from heavy fetchData)
+  const fetchLiveOnly = async () => {
+    if (!resid || !tableid) return;
+    try {
+      const liveRes = await fetch(`/api/restaurants/${resid}/live?tableid=${tableid}&t=${Date.now()}`, { cache: 'no-store' });
+      if (!liveRes.ok) return;
+      const liveData = await liveRes.json();
+      if (liveData && !liveData.error) {
+        const newMembers = liveData.members || [];
+        // Find members we haven't seen before AND haven't notified about yet
+        const trulyNewMembers = newMembers.filter((m: any) =>
+          m.id !== user?.id && !seenMemberIds.current.has(m.id)
+        );
+        if (trulyNewMembers.length > 0) {
+          // Mark all current members as seen (so we don't re-notify on next poll)
+          newMembers.forEach((m: any) => seenMemberIds.current.add(m.id));
+          if (membersRef.current.length > 0) {
+            // Only show toast if we had previous members (not on first load)
+            const lastNew = trulyNewMembers[trulyNewMembers.length - 1];
+            setToast({ message: `${lastNew.name} vừa tham gia bàn`, submessage: "Cùng nhau gọi món nhé!" });
+            setTimeout(() => setToast(null), 5000);
+          } else {
+            // First load — just mark all as seen, no toast
+            newMembers.forEach((m: any) => seenMemberIds.current.add(m.id));
+          }
+        }
+        setTableMembers(newMembers);
+        membersRef.current = newMembers;
+      }
+    } catch (err) { /* silently fail */ }
+  };
 
 
   const fetchData = async () => {
@@ -135,13 +238,13 @@ export default function DiscoveryPage() {
       return;
     }
     try {
-      const [resRes, liveRes, cartRes] = await Promise.all([
+      // For the full data fetch we only call restaurant + cart.
+      // Live members are handled by fetchLiveOnly() which runs on its own fast timer.
+      const [resRes, cartRes] = await Promise.all([
         fetch(`/api/restaurants/${resid}`),
-        fetch(`/api/restaurants/${resid}/live?tableid=${tableid}`),
-        fetch(`/api/cart?resId=${resid}`)
+        fetch(`/api/cart?resId=${resid}`, { cache: 'no-store' })
       ]);
       const resData = await resRes.json();
-      const liveData = await liveRes.json();
       const cartData = await cartRes.json();
 
       if (resData && !resData.error) {
@@ -149,33 +252,8 @@ export default function DiscoveryPage() {
         setMenuItems(resData.menu.items || []);
         setPreferencesList(resData.menu.preferences || []);
         setCategories(resData.menu.categories || []);
-        if (!activeCategory) setActiveCategory(resData.menu.categories?.[0] || "");
       } else setErrorHeader("Không tìm thấy dữ liệu nhà hàng");
 
-      if (liveData && !liveData.error) {
-        const newMembers = liveData.members || [];
-        const prevMembers = membersRef.current;
-        if (prevMembers.length > 0 && newMembers.length > prevMembers.length) {
-          const addedUser = newMembers.find((m: any) => !prevMembers.find((tm: any) => tm.id === m.id));
-          if (addedUser && addedUser.id !== user?.id) {
-            setToast({ message: `${addedUser.name} vừa tham gia bàn`, submessage: "Cùng nhau gọi món nhé!" });
-            setTimeout(() => setToast(null), 5000);
-          }
-        }
-        setTableMembers(newMembers);
-        membersRef.current = newMembers;
-
-        // Handle simulation notifications
-        if (liveData.notifications?.length > 0) {
-          const lastNotif = liveData.notifications[liveData.notifications.length - 1];
-          const notifKey = `shown_notif_${lastNotif.id}`;
-          if (!sessionStorage.getItem(notifKey)) {
-            setToast({ message: lastNotif.content, submessage: "Vào chat để phản hồi" });
-            sessionStorage.setItem(notifKey, "true");
-            setTimeout(() => setToast(null), 6000);
-          }
-        }
-      }
 
       if (cartData && !cartData.error) {
         setCartItems(cartData.items || []);
@@ -188,11 +266,27 @@ export default function DiscoveryPage() {
     }
   };
 
+  // Heavy data: restaurant info + cart (slower poll, 15s)
   useEffect(() => {
+    if (isLoadingAuth) return; // wait for auth before first fetch
     fetchData();
-    const interval = setInterval(fetchData, 20000);
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
-  }, [resid, tableid, user?.id]);
+  }, [resid, tableid, user?.id, isLoadingAuth]);
+
+  // Live members: fast poll every 5 seconds, runs as soon as auth is ready
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    fetchLiveOnly(); // immediate on auth ready (catches existing members right away)
+    const interval = setInterval(fetchLiveOnly, 5000);
+    return () => clearInterval(interval);
+  }, [resid, tableid, user?.id, isLoadingAuth]);
+
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0]);
+    }
+  }, [categories, activeCategory]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && !sessionStorage.getItem("discovery_wizard_shown")) {
@@ -206,6 +300,28 @@ export default function DiscoveryPage() {
   };
 
   const addToTotal = async (item: any, quantity: number = 1) => {
+    if (quantity > 0) {
+      const collisionFriend = tableMembers.find(m =>
+        m.confirmedOrders && m.confirmedOrders.some((o: any) => o.name === item.name)
+      );
+
+      if (collisionFriend && !acknowledgedCollisions.current.has(item.name)) {
+        const msg = collisionFriend.id === user?.id
+          ? `Bạn đã gọi món này rồi`
+          : `${collisionFriend.name} ở cùng bàn đã gọi món này`;
+
+        setCollisionData({
+          item,
+          quantity,
+          message: `${msg}, bạn có chắc muốn gọi thêm không?`
+        });
+        return;
+      }
+    }
+    await proceedAddToCart(item, quantity);
+  };
+
+  const proceedAddToCart = async (item: any, quantity: number) => {
     try {
       const res = await fetch('/api/cart', {
         method: 'POST',
@@ -213,13 +329,13 @@ export default function DiscoveryPage() {
         body: JSON.stringify({ resId: resid, item, quantity })
       });
       if (res.ok) {
-        const data = await res.json();
-        setCartItems(data.items);
-        setTotal(data.total);
         setCartPulse(true);
-        setTimeout(() => setCartPulse(false), 600);
+        setTimeout(() => setCartPulse(false), 500);
+        fetchData();
       }
-    } catch (err) { console.error("Add to cart failed:", err); }
+    } catch (e) {
+      console.error("Cart update failed", e);
+    }
   };
 
   const removeFromTotal = async (item: any) => {
@@ -248,10 +364,13 @@ export default function DiscoveryPage() {
         setCartItems([]);
         setTotal(0);
         closeWizard();
-        router.push(`/table-orders?from=${pathname}&resid=${resid}&tableid=${tableid}`);
+        setIsCartDrawerOpen(false);
+        // NO REDIRECT - stay on discovery page to see the bubble
+        setTimeout(checkUnread, 1000); // Check for the immediate confirmation msg
       } else {
         const data = await res.json();
-        alert(data.error || "Đặt món thất bại");
+        setToast({ message: data.error || "Đặt món thất bại", submessage: "Vui lòng thử lại sau" });
+        setTimeout(() => setToast(null), 4000);
       }
     } catch (err) { console.error("Place order failed:", err); }
   };
@@ -295,7 +414,18 @@ export default function DiscoveryPage() {
         total={total}
         cartItems={cartItems}
         handlePlaceOrder={handlePlaceOrder}
-        handleStartOnboarding={() => setOnboardingStep(1)}
+        handleStartOnboarding={async () => {
+          setOnboardingStep(1);
+          if (user?.id && form.preferences && form.preferences.length > 0) {
+            try {
+              await fetch('/api/auth/preferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, preferences: form.preferences })
+              });
+            } catch (err) { console.error("Pref save failed", err); }
+          }
+        }}
         handleNextOnboarding={handleNextOnboarding}
         openDetails={setSelectedItem}
         getItemQuantity={getItemQuantity}
@@ -331,16 +461,37 @@ export default function DiscoveryPage() {
         </section>
 
         <section className={styles.bestChoiceSection}>
-          <div className={styles.sectionHeader}><h2 className={styles.sectionTitle}>{t('Best choice, Món hot thử ngay 🔥')}</h2></div>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>
+              {showPerfectPairing
+                ? t('Gợi ý hoàn hảo cho bữa tiệc ✨')
+                : t('Best choice, Món hot thử ngay 🔥')}
+            </h2>
+          </div>
           <div className={styles.horizontalScroll}>
-            {menuItems.filter((item) => item.status === "Best Seller" || item.tags?.includes("Bán chạy")).map((item) => (
+            {topItems.map((item: any) => (
               <div key={item.id} className={styles.bestChoiceCard} onClick={() => setSelectedItem(item)}>
                 <div className={styles.bestChoiceImgWrapper}>
                   <img src={item.img} alt={item.name} className={styles.bestChoiceImg} />
-                  {item.status && <div className={styles.bestChoiceBadge}>{item.status.toUpperCase()}</div>}
+                  {isItemConfirmed(item.name) ? (
+                    <div className={styles.confirmedBadgeOver}>
+                      <Check size={10} /> {t('Đã gọi')}
+                    </div>
+                  ) : item.status && (
+                    <div className={styles.bestChoiceBadge}>{item.status.toUpperCase()}</div>
+                  )}
                 </div>
                 <div className={styles.bestChoiceInfo}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {getPairingMessage(item) && (
+                      <div className={styles.pairingBadgeInline}>
+                        <Sparkles size={10} fill="#CA8A04" color="#CA8A04" />
+                        {getPairingMessage(item)}
+                      </div>
+                    )}
+                  </div>
                   <h3 className={styles.bestChoiceName}>{item.name}</h3>
+                  <p className={styles.bestChoiceDesc}>{item.desc}</p>
                   <div className={styles.bestChoiceFooter}>
                     <span className={styles.bestChoicePrice}>{item.price.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
                     <button className={styles.quickAddBtn} onClick={(e) => { e.stopPropagation(); syncCartQuantity(item, getItemQuantity(item.id) + 1); }}><Plus size={20} /></button>
@@ -353,22 +504,42 @@ export default function DiscoveryPage() {
 
         <nav className={styles.categoryNav}>
           <div className={styles.categoryScroll}>
-            {categories.map((cat) => (
-              <button key={cat} className={`${styles.navItem} ${activeCategory === cat ? styles.activeNavItem : ""}`} onClick={() => setActiveCategory(cat)}>{cat}</button>
+            {categories.map((cat: string) => (
+              <button key={cat} className={`${styles.navItem} ${activeCategory === cat ? styles.activeNavItem : ""}`} onClick={() => setActiveCategory(cat)}>
+                {cat}
+              </button>
             ))}
           </div>
         </nav>
 
         <section className={styles.menuGridSection}>
           <div className={styles.menuGrid}>
-            {menuItems.filter((item) => item.category === activeCategory).map((item) => (
+            {displayMenuItems.map((item: any) => (
               <div key={item.id} className={styles.menuCard} onClick={() => setSelectedItem(item)}>
                 <div className={styles.cardHero}>
                   <img src={item.img} className={styles.cardImg} alt={item.name} />
-                  {getItemQuantity(item.id) > 0 && <div className={styles.itemQuantityBadge}>{getItemQuantity(item.id)}</div>}
+                  {isItemConfirmed(item.name) && (
+                    <div className={styles.confirmedBadgeOver}>
+                      <Check size={10} /> {t('Đã gọi')}
+                    </div>
+                  )}
+                  {getItemQuantity(item.id) > 0 && (
+                    <div className={`${styles.itemQuantityBadge} ${isItemConfirmed(item.name) ? styles.withConfirmed : ""}`}>
+                      {getItemQuantity(item.id)}
+                    </div>
+                  )}
                 </div>
                 <div className={styles.cardBody}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {getPairingMessage(item) && (
+                      <div className={styles.pairingBadgeInline}>
+                        <Sparkles size={10} fill="#CA8A04" color="#CA8A04" />
+                        {getPairingMessage(item)}
+                      </div>
+                    )}
+                  </div>
                   <h4 className={styles.cardName}>{item.name}</h4>
+                  <p className={styles.cardDesc}>{item.desc}</p>
                   <div className={styles.cardFooter}>
                     <span className={styles.cardPrice}>{item.price.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
                     {getItemQuantity(item.id) > 0 ? (
@@ -389,13 +560,19 @@ export default function DiscoveryPage() {
 
       {!isWizardShown && (
         <div className={`${styles.fabSupportWrapper} ${total > 0 && !isCartDrawerOpen ? styles.withCart : ""}`}>
-          <button className={styles.fabSupportPill} onClick={() => { setUnreadChatCount(0); lastChatCheckRef.current = Date.now(); router.push(`/chat?from=${encodeURIComponent(`/discovery?resid=${resid}&tableid=${tableid}`)}`); }}>
+          {unreadChatCount > 0 && lastUnreadMsg && (
+            <div className={styles.supportBubble}>
+              {lastUnreadMsg}
+              <span className={styles.chatUnreadBadgeSmall}>{unreadChatCount}</span>
+            </div>
+          )}
+          <button className={styles.fabSupportPill} onClick={() => { setUnreadChatCount(0); setLastUnreadMsg(null); lastChatCheckRef.current = Date.now(); router.push(`/chat?from=${encodeURIComponent(`/discovery?resid=${resid}&tableid=${tableid}`)}`); }}>
             <div className={styles.staffAvatarWrapper}>
               <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff&backgroundColor=ffdfbf" className={styles.staffAvatarMini} alt="Staff" />
               <div className={styles.onlineDot}></div>
             </div>
             <span className={styles.supportText}>{t('Hỗ trợ')}</span>
-            {unreadChatCount > 0 && (
+            {unreadChatCount > 0 && !lastUnreadMsg && (
               <span className={styles.chatUnreadBadge}>{unreadChatCount}</span>
             )}
           </button>
@@ -439,6 +616,34 @@ export default function DiscoveryPage() {
             <div className={styles.toastIcon}><Users size={20} color="#f59e0b" /></div>
             <div className={styles.toastContent}><div className={styles.toastMsg}>{toast.message}</div>{toast.submessage && <div className={styles.toastSub}>{toast.submessage}</div>}</div>
             <button className={styles.toastClose} onClick={() => setToast(null)}><X size={16} /></button>
+          </div>
+        </div>
+      )}
+
+      {collisionData && (
+        <div className={styles.collisionModalOverlay}>
+          <div className={styles.collisionModal}>
+            <div className={styles.collisionIcon}><Sparkles size={32} color="#FBBF24" /></div>
+            <h3 className={styles.collisionTitle}>{t("Thông báo gọi món")}</h3>
+            <p className={styles.collisionMessage}>{collisionData.message}</p>
+            <div className={styles.collisionActions}>
+              <button
+                className={styles.collisionCancelBtn}
+                onClick={() => setCollisionData(null)}
+              >
+                {t("Hủy bỏ")}
+              </button>
+              <button
+                className={styles.collisionConfirmBtn}
+                onClick={() => {
+                  acknowledgedCollisions.current.add(collisionData.item.name);
+                  proceedAddToCart(collisionData.item, collisionData.quantity);
+                  setCollisionData(null);
+                }}
+              >
+                {t("Tiếp tục gọi")}
+              </button>
+            </div>
           </div>
         </div>
       )}

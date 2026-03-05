@@ -35,7 +35,7 @@ const SUPPORT_OPTIONS = [
 export default function ChatPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const fromUrl = searchParams.get('from') || '/single-order-page';
     const chatScrollRef = useRef<HTMLDivElement>(null);
     const [supportView, setSupportView] = useState<'OPTIONS' | 'INPUT_OTHER'>('OPTIONS');
@@ -82,7 +82,12 @@ export default function ChatPage() {
             await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: label, type: optionId === 'other' ? 'Yêu cầu khác' : 'Yêu cầu hỗ trợ' })
+                body: JSON.stringify({
+                    content: t(label),
+                    categoryId: optionId === 'other' ? 'OTHER' : 'SUPPORT',
+                    typeId: optionId,
+                    lang: language
+                })
             });
             fetchChat();
         } catch (e) {

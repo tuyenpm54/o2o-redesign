@@ -3,17 +3,41 @@ import { cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
 
+import { getDb } from '@/lib/db';
+
 async function getAuthenticatedUser() {
     const cookieStore = await cookies();
     const sessionId = cookieStore.get('session_id')?.value;
     if (!sessionId) return null;
 
-    const sessionsPath = path.join(process.cwd(), 'src/data/sessions.json');
-    const sessions = JSON.parse(fs.readFileSync(sessionsPath, 'utf8'));
-    const session = sessions[sessionId];
+    const db = await getDb();
+    const session = await db.get('SELECT * FROM sessions WHERE id = ?', [sessionId]);
     if (!session || session.expires < Date.now()) return null;
 
-    return sessions[sessionId];
+    return { userId: session.user_id, tableid: session.tableid };
+}
+
+function addChatMessage(userId: string, resid: string, tableid: string, content: string, type: string = 'Gọi món') {
+    try {
+        const messagesPath = path.join(process.cwd(), 'src/data/messages.json');
+        const messages = fs.existsSync(messagesPath) ? JSON.parse(fs.readFileSync(messagesPath, 'utf8')) : [];
+        const timeHeader = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+        messages.push({
+            id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            userId,
+            resid,
+            tableid: tableid || 'A-12',
+            sender: 'restaurant',
+            time: timeHeader,
+            timestamp: Date.now(),
+            type,
+            content
+        });
+        fs.writeFileSync(messagesPath, JSON.stringify(messages, null, 2));
+    } catch (e) {
+        console.error("[Order API] Failed to add chat message:", e);
+    }
 }
 
 export async function POST(request: Request) {
@@ -60,23 +84,46 @@ export async function POST(request: Request) {
         fs.writeFileSync(cartsPath, JSON.stringify(carts, null, 2));
         fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2));
 
-        // Add to messages log
-        const messagesPath = path.join(process.cwd(), 'src/data/messages.json');
-        const messages = fs.existsSync(messagesPath) ? JSON.parse(fs.readFileSync(messagesPath, 'utf8')) : [];
-        const timeHeader = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        // Initial acknowledgement in chat
+        addChatMessage(userId, resId, tableid, "Yêu cầu gọi món đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận.");
 
-        messages.push({
-            id: `msg-${Date.now()}-ord`,
-            userId,
-            resid: resId,
-            tableid: tableid || 'A-12',
-            sender: 'restaurant',
-            time: timeHeader,
-            timestamp: Date.now(),
-            type: 'Gọi món',
-            content: `Các món bạn gọi vừa được gửi đi. Nhân viên sẽ xác nhận sau vài giây.`
-        });
-        fs.writeFileSync(messagesPath, JSON.stringify(messages, null, 2));
+        // --- SIMULATED STATUS PROGRESSION FOR THE ROUND ---
+        const orderRoundIds = newOrders.map((o: any) => o.id);
+        const firstItemName = newOrders[0].name;
+
+        // Helper to update status in file and add chat message
+        const updateRound = (statusForData: string, messageContent: string, delay: number) => {
+            setTimeout(() => {
+                try {
+                    if (!fs.existsSync(ordersPath)) return;
+                    const currentOrders = JSON.parse(fs.readFileSync(ordersPath, 'utf8'));
+                    if (currentOrders[cartKey]) {
+                        // Check if items still exist (not cleared by payment)
+                        const items = currentOrders[cartKey].items;
+                        const roundExists = items.some((o: any) => orderRoundIds.includes(o.id));
+                        if (!roundExists) return;
+
+                        items.forEach((o: any) => {
+                            if (orderRoundIds.includes(o.id)) o.status = statusForData;
+                        });
+                        fs.writeFileSync(ordersPath, JSON.stringify(currentOrders, null, 2));
+                        addChatMessage(userId, resId, tableid, messageContent);
+                    }
+                } catch (e) { }
+            }, delay);
+        };
+
+        // Step 1: CONFIRMED
+        updateRound("Đã xác nhận", `Nhân viên đã xác nhận lượt gọi đồ cho bàn ${tableid}.`, 6000);
+
+        // Step 2: COOKING
+        updateRound("Đang chế biến", `Lượt gọi đồ có món "${firstItemName}" đang được chuẩn bị trong bếp.`, 13000);
+
+        // Step 3: READY
+        updateRound("Chờ phục vụ", `Món "${firstItemName}" đã làm xong, đang chờ nhân viên mang ra.`, 20000);
+
+        // Step 4: SERVED
+        updateRound("Đã phục vụ", `Nhân viên đã mang ra, hoàn thành lượt gọi đồ cho món "${firstItemName}". Chúc bạn ngon miệng! 🎉`, 27000);
 
         return NextResponse.json({ success: true, orders: userOrders.items });
     } catch (e) {

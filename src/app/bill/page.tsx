@@ -13,9 +13,11 @@ const MOCK_VOUCHERS = [
 ];
 
 import { useSearchParams } from 'next/navigation';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function BillPage() {
     const searchParams = useSearchParams();
+    const { t, language } = useLanguage();
     const resid = searchParams.get('resid') || '100';
     const tableid = searchParams.get('tableid') || 'A-12';
 
@@ -66,8 +68,8 @@ export default function BillPage() {
     const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
 
     const QUICK_TAGS = {
-        HAPPY: ['Món ăn ngon', 'Phục vụ nhanh', 'Giá hợp lý', 'Không gian sạch'],
-        SAD: ['Món ra chậm', 'Món chưa ngon', 'Phục vụ kém', 'Giá hơi cao']
+        HAPPY: [t('Món ăn ngon'), t('Phục vụ nhanh'), t('Giá hợp lý'), t('Không gian sạch')],
+        SAD: [t('Món ra chậm'), t('Món chưa ngon'), t('Phục vụ kém'), t('Giá hơi cao')]
     };
 
     const toggleTag = (tag: string) => {
@@ -91,7 +93,11 @@ export default function BillPage() {
     const handleRequestPayment = async () => {
         setPaymentStatus('SENDING');
         try {
-            const res = await fetch('/api/payment/request', { method: 'POST' });
+            const res = await fetch('/api/payment/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lang: language })
+            });
             const data = await res.json();
 
             if (res.ok && data.success) {
@@ -103,12 +109,12 @@ export default function BillPage() {
                 }, 500);
             } else {
                 setPaymentStatus('IDLE');
-                alert(data.error || 'Gửi yêu cầu thất bại');
+                alert(data.error || t('Gửi yêu cầu thất bại'));
             }
         } catch (err) {
             console.error('Payment request failed:', err);
             setPaymentStatus('IDLE');
-            alert('Không thể gửi yêu cầu thanh toán');
+            alert(t('Không thể gửi yêu cầu thanh toán'));
         }
     };
 
@@ -125,7 +131,7 @@ export default function BillPage() {
                         <ChevronLeft size={24} />
                     </button>
                 </Link>
-                <h1 className={styles.pageTitle}>Hóa đơn tạm tính</h1>
+                <h1 className={styles.pageTitle}>{t('Hoá đơn tạm tính')}</h1>
             </header>
 
             {/* Toast Popup */}
@@ -136,8 +142,8 @@ export default function BillPage() {
                             <Check size={20} color="white" />
                         </div>
                         <div className={styles.toastText}>
-                            <strong>Yêu cầu đã gửi!</strong>
-                            <span>Vui lòng đợi nhân viên mang máy POS tới bàn nhé.</span>
+                            <strong>{t('Yêu cầu đã gửi!')}</strong>
+                            <span>{t('Vui lòng đợi nhân viên mang máy POS tới bàn nhé.')}</span>
                         </div>
                         <button className={styles.toastClose} onClick={() => setShowToast(false)}>
                             <X size={16} />
@@ -153,7 +159,7 @@ export default function BillPage() {
                         <div className={styles.storeName}>Biển Đông</div>
                         <div className={styles.storeAddress}>123 Đường Hải Sản, Quận 1</div>
                         <div className={styles.billInfo}>
-                            <span>Bàn: {tableid}</span>
+                            <span>{t('Bàn')}: {tableid}</span>
                             <span>#123456</span>
                         </div>
                     </div>
@@ -163,10 +169,10 @@ export default function BillPage() {
                             <div key={item.id} className={styles.itemRow}>
                                 <div className={styles.itemNameGroup}>
                                     <span className={styles.itemName}>{item.name}</span>
-                                    <span className={styles.itemQty}>{item.qty} x {item.price.toLocaleString('vi-VN')}</span>
+                                    <span className={styles.itemQty}>{item.qty} x {item.price.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}</span>
                                 </div>
                                 <span className={styles.itemTotal}>
-                                    {(item.qty * item.price).toLocaleString('vi-VN')}
+                                    {(item.qty * item.price).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}
                                 </span>
                             </div>
                         ))}
@@ -176,7 +182,7 @@ export default function BillPage() {
                         <div className={styles.voucherSection}>
                             <div className={styles.voucherInvite}>
                                 <Sparkles size={16} color="#F59E0B" />
-                                <span>Bạn có muốn áp dụng Voucher không?</span>
+                                <span>{t('Bạn có muốn áp dụng Voucher không?')}</span>
                             </div>
                             <button
                                 className={`${styles.voucherInput} ${selectedVoucher ? styles.hasVoucher : ''}`}
@@ -184,7 +190,7 @@ export default function BillPage() {
                             >
                                 <Ticket size={18} />
                                 <span className={styles.voucherCodeText}>
-                                    {selectedVoucher ? `Đã chọn: ${selectedVoucher.code}` : 'Chọn voucher hoặc nhập mã...'}
+                                    {selectedVoucher ? `${t('Đã chọn')}: ${selectedVoucher.code}` : t('Chọn voucher hoặc nhập mã...')}
                                 </span>
                                 {selectedVoucher ? <Check size={16} color="#10B981" /> : <ChevronLeft style={{ transform: 'rotate(-90deg)' }} size={16} />}
                             </button>
@@ -193,40 +199,40 @@ export default function BillPage() {
 
                     <div className={styles.summarySection}>
                         <div className={styles.summaryRow}>
-                            <span>Tạm tính</span>
-                            <span>{subtotal.toLocaleString('vi-VN')}đ</span>
+                            <span>{t('Tạm tính')}</span>
+                            <span>{subtotal.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
                         </div>
                         {discount > 0 && (
                             <div className={`${styles.summaryRow} ${styles.discountRow}`}>
-                                <span>Giảm giá ({selectedVoucher.code})</span>
-                                <span>-{discount.toLocaleString('vi-VN')}đ</span>
+                                <span>{t('Giảm giá')} ({selectedVoucher.code})</span>
+                                <span>-{discount.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
                             </div>
                         )}
                         <div className={styles.summaryRow}>
                             <span>VAT (8%)</span>
-                            <span>{vat.toLocaleString('vi-VN')}đ</span>
+                            <span>{vat.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
                         </div>
                         <div className={styles.summaryTotal}>
-                            <span>Tổng cộng</span>
-                            <span className={styles.totalPrice}>{total.toLocaleString('vi-VN')}đ</span>
+                            <span>{t('Tổng cộng')}</span>
+                            <span className={styles.totalPrice}>{total.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
                         </div>
                     </div>
 
                     {paymentStatus === 'SUCCESS' && (
                         <div className={styles.paymentConfirmedBadge}>
                             <Check size={16} />
-                            <span>Đã gửi yêu cầu thanh toán</span>
+                            <span>{t('Đã gửi yêu cầu thanh toán')}</span>
                         </div>
                     )}
 
                     {paymentStatus === 'SUCCESS' && (
                         <div className={styles.staffNote}>
-                            Nhân viên sẽ ra kiểm đồ và thanh toán tại bàn
+                            {t('Nhân viên sẽ ra kiểm đồ và thanh toán tại bàn')}
                         </div>
                     )}
 
                     <div className={styles.footerNote}>
-                        Cảm ơn quý khách đã sử dụng dịch vụ!
+                        {t('Cảm ơn quý khách đã sử dụng dịch vụ!')}
                     </div>
                 </div>
 
@@ -242,7 +248,7 @@ export default function BillPage() {
                         ) : (
                             <CreditCard size={20} />
                         )}
-                        {paymentStatus === 'SENDING' ? 'Đang gửi yêu cầu...' : 'Yêu cầu thanh toán'}
+                        {paymentStatus === 'SENDING' ? t('Đang gửi yêu cầu...') : t('Yêu cầu thanh toán')}
                     </button>
                 )}
 
@@ -251,7 +257,7 @@ export default function BillPage() {
                     <div className={styles.feedbackCard} ref={feedbackRef}>
                         {!isFeedbackSubmitted ? (
                             <>
-                                <h4 className={styles.feedbackTitle}>Bạn thấy trải nghiệm hôm nay thế nào?</h4>
+                                <h4 className={styles.feedbackTitle}>{t('Bạn thấy trải nghiệm hôm nay thế nào?')}</h4>
 
                                 <div className={styles.ratingOptions}>
                                     <button
@@ -259,14 +265,14 @@ export default function BillPage() {
                                         onClick={() => { setRating('HAPPY'); setSelectedTags([]); }}
                                     >
                                         <Smile size={32} />
-                                        <span>Hài lòng</span>
+                                        <span>{t('Hài lòng')}</span>
                                     </button>
                                     <button
                                         className={`${styles.ratingBtn} ${rating === 'SAD' ? styles.ratingActiveSad : ''}`}
                                         onClick={() => { setRating('SAD'); setSelectedTags([]); }}
                                     >
                                         <Frown size={32} />
-                                        <span>Chưa tốt</span>
+                                        <span>{t('Chưa tốt')}</span>
                                     </button>
                                 </div>
 
@@ -286,13 +292,13 @@ export default function BillPage() {
 
                                         <textarea
                                             className={styles.commentInput}
-                                            placeholder="Để lại lời nhắn nếu bạn muốn góp ý thêm..."
+                                            placeholder={t("Để lại lời nhắn nếu bạn muốn góp ý thêm...")}
                                             value={comment}
                                             onChange={(e) => setComment(e.target.value)}
                                         />
 
                                         <button className={styles.sendFeedbackBtn} onClick={handleSendFeedback}>
-                                            Gửi đánh giá
+                                            {t('Gửi đánh giá')}
                                         </button>
                                     </div>
                                 )}
@@ -302,8 +308,8 @@ export default function BillPage() {
                                 <div className={styles.thankYouIcon}>
                                     <Check size={28} color="white" />
                                 </div>
-                                <h4>Cảm ơn bạn!</h4>
-                                <p>Ý kiến của bạn giúp chúng mình hoàn thiện hơn mỗi ngày.</p>
+                                <h4>{t('Cảm ơn bạn!')}</h4>
+                                <p>{t('Ý kiến của bạn giúp chúng mình hoàn thiện hơn mỗi ngày.')}</p>
                             </div>
                         )}
                     </div>
@@ -315,13 +321,13 @@ export default function BillPage() {
                 <div className={styles.modalOverlay} onClick={() => setIsVoucherSheetOpen(false)}>
                     <div className={styles.voucherSheet} onClick={e => e.stopPropagation()}>
                         <div className={styles.sheetHeader}>
-                            <h3>Chọn Voucher</h3>
+                            <h3>{t('Chọn Voucher')}</h3>
                             <button onClick={() => setIsVoucherSheetOpen(false)}>
                                 <X size={20} />
                             </button>
                         </div>
                         <div className={styles.voucherList}>
-                            <div className={styles.voucherGroupLabel}>Voucher của bạn</div>
+                            <div className={styles.voucherGroupLabel}>{t('Voucher của bạn')}</div>
                             {MOCK_VOUCHERS.map((v) => (
                                 <div
                                     key={v.id}
@@ -337,7 +343,7 @@ export default function BillPage() {
                                     <div className={styles.voucherInfo}>
                                         <div className={styles.voucherCode}>{v.code}</div>
                                         <div className={styles.voucherLabel}>{v.label}</div>
-                                        <div className={styles.voucherMin}>Cho đơn từ {v.minOrder.toLocaleString('vi-VN')}đ</div>
+                                        <div className={styles.voucherMin}>{t('Cho đơn từ')} {v.minOrder.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</div>
                                     </div>
                                     <div className={styles.voucherRadio}>
                                         {selectedVoucher?.id === v.id && <Check size={18} color="#F97316" />}

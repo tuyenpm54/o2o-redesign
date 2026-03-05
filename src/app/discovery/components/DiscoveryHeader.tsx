@@ -18,13 +18,26 @@ export function DiscoveryHeader({ restaurant, tableid }: DiscoveryHeaderProps) {
     const router = useRouter();
     const pathname = usePathname();
     const [showLogin, setShowLogin] = useState(false);
+    const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
     const [phone, setPhone] = useState("");
+    const [otp, setOtp] = useState("");
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleSendOtp = (e: React.FormEvent) => {
         e.preventDefault();
-        if (phone.trim()) {
+        if (phone.trim().length >= 9) {
+            setStep('OTP');
+        }
+    };
+
+    const handleVerifyOtp = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (otp === '123456') {
             login(phone);
             setShowLogin(false);
+            setStep('PHONE');
+            setOtp('');
+        } else {
+            alert(t('OTP không đúng (thử 123456)'));
         }
     };
 
@@ -62,11 +75,8 @@ export function DiscoveryHeader({ restaurant, tableid }: DiscoveryHeaderProps) {
                             <button
                                 className={styles.userInfoCompact}
                                 onClick={() => {
-                                    if (isGuest) {
-                                        setShowLogin(true);
-                                    } else {
-                                        router.push(`/account?from=${pathname}`);
-                                    }
+                                    const fullPath = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : pathname;
+                                    router.push(`/account?from=${encodeURIComponent(fullPath)}`);
                                 }}
                             >
                                 {user.avatar ? (
@@ -84,7 +94,13 @@ export function DiscoveryHeader({ restaurant, tableid }: DiscoveryHeaderProps) {
                             <span className={styles.userNameCompact}>{user.name || t('Khách')}</span>
                         </div>
                     ) : (
-                        <button className={styles.loginLink} onClick={() => setShowLogin(true)}>
+                        <button
+                            className={styles.loginLink}
+                            onClick={() => {
+                                const fullPath = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : pathname;
+                                router.push(`/account?from=${encodeURIComponent(fullPath)}`);
+                            }}
+                        >
                             <div className={styles.loginIconCircle}>
                                 <UserIcon size={20} />
                             </div>
@@ -99,27 +115,52 @@ export function DiscoveryHeader({ restaurant, tableid }: DiscoveryHeaderProps) {
                     <div className={styles.chatModalContainer} style={{ height: 'auto', bottom: 0, paddingBottom: 24 }} onClick={e => e.stopPropagation()}>
                         <div className={styles.chatHeader}>
                             <div className={styles.chatHeaderTitleGroup}>
-                                <h3 className={styles.chatTitle}>{t('Đăng nhập để nhận ưu đãi')}</h3>
+                                <h3 className={styles.chatTitle}>{step === 'PHONE' ? t('Đăng nhập để nhận ưu đãi') : t('Nhập mã xác thực')}</h3>
                             </div>
                             <button className={styles.chatCloseBtn} onClick={() => setShowLogin(false)}>
                                 <X size={24} />
                             </button>
                         </div>
                         <div style={{ padding: '20px' }}>
-                            <p style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: '16px' }}>{t('Vui lòng nhập số điện thoại để nhà hàng lưu thói quen ăn uống của bạn nhé.')}</p>
-                            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <input
-                                    type="tel"
-                                    placeholder={t("Nhập số điện thoại...")}
-                                    value={phone}
-                                    onChange={e => setPhone(e.target.value)}
-                                    style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1rem' }}
-                                    autoFocus
-                                />
-                                <button type="submit" disabled={!phone.trim()} style={{ width: '100%', padding: '14px', borderRadius: '12px', background: phone.trim() ? '#F59E0B' : '#E2E8F0', color: phone.trim() ? '#fff' : '#94A3B8', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-                                    {t('Xác nhận')}
-                                </button>
-                            </form>
+                            {step === 'PHONE' ? (
+                                <>
+                                    <p style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: '16px' }}>{t('Vui lòng nhập số điện thoại để nhà hàng lưu thói quen ăn uống của bạn nhé.')}</p>
+                                    <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <input
+                                            type="tel"
+                                            placeholder={t("Nhập số điện thoại...")}
+                                            value={phone}
+                                            onChange={e => setPhone(e.target.value)}
+                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1rem' }}
+                                            autoFocus
+                                        />
+                                        <button type="submit" disabled={phone.trim().length < 9} style={{ width: '100%', padding: '14px', borderRadius: '12px', background: phone.trim().length >= 9 ? '#F59E0B' : '#E2E8F0', color: phone.trim().length >= 9 ? '#fff' : '#94A3B8', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+                                            {t('Tiếp tục')}
+                                        </button>
+                                    </form>
+                                </>
+                            ) : (
+                                <>
+                                    <p style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: '16px' }}>{t('Mã OTP đã được gửi đến')} {phone}</p>
+                                    <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="123456"
+                                            value={otp}
+                                            onChange={e => setOtp(e.target.value)}
+                                            maxLength={6}
+                                            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1rem', textAlign: 'center', letterSpacing: '4px' }}
+                                            autoFocus
+                                        />
+                                        <button type="submit" disabled={otp.length < 6} style={{ width: '100%', padding: '14px', borderRadius: '12px', background: otp.length === 6 ? '#F59E0B' : '#E2E8F0', color: otp.length === 6 ? '#fff' : '#94A3B8', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+                                            {t('Xác nhận')}
+                                        </button>
+                                        <button type="button" onClick={() => setStep('PHONE')} style={{ background: 'none', border: 'none', color: '#F59E0B', fontWeight: 500, marginTop: '8px', cursor: 'pointer' }}>
+                                            {t('Gửi lại mã')}
+                                        </button>
+                                    </form>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 const data = await res.json();
                 setIsLoggedIn(true);
                 setUser(data.user);
+                setIsGuest(!!data.user.isGuest);
             }
         } catch (err) {
             console.error("Login failed:", err);

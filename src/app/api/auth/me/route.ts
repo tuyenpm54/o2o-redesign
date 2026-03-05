@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import fs from 'fs';
-import path from 'path';
+import { getDb } from '@/lib/db';
 
 export async function GET() {
     try {
@@ -12,26 +11,29 @@ export async function GET() {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
-        const usersPath = path.join(process.cwd(), 'src/data/users.json');
-        const sessionsPath = path.join(process.cwd(), 'src/data/sessions.json');
+        const db = await getDb();
 
-        const users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
-        const sessions = JSON.parse(fs.readFileSync(sessionsPath, 'utf8'));
-
-        const session = sessions[sessionId];
+        // Check session in SQLite
+        const session = await db.get('SELECT * FROM sessions WHERE id = ?', [sessionId]);
 
         if (!session || session.expires < Date.now()) {
             return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
         }
 
-        const user = users.find((u: any) => u.id === session.userId);
+        // Get user from SQLite
+        const user = await db.get('SELECT * FROM users WHERE id = ?', [session.user_id]);
 
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
+        // Parse preferences
+        user.preferences = JSON.parse(user.preferences || '[]');
+        user.isGuest = !!user.isGuest;
+
         return NextResponse.json({ user });
     } catch (error) {
+        console.error('Me error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

@@ -442,7 +442,10 @@ export default function MallOrderingPage() {
                     {/* User Info from AuthContext */}
                     <button
                         className={styles.userInfo}
-                        onClick={() => router.push(`/account?from=${pathname}`)}
+                        onClick={() => {
+                            const fullPath = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : pathname;
+                            router.push(`/account?from=${encodeURIComponent(fullPath)}`);
+                        }}
                         aria-label="Thông tin cá nhân"
                     >
                         {isLoggedIn && user ? (

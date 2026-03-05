@@ -71,5 +71,58 @@
     "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=g_1772440321650",
     "preferences": [],
     "isGuest": true
+  },
+  {
+    "id": "u1772509046479",
+    "phone": "0988071291",
+    "name": "Khách hàng mới",
+    "points": 0,
+    "tier": "Thành viên",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=0988071291",
+    "preferences": [
+      "noOnion"
+    ]
+  },
+  {
+    "id": "g_1772509905419",
+    "phone": "Guest",
+    "name": "Pink Guest",
+    "points": 0,
+    "tier": "Guest",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=g_1772509905419",
+    "preferences": [],
+    "isGuest": true
+  },
+  {
+    "id": "g_1772509905427",
+    "phone": "Guest",
+    "name": "Red Guest",
+    "points": 0,
+    "tier": "Guest",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=g_1772509905427",
+    "preferences": [],
+    "isGuest": true
+  },
+  {
+    "id": "u1772509977779",
+    "phone": "0988701291",
+    "name": "Khách hàng mới",
+    "points": 0,
+    "tier": "Thành viên",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=0988701291",
+    "preferences": []
+  },
+  {
+    "id": "g_1772594952955",
+    "phone": "Guest",
+    "name": "Teal Guest",
+    "points": 0,
+    "tier": "Guest",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=g_1772594952955",
+    "preferences": [
+      "healthy",
+      "lessSpicy"
+    ],
+    "isGuest": true
   }
 ]

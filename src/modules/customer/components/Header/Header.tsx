@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { MapPin, ChevronDown, User, LogIn, Star, LogOut, Info } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import styles from './Header.module.css';
 import { shopConfig } from '@/config/shopConfig';
 
@@ -18,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
     const { isLoggedIn, user, logout } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
 
     return (
         <div className={`${styles.headerWrapperCompact} ${styles[theme]}`}>
@@ -34,7 +35,13 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <div className={styles.userStatsCompact}>
                     {isLoggedIn && user ? (
-                        <Link href={`/account?from=${pathname}`} className={styles.accountLinkCompact}>
+                        <button
+                            onClick={() => {
+                                const fullPath = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : pathname;
+                                router.push(`/account?from=${encodeURIComponent(fullPath)}`);
+                            }}
+                            className={styles.accountLinkCompact}
+                        >
                             <div className={styles.avatarWrapperCompact}>
                                 <div className={styles.avatarCircle}>
                                     {user.avatar ? <img src={user.avatar} className={styles.avatarImg} /> : <User size={20} />}
@@ -54,14 +61,20 @@ export const Header: React.FC<HeaderProps> = ({
                                     </span>
                                 )}
                             </div>
-                        </Link>
+                        </button>
                     ) : (
-                        <Link href={`/account?from=${pathname}`} className={styles.loginLink}>
+                        <button
+                            onClick={() => {
+                                const fullPath = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : pathname;
+                                router.push(`/account?from=${encodeURIComponent(fullPath)}`);
+                            }}
+                            className={styles.loginLink}
+                        >
                             <div className={styles.loginIconCircle}>
                                 <LogIn size={20} />
                             </div>
                             <span className={styles.loginText}>Đăng nhập</span>
-                        </Link>
+                        </button>
                     )}
                 </div>
             </header>

@@ -1,19 +1,72 @@
 .container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding-bottom: 80px;
+    gap: 24px;
+    padding: 24px 16px 100px 16px;
+    background-color: #f8fafc;
+}
+
+.profileHeader {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: white;
+    padding: 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.profileHeader:active {
+    transform: scale(0.98);
+    background: #f8fafc;
+}
+
+.avatar {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+}
+
+.profileInfo {
+    flex: 1;
+}
+
+.userName {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    margin: 0 0 2px 0;
+}
+
+.userPhone {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0;
+}
+
+.chevron {
+    color: #cbd5e1;
 }
 
 /* Member Card */
 .memberCard {
     position: relative;
     height: 180px;
-    border-radius: 20px;
+    border-radius: 24px;
     overflow: hidden;
     color: white;
-    box-shadow: 0 8px 16px rgba(245, 158, 11, 0.2);
-    margin-top: 1.5rem;
+    box-shadow: 0 10px 20px rgba(245, 158, 11, 0.15);
 }
 
 .cardBg {
@@ -21,17 +74,6 @@
     inset: 0;
     background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
     z-index: 1;
-}
-
-.cardBg::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 200px;
-    height: 200px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
 }
 
 .cardContent {
@@ -59,13 +101,11 @@
     border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
-    backdrop-filter: blur(4px);
 }
 
 .points {
     font-size: 28px;
     font-weight: 800;
-    letter-spacing: -0.5px;
 }
 
 .barcodePlaceholder {
@@ -81,19 +121,13 @@
 
 .barcodeLines {
     width: 140px;
-    height: 30px;
-    background-image: repeating-linear-gradient(90deg,
-            #000 0px,
-            #000 2px,
-            transparent 2px,
-            transparent 4px,
-            #000 4px,
-            #000 6px);
+    height: 24px;
+    background-image: repeating-linear-gradient(90deg, #000 0px, #000 2px, transparent 2px, transparent 4px);
 }
 
 .memberCode {
     color: #1f2937;
-    font-size: 12px;
+    font-size: 10px;
     font-family: monospace;
     font-weight: 600;
 }
@@ -101,114 +135,246 @@
 /* Progress */
 .progressSection {
     background: white;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    border: 1px solid #f1f5f9;
 }
 
 .progressInfo {
     display: flex;
     justify-content: space-between;
     font-size: 13px;
-    color: #4b5563;
-    margin-bottom: 8px;
-    font-weight: 500;
+    color: #64748b;
+    margin-bottom: 10px;
+    font-weight: 700;
 }
 
 .progressBar {
-    height: 8px;
-    background: #f3f4f6;
-    border-radius: 4px;
+    height: 10px;
+    background: #f1f5f9;
+    border-radius: 5px;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .progressFill {
     height: 100%;
     background: #f59e0b;
-    border-radius: 4px;
+    border-radius: 5px;
 }
 
 .progressNote {
-    font-size: 13px;
-    color: #6b7280;
+    font-size: 12px;
+    color: #94a3b8;
     margin: 0;
 }
 
-.progressNote strong {
-    color: #1f2937;
-    font-weight: 600;
-}
-
-/* Quick Actions */
-.quickActions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+/* Group Section */
+.groupSection {
+    display: flex;
+    flex-direction: column;
     gap: 12px;
 }
 
-.actionBtn {
+.groupTitle {
+    font-size: 11px;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin: 0 0 4px 8px;
+}
+
+.groupCard {
     background: white;
-    border: none;
-    border-radius: 16px;
-    padding: 16px;
+    border-radius: 24px;
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.menuItem {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    gap: 12px;
+    padding: 16px 20px;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s;
 }
 
-.actionBtn:active {
-    transform: scale(0.98);
+.menuItem:not(:last-child) {
+    border-bottom: 1px solid #f1f5f9;
 }
 
-.actionIcon {
-    width: 48px;
-    height: 48px;
+.menuItem:active {
+    background: #f8fafc;
+}
+
+.iconBox {
+    width: 36px;
+    height: 36px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.actionIcon.blue {
+.iconBox.blue {
     background: #eff6ff;
-    color: #3b82f6;
+    color: #2563eb;
 }
 
-.actionIcon.orange {
-    background: #fff7ed;
-    color: #f97316;
+.iconBox.gray {
+    background: #f8fafc;
+    color: #475569;
+}
+
+.menuLabel {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.menuChevron {
+    color: #cbd5e1;
+}
+
+/* Quick Actions */
+.quickActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.actionBtn {
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.actionBtn:active {
+    transform: scale(0.96);
+}
+
+.actionIcon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.actionIcon.pink {
+    background: #fff1f2;
+    color: #e11d48;
+}
+
+.actionIcon.teal {
+    background: #f0fdfa;
+    color: #0d9488;
 }
 
 .actionBtn span {
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
 }
 
-/* Top Rewards */
-.rewardsSection {
+/* History */
+.historySection {
+    margin-top: 8px;
+}
+
+.historyList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.historyItem {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
     background: white;
     border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.historyIcon {
+    width: 36px;
+    height: 36px;
+    background: #f8fafc;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.historyContent {
+    flex: 1;
+}
+
+.historyRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.historyItemsText {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.historyStatus {
+    font-size: 10px;
+    font-weight: 800;
+    background: #f1f5f9;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.historyTime {
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+/* Rewards Section */
+.rewardsSection {
+    background: white;
+    border-radius: 24px;
+    padding: 20px;
+    border: 1px solid #f1f5f9;
+    margin-top: 8px;
 }
 
 .sectionHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
 
 .sectionHeader h3 {
     font-size: 16px;
-    font-weight: 700;
-    color: #1f2937;
+    font-weight: 800;
+    color: #0f172a;
     margin: 0;
 }
 
@@ -217,10 +383,10 @@
     border: none;
     display: flex;
     align-items: center;
-    gap: 2px;
-    color: #3b82f6;
+    gap: 4px;
+    color: #2563eb;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
 }
 
@@ -231,14 +397,14 @@
 }
 
 .rewardCard {
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
     overflow: hidden;
 }
 
 .rewardImgWrapper {
     height: 90px;
-    background: #f9fafb;
 }
 
 .rewardImg {
@@ -256,80 +422,12 @@
 
 .rewardName {
     font-size: 13px;
-    font-weight: 500;
-    color: #374151;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-weight: 600;
+    color: #1e293b;
 }
 
 .rewardPoints {
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
     color: #f59e0b;
-}
-
-/* History Section */
-.historySection {
-    margin-top: 1.5rem;
-    margin-bottom: 24px;
-}
-
-.historyList {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.historyItem {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    background: #F8FAFC;
-    border-radius: 12px;
-}
-
-.historyIcon {
-    width: 32px;
-    height: 32px;
-    background: white;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #E2E8F0;
-}
-
-.historyContent {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-}
-
-.historyRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.historyItemsText {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #1E293B;
-}
-
-.historyStatus {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #0F172A;
-    background: #E2E8F0;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-.historyTime {
-    font-size: 0.75rem;
-    color: #64748B;
 }
