@@ -9,7 +9,8 @@ import SingleOrderPage from '../single-order-page/page';
 function MenuRouter() {
     const searchParams = useSearchParams();
     const style = searchParams.get('style') || 'discovery';
-    const tableid = searchParams.get('tableid') || 'A-12';
+    const tableid = searchParams.get('tableid') || searchParams.get('tableId') || 'A-12';
+    const resid = searchParams.get('resid') || searchParams.get('resId') || '100';
 
     const [isValidating, setIsValidating] = React.useState(true);
     const [isValid, setIsValid] = React.useState(false);
@@ -63,7 +64,7 @@ function MenuRouter() {
         );
     }
 
-    if (style === 'single-order-page') {
+    if (style === 'single-order-page' || style === 'order') {
         return <SingleOrderPage />;
     }
 

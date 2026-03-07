@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
     ReceiptText, Search, ChefHat, BellRing, GlassWater, Snowflake,
     Plus, Minus, ShoppingBag, ChevronRight, MapPin, User as UserIcon,
@@ -16,7 +16,6 @@ import styles from './page.module.css';
 import { ContextBanner, Order } from '@/modules/customer/components/ContextBanner/ContextBanner';
 import { MemberLobby } from '@/modules/customer/components/MemberLobby/MemberLobby';
 import { useAuth } from '@/context/AuthContext';
-import { usePathname } from 'next/navigation';
 
 import { PromotionStrip } from '@/modules/customer/components/PromotionStrip/PromotionStrip';
 
@@ -158,7 +157,10 @@ import { OnboardingGuide } from '@/modules/customer/components/Onboarding/Onboar
 
 
 
-export default function StorefrontPreview() {
+function StorefrontPreviewContent() {
+    const searchParams = useSearchParams();
+    const resid = searchParams.get('resid') || searchParams.get('resId') || '100';
+    const tableid = searchParams.get('tableid') || searchParams.get('tableId') || 'A-12';
     const defaultBlocks = [
         { id: 'group', type: 'group-ordering', title: '' },
         { id: 'combo', type: 'collection-grid', title: 'Combo tiết kiệm' },
@@ -256,7 +258,7 @@ export default function StorefrontPreview() {
     useEffect(() => {
         const fetchTable = async () => {
             try {
-                const res = await fetch('/api/restaurants/100/live?tableid=A-12');
+                const res = await fetch(`/api/restaurants/${resid}/live?tableid=${tableid}`);
                 const data = await res.json();
                 if (data.members) setTableMembers(data.members);
             } catch (e) { }
@@ -264,7 +266,7 @@ export default function StorefrontPreview() {
         fetchTable();
         const interval = setInterval(fetchTable, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [resid, tableid]);
 
 
     // --- Dynamic Order State Management ---
@@ -337,12 +339,12 @@ export default function StorefrontPreview() {
             const res = await fetch('/api/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ resId: '100' })
+                body: JSON.stringify({ resId: resid })
             });
             if (res.ok) {
                 setCart({});
                 setShowCartModal(false);
-                router.push(`/table-orders?from=${pathname}&resid=100&tableid=A-12`);
+                router.push(`/table-orders?from=${pathname}&resid=${resid}&tableid=${tableid}`);
             }
         } catch (e) {
             console.error("Order failed:", e);
@@ -421,7 +423,7 @@ export default function StorefrontPreview() {
                 if (block.config?.isEnabled === false) return null;
                 return (
                     <div className="mb-4">
-                        <MemberLobby tableId="A-12" members={tableMembers} />
+                        <MemberLobby tableId={tableid} members={tableMembers} />
                     </div>
                 );
             case 'guided-discovery':
@@ -679,7 +681,7 @@ export default function StorefrontPreview() {
                                 <span className={styles.restaurantTitle}>Biển Đông</span>
                                 <span className={styles.infoIcon} aria-hidden="true">ⓘ</span>
                             </div>
-                            <div className={styles.tableTag}>Bàn A-12</div>
+                            <div className={styles.tableTag}>Bàn {tableid}</div>
                         </div>
                     </button>
                     {/* ... User Info remains same ... */}
@@ -688,7 +690,7 @@ export default function StorefrontPreview() {
                         className={styles.userInfo}
                         onClick={() => {
                             const fullPath = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : pathname;
-                            router.push(`/account?from=${encodeURIComponent(fullPath)}`);
+                            router.push(`/account?from=${encodeURIComponent(fullPath)}&resid=${resid}&tableid=${tableid}`);
                         }}
                         aria-label="Thông tin cá nhân"
                     >
@@ -1040,7 +1042,7 @@ export default function StorefrontPreview() {
                                 <ArrowLeft size={24} />
                             </button>
                             <div className={styles.headerTitleCol}>
-                                <h3>Chi tiết bàn A-12</h3>
+                                <h3>Chi tiết bàn {tableid}</h3>
                                 <span>4 người • {displayOrders.length > 0 ? 'Đã gọi món' : 'Chưa gọi món'}</span>
                             </div>
                         </div>
@@ -1313,5 +1315,13 @@ export default function StorefrontPreview() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function StorefrontPreview() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <StorefrontPreviewContent />
+        </Suspense>
     );
 }

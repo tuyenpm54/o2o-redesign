@@ -101,8 +101,8 @@ function MemberLobbyLocal({ members }: any) {
 function DiscoveryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const resid = searchParams.get("resid");
-  const tableid = searchParams.get("tableid");
+  const resid = searchParams.get("resid") || searchParams.get("resId") || "100";
+  const tableid = searchParams.get("tableid") || searchParams.get("tableId") || "A-12";
   const pathname = usePathname();
   const { isLoggedIn, user, isLoadingAuth, loginAsGuest } = useAuth();
   const { t, language } = useLanguage();
