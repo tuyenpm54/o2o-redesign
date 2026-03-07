@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { AccountSettings } from '@/components/Account/AccountSettings';
 import { useAuth } from '@/context/AuthContext';
@@ -9,8 +9,18 @@ import { UserData } from '@/components/Account/PersonalInfoSection';
 import styles from '../page.module.css'; // Reuse styles from parent
 
 export default function SettingsPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <SettingsContent />
+        </Suspense>
+    );
+}
+
+function SettingsContent() {
     const router = useRouter();
-    const { user, logout } = useAuth();
+    const searchParams = useSearchParams();
+    const from = searchParams.get('from') || '/customer';
+    const { user, logout, updateUser } = useAuth();
 
     const [userData, setUserData] = useState<UserData>({
         name: "",
@@ -32,13 +42,13 @@ export default function SettingsPage() {
         }
     }, [user]);
 
-    const handleUpdateProfile = (newData: UserData) => {
+    const handleUpdateProfile = async (newData: UserData) => {
         setUserData(prev => ({ ...prev, ...newData }));
+        await updateUser({ name: newData.name, phone: newData.phone });
     };
 
     const handleLogout = () => {
-        logout();
-        router.push('/account');
+        logout(from);
     };
 
     return (

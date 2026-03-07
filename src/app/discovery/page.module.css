@@ -1418,18 +1418,27 @@
 }
 
 .compactSmartCard {
-  background: #111827;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
   border-radius: 24px;
   margin: 0 16px 24px;
-  padding: 20px;
+  padding: 24px;
   position: relative;
   overflow: hidden;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s, background 0.3s;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.compactSmartCard:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #334155, #1e293b);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .compactSmartCard:active {
@@ -1442,7 +1451,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at top right, rgba(234, 179, 8, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.15) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -1452,74 +1461,99 @@
   gap: 16px;
   position: relative;
   z-index: 1;
+  flex: 1;
 }
 
 .compactSmartIcon {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  background: rgba(251, 191, 36, 0.1);
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: rgba(245, 158, 11, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  border: 1.5px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .compactSmartInfo {
-  display: flex;
-  flex-direction: column;
+  flex: 1;
+}
+
+.compactSmartBadgeContainer {
+  margin-bottom: 6px;
 }
 
 .compactSmartBadge {
-  color: #FBBF24;
+  display: inline-block;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
-  margin-bottom: 2px;
+  color: #fbbf24;
+  padding: 2px 0;
 }
 
 .compactSmartTitle {
-  color: #fff;
-  font-size: 18px;
-  font-weight: 800;
   margin: 0;
-  letter-spacing: -0.01em;
 }
 
-.compactSmartTags {
+.smartContentCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.smartIntro {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.smartPillList {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
 }
 
-.compactSmartTagPill {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 600;
+.smartPillItem {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fde68a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 100px;
+  white-space: nowrap;
 }
 
 .compactSmartRight {
-  position: relative;
+  margin-left: 12px;
   z-index: 1;
 }
 
-.compactSmartViewAll {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 100px;
+.exploreCircle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 700;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
 }
+
+.compactSmartCard:hover .exploreCircle {
+  background: #f59e0b;
+  border-color: #fbbf24;
+  transform: translateX(4px);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+}
+
+
 
 .expertSectionHeader {
   padding: 0 20px 8px;
@@ -1822,8 +1856,12 @@
 
 .cardDesc {
   color: #334155;
-  height: 2.8em;
-  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 8px;
   font-size: 11px;
   line-height: 1.4;
 }

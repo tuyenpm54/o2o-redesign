@@ -31,8 +31,9 @@ const UserAccountContent = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const from = searchParams.get('from') || '/';
-    const { isLoggedIn, isGuest, user, logout } = useAuth();
-    const [view, setView] = useState<'OVERVIEW' | 'PERSONAL_INFO'>('OVERVIEW');
+    const isSetup = searchParams.get('setup') === '1';
+    const { isLoggedIn, isGuest, user, logout, updateUser } = useAuth();
+    const [view, setView] = useState<'OVERVIEW' | 'PERSONAL_INFO'>(isSetup ? 'PERSONAL_INFO' : 'OVERVIEW');
 
     // Mapped Data from Context
     const [userData, setUserData] = useState<UserData & { points: number, tier: string }>({
@@ -72,13 +73,23 @@ const UserAccountContent = () => {
         router.push('/order-history/rounds');
     };
 
-    const handleUpdateProfile = (newData: UserData) => {
+    const handleUpdateProfile = async (newData: UserData) => {
         setUserData(prev => ({ ...prev, ...newData }));
+        await updateUser({ name: newData.name, phone: newData.phone });
     };
 
     const handleBack = () => {
         if (view === 'PERSONAL_INFO') {
-            setView('OVERVIEW');
+            if (isSetup) {
+                // After setting up profile, go back to origin page
+                if (from && from !== '/') {
+                    router.push(from);
+                } else {
+                    router.push('/customer');
+                }
+            } else {
+                setView('OVERVIEW');
+            }
         } else {
             if (from && from !== '/') {
                 router.push(from);
@@ -117,7 +128,6 @@ const UserAccountContent = () => {
                             userData={userData}
                             onUpdate={handleUpdateProfile}
                         />
-                        <button className={styles.logoutBtn} onClick={() => { logout(); router.push('/account'); }}> Đăng xuất </button>
                     </div>
                 ) : (
                     <AccountOverview
@@ -126,7 +136,7 @@ const UserAccountContent = () => {
                         topRewards={TOP_REWARDS_MOCK}
                         recentOrders={recentOrders}
                         onNavigateToVouchers={() => router.push('/account/vouchers')}
-                        onNavigateToSettings={() => router.push('/account/settings')}
+                        onNavigateToSettings={() => router.push(`/account/settings?from=${encodeURIComponent(from)}`)}
                         onNavigateToHistory={handleNavigateToHistory}
                         onNavigateToPersonalInfo={() => setView('PERSONAL_INFO')}
                     />

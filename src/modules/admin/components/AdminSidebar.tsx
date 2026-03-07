@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutDashboard, MonitorSmartphone, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, MonitorSmartphone, Settings, LogOut, LayoutGrid, Terminal } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export function AdminSidebar() {
@@ -28,6 +28,14 @@ export function AdminSidebar() {
                 <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white bg-transparent hover:bg-slate-100/50 dark:hover:bg-white/5 rounded-xl transition-all font-semibold">
                     <LayoutDashboard size={20} />
                     <span>Dashboard</span>
+                </Link>
+                <Link href="/admin/tables" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white bg-transparent hover:bg-slate-100/50 dark:hover:bg-white/5 rounded-xl transition-all font-semibold">
+                    <LayoutGrid size={20} />
+                    <span>Quản lý Bàn</span>
+                </Link>
+                <Link href="/admin/pos" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white bg-transparent hover:bg-slate-100/50 dark:hover:bg-white/5 rounded-xl transition-all font-semibold">
+                    <Terminal size={20} />
+                    <span>KDS (Nhận bếp)</span>
                 </Link>
                 <Link href="/admin/display" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white bg-transparent hover:bg-slate-100/50 dark:hover:bg-white/5 rounded-xl transition-all font-semibold">
                     <MonitorSmartphone size={20} />

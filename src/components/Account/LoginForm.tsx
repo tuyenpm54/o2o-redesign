@@ -19,9 +19,12 @@ export const LoginForm = ({ from = '/' }: { from?: string }) => {
         }
     };
 
-    const handleVerifyParams = () => {
+    const handleVerifyParams = async () => {
         if (otp === '123456') {
-            login(phone);
+            await login(phone);
+            // Go to profile setup page first, then back to origin
+            const setupUrl = `/account?from=${encodeURIComponent(from)}&setup=1`;
+            window.location.href = setupUrl;
         } else {
             alert('OTP không đúng (thử 123456)');
         }

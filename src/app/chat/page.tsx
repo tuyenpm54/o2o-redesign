@@ -10,7 +10,8 @@ import {
     StickyNote,
     Sparkles,
     Wallet,
-    MoreHorizontal
+    MoreHorizontal,
+    ShoppingBag
 } from "lucide-react";
 import styles from "./page.module.css";
 import { useLanguage } from "@/context/LanguageContext";
@@ -36,7 +37,9 @@ function ChatContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { t, language } = useLanguage();
-    const fromUrl = searchParams.get('from') || '/single-order-page';
+    const fromUrl = searchParams.get('from') || '/menu?style=single-order-page';
+    const resid = searchParams.get('resid') || '100';
+    const tableid = searchParams.get('tableid') || 'A-12';
     const chatScrollRef = useRef<HTMLDivElement>(null);
     const [supportView, setSupportView] = useState<'OPTIONS' | 'INPUT_OTHER'>('OPTIONS');
     const [otherRequestText, setOtherRequestText] = useState('');
@@ -130,6 +133,26 @@ function ChatContent() {
             </div>
 
             <div className={styles.chatFooter}>
+                {/* View cart shortcut */}
+                <button
+                    onClick={() => router.push(`/table-orders?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(fromUrl)}`)}
+                    style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        width: '100%', padding: '12px 16px',
+                        background: 'linear-gradient(135deg, #fff7ed, #ffedd5)',
+                        border: '1.5px solid #fed7aa',
+                        borderRadius: '14px', marginBottom: '10px',
+                        cursor: 'pointer', fontWeight: 700,
+                        fontSize: '14px', color: '#c2410c',
+                    }}
+                >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <ShoppingBag size={18} />
+                        {t('Xem giỏ hàng')}
+                    </span>
+                    <ChevronRight size={16} />
+                </button>
+
                 {supportView === 'OPTIONS' ? (
                     <div className={styles.chatOptionsScroll}>
                         {SUPPORT_OPTIONS.map((opt) => (

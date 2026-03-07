@@ -71,7 +71,7 @@ export default function BillPage() {
                 setCountdown((prev) => {
                     if (prev <= 1) {
                         clearInterval(timer);
-                        router.push('/single-order-page');
+                        router.push('/menu?style=single-order-page');
                         return 0;
                     }
                     return prev - 1;
@@ -248,7 +248,7 @@ export default function BillPage() {
                         ) : (
                             <button
                                 className={styles.returnBtn}
-                                onClick={() => router.push('/single-order-page')}
+                                onClick={() => router.push('/menu?style=single-order-page')}
                             >
                                 Quay lại Menu {countdown > 0 && `(${countdown}s)`}
                             </button>

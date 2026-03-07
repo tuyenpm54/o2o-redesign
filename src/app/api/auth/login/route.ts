@@ -14,34 +14,41 @@ export async function POST(request: Request) {
         const cookieStore = await cookies();
         const existingSessionId = cookieStore.get('session_id')?.value;
 
+        // Find or create the real user account
         let user = await db.get('SELECT * FROM users WHERE phone = ?', [phone]);
         let userId: string;
 
         if (user) {
             userId = user.id;
-            // Optionally update name if provided
             if (name && name !== 'Khách hàng mới') {
                 await db.run('UPDATE users SET name = ?, isGuest = 0 WHERE id = ?', [name, userId]);
                 user.name = name;
                 user.isGuest = 0;
+            } else {
+                await db.run('UPDATE users SET isGuest = 0 WHERE id = ?', [userId]);
             }
         } else {
-            // Check if current session is a guest session that we can upgrade
-            let guestUser = null;
-            if (existingSessionId) {
-                const session = await db.get('SELECT * FROM sessions WHERE id = ?', [existingSessionId]);
-                if (session) {
-                    guestUser = await db.get('SELECT * FROM users WHERE id = ? AND isGuest = 1', [session.user_id]);
-                }
-            }
+            // New user: create account (reuse guest user id so cart data is preserved)
+            const existingSession = existingSessionId
+                ? await db.get('SELECT * FROM sessions WHERE id = ?', [existingSessionId])
+                : null;
+            const existingGuestUser = existingSession
+                ? await db.get('SELECT * FROM users WHERE id = ? AND isGuest = 1', [existingSession.user_id])
+                : null;
 
-            if (guestUser) {
-                userId = guestUser.id;
+            if (existingGuestUser) {
+                // Upgrade guest user in-place — same user_id, cart data preserved
+                userId = existingGuestUser.id;
                 await db.run(
-                    'UPDATE users SET phone = ?, name = ?, isGuest = 0, tier = ? WHERE id = ?',
-                    [phone, name || 'Khách hàng mới', 'Thành viên', userId]
+                    'UPDATE users SET phone = ?, name = ?, isGuest = 0, tier = ?, avatar = ? WHERE id = ?',
+                    [
+                        phone,
+                        name || 'Khách hàng mới',
+                        'Thành viên',
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${phone}`,
+                        userId
+                    ]
                 );
-                user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
             } else {
                 userId = `u${Date.now()}`;
                 await db.run(
@@ -55,25 +62,34 @@ export async function POST(request: Request) {
                         0
                     ]
                 );
-                user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
             }
         }
 
-        const sessionId = crypto.randomUUID();
+        user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+
         const expires = Date.now() + (7 * 24 * 60 * 60 * 1000);
 
-        await db.run(
-            'INSERT INTO sessions (id, user_id, expires) VALUES (?, ?, ?)',
-            [sessionId, userId, expires]
-        );
-
-        cookieStore.set('session_id', sessionId, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 7 * 24 * 60 * 60,
-            path: '/',
-        });
+        if (existingSessionId) {
+            // ✅ Keep same session — just update user_id and extend expiry
+            await db.run(
+                'UPDATE sessions SET user_id = ?, expires = ? WHERE id = ?',
+                [userId, expires, existingSessionId]
+            );
+        } else {
+            // No existing session — create a new one
+            const sessionId = crypto.randomUUID();
+            await db.run(
+                'INSERT INTO sessions (id, user_id, expires) VALUES (?, ?, ?)',
+                [sessionId, userId, expires]
+            );
+            cookieStore.set('session_id', sessionId, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 7 * 24 * 60 * 60,
+                path: '/',
+            });
+        }
 
         // Parse preferences for response
         if (user) {

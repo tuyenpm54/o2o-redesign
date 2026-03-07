@@ -1,12 +1,18 @@
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
+import React, { Suspense } from 'react';
 import { ChevronLeft, CheckCircle2, CircleDashed, Users } from 'lucide-react';
 import styles from './page.module.css';
 import { MOCK_ROUNDS } from '@/data/mock-order-history';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function RoundHistoryPage() {
+function RoundHistoryContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const resid = searchParams.get('resid') || '100';
+    const tableid = searchParams.get('tableid') || 'A-12';
+    const from = searchParams.get('from') || `/table-orders?resid=${resid}&tableid=${tableid}`;
+
     // Sort rounds descending by time
     const sortedRounds = [...MOCK_ROUNDS].sort((a, b) =>
         new Date(b.orderedAt).getTime() - new Date(a.orderedAt).getTime()
@@ -19,11 +25,9 @@ export default function RoundHistoryPage() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <Link href="/table-orders">
-                    <button className={styles.backButton}>
-                        <ChevronLeft size={24} />
-                    </button>
-                </Link>
+                <button className={styles.backButton} onClick={() => router.push(from)}>
+                    <ChevronLeft size={24} />
+                </button>
                 <h1 className={styles.pageTitle}>Lịch sử lượt gọi</h1>
             </header>
 
@@ -73,5 +77,13 @@ export default function RoundHistoryPage() {
                 })}
             </div>
         </div>
+    );
+}
+
+export default function RoundHistoryPage() {
+    return (
+        <Suspense>
+            <RoundHistoryContent />
+        </Suspense>
     );
 }

@@ -39,6 +39,13 @@ function MemberLobbyLocal({ members }: any) {
   const { t } = useLanguage();
   const colors = ["#3B82F6", "#EF4444", "#EC4899", "#F59E0B", "#8B5CF6", "#10B981"];
 
+  // Count total items across all members
+  const totalItems = members.reduce((acc: number, m: any) => {
+    const draft = (m.draftItems || []).reduce((s: number, d: any) => s + (d.quantity || 1), 0);
+    const confirmed = (m.confirmedOrders || []).reduce((s: number, o: any) => s + (o.qty || 1), 0);
+    return acc + draft + confirmed;
+  }, 0);
+
   return (
     <div className={styles.lobbyWrapper}>
       <div className={styles.lobbyCard} onClick={() => router.push(`/table-orders?from=${pathname}`)}>
@@ -66,7 +73,24 @@ function MemberLobbyLocal({ members }: any) {
             })}
           </div>
           {members.length > 5 && <span className={styles.moreCount}>+{members.length - 5}</span>}
-          <span className={styles.inlineStatus}>{t('đang chọn món...')}</span>
+          <span className={styles.inlineStatus}>
+            {totalItems > 0 ? t('đang chọn món...') : t('đang chọn món...')}
+          </span>
+          {totalItems > 0 && (
+            <span style={{
+              marginLeft: 'auto',
+              background: '#f97316',
+              color: '#fff',
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: '20px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}>
+              {totalItems} món
+            </span>
+          )}
           <ChevronRight size={14} className={styles.inlineChevron} />
         </div>
       </div>
@@ -135,7 +159,7 @@ function DiscoveryPageContent() {
 
     if (bestPairing) {
       const bp = bestPairing as { confirmedName: string; percentage: number };
-      return `${bp.percentage}% khách ăn cùng với ${bp.confirmedName}`;
+      return `${bp.percentage}% ăn với ${bp.confirmedName}`;
     }
     return null;
   }, [tableMembers]);
@@ -160,9 +184,9 @@ function DiscoveryPageContent() {
   const showPerfectPairing = confirmedItemNames.length > 0 && pairingRecommendedItems.length > 2;
 
   const topItems = useMemo(() => {
-    if (showPerfectPairing) return pairingRecommendedItems.slice(0, 5);
     return menuItems.filter((item: any) => item.status === "Best Seller" || item.tags?.includes("Bán chạy")).slice(0, 5);
-  }, [showPerfectPairing, pairingRecommendedItems, menuItems]);
+  }, [menuItems]);
+
 
   const displayMenuItems = useMemo(() => {
     return menuItems.filter((i) => i.category === activeCategory);
@@ -289,13 +313,17 @@ function DiscoveryPageContent() {
   }, [categories, activeCategory]);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && !sessionStorage.getItem("discovery_wizard_shown")) {
-      setIsWizardShown(true);
+    if (typeof window !== "undefined") {
+      const wizardKey = `discovery_wizard_shown_${resid}_${tableid}`;
+      if (!sessionStorage.getItem(wizardKey)) {
+        setIsWizardShown(true);
+      }
     }
-  }, []);
+  }, [resid, tableid]);
 
   const closeWizard = () => {
-    sessionStorage.setItem("discovery_wizard_shown", "true");
+    const wizardKey = `discovery_wizard_shown_${resid}_${tableid}`;
+    sessionStorage.setItem(wizardKey, "true");
     setIsWizardShown(false);
   };
 
@@ -397,6 +425,8 @@ function DiscoveryPageContent() {
     </div>
   );
 
+  const hasPlacedOrder = tableMembers.some((m: any) => m.id === user?.id && m.confirmedOrders && m.confirmedOrders.length > 0);
+
   return (
     <div className={styles.container}>
       <DiscoveryWizard
@@ -435,37 +465,91 @@ function DiscoveryPageContent() {
       />
 
       <DiscoveryHeader restaurant={restaurant} tableid={tableid} />
-      <div style={{ padding: "0 16px", marginTop: "16px" }}><MemberLobbyLocal members={tableMembers} /></div>
+
 
       <main className={styles.personalizedContent}>
+        {tableMembers.length > 0 && (
+          <div style={{ margin: '0 16px 24px' }}>
+            <MemberLobbyLocal members={tableMembers} />
+          </div>
+        )}
+
         <section className={styles.compactSmartCard} onClick={() => { setIsWizardShown(true); setOnboardingStep(form.groupSize ? 1 : 0); }}>
           <div className={styles.compactSmartBg}></div>
           <div className={styles.compactSmartLeft}>
             <div className={styles.compactSmartIcon}><Sparkles size={24} fill="#FBBF24" color="#FBBF24" /></div>
             <div className={styles.compactSmartInfo}>
-              <div className={styles.compactSmartBadge}>{t('Gợi ý thông minh').toUpperCase()}</div>
+              <div className={styles.compactSmartBadgeContainer}>
+                <div className={styles.compactSmartBadge}>{t('GÓI Ý THÔNG MINH')}</div>
+              </div>
               <h3 className={styles.compactSmartTitle}>
                 {isLoggedIn && user && user.preferences?.length ? (
-                  <span style={{ fontSize: '15px', display: 'block', lineHeight: '1.3' }}>
-                    {t('Xin chào')} {user.name}, {t('rất vui thấy bạn quay trở lại, bạn vẫn yêu cầu:')}
-                    {user.preferences.map((p: string) => {
-                      const pref = preferencesList.find(xi => xi.id === p);
-                      return pref ? ` "${pref.label}"` : "";
-                    }).filter(Boolean).join(", ")} {t('như thường lệ chứ?')}
-                  </span>
-                ) : t("Dành riêng cho bạn")}
+                  <div className={styles.smartContentCol}>
+                    <span className={styles.smartIntro}>{t('Dựa trên lựa chọn lần trước của bạn')}</span>
+                    <div className={styles.smartPillList}>
+                      {user.preferences.map((p: string) => {
+                        const pref = preferencesList.find(xi => xi.id === p);
+                        if (!pref) return null;
+                        return (
+                          <span key={p} className={styles.smartPillItem}>
+                            ✓ {pref.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <span className={styles.smartIntro}>{t("Dành riêng cho bạn")}</span>
+                )}
               </h3>
             </div>
           </div>
-          <div className={styles.compactSmartRight}><button className={styles.compactSmartViewAll}><span>{t('Khám phá')}</span><ChevronRight size={18} /></button></div>
+          <div className={styles.compactSmartRight}>
+            <div className={styles.exploreCircle}>
+              <ChevronRight size={20} color="#fff" />
+            </div>
+          </div>
         </section>
+
+        {showPerfectPairing && (
+          <section className={styles.bestChoiceSection}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>
+                {t('Thường dùng kèm với các món bạn chọn ✨')}
+              </h2>
+            </div>
+            <div className={styles.horizontalScroll}>
+              {pairingRecommendedItems.slice(0, 5).map((item: any) => (
+                <div key={item.id} className={styles.bestChoiceCard} onClick={() => setSelectedItem(item)}>
+                  <div className={styles.bestChoiceImgWrapper}>
+                    <img src={item.img} alt={item.name} className={styles.bestChoiceImg} />
+                  </div>
+                  <div className={styles.bestChoiceInfo}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {getPairingMessage(item) && (
+                        <div className={styles.pairingBadgeInline}>
+                          <Sparkles size={10} fill="#CA8A04" color="#CA8A04" />
+                          {getPairingMessage(item)}
+                        </div>
+                      )}
+                    </div>
+                    <h3 className={styles.bestChoiceName}>{item.name}</h3>
+                    <p className={styles.bestChoiceDesc}>{item.desc}</p>
+                    <div className={styles.bestChoiceFooter}>
+                      <span className={styles.bestChoicePrice}>{item.price.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
+                      <button className={styles.quickAddBtn} onClick={(e) => { e.stopPropagation(); syncCartQuantity(item, getItemQuantity(item.id) + 1); }}><Plus size={20} /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className={styles.bestChoiceSection}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>
-              {showPerfectPairing
-                ? t('Gợi ý hoàn hảo cho bữa tiệc ✨')
-                : t('Best choice, Món hot thử ngay 🔥')}
+              {t('Best choice, Món hot thử ngay 🔥')}
             </h2>
           </div>
           <div className={styles.horizontalScroll}>
@@ -482,14 +566,6 @@ function DiscoveryPageContent() {
                   )}
                 </div>
                 <div className={styles.bestChoiceInfo}>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {getPairingMessage(item) && (
-                      <div className={styles.pairingBadgeInline}>
-                        <Sparkles size={10} fill="#CA8A04" color="#CA8A04" />
-                        {getPairingMessage(item)}
-                      </div>
-                    )}
-                  </div>
                   <h3 className={styles.bestChoiceName}>{item.name}</h3>
                   <p className={styles.bestChoiceDesc}>{item.desc}</p>
                   <div className={styles.bestChoiceFooter}>
@@ -539,7 +615,33 @@ function DiscoveryPageContent() {
                     )}
                   </div>
                   <h4 className={styles.cardName}>{item.name}</h4>
-                  <p className={styles.cardDesc}>{item.desc}</p>
+                  {item.tags && item.tags.length > 0 && (() => {
+                    const palette = [
+                      { bg: '#fef3c7', color: '#92400e', border: '#fde68a' },
+                      { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
+                      { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0' },
+                      { bg: '#fce7f3', color: '#9d174d', border: '#fbcfe8' },
+                      { bg: '#ede9fe', color: '#5b21b6', border: '#ddd6fe' },
+                      { bg: '#ffedd5', color: '#9a3412', border: '#fed7aa' },
+                    ];
+                    return (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                        {item.tags.slice(0, 4).map((tag: string, i: number) => {
+                          const c = palette[i % palette.length];
+                          return (
+                            <span key={tag} style={{
+                              fontSize: '10px', fontWeight: 700,
+                              padding: '2px 7px', borderRadius: '6px',
+                              background: c.bg, color: c.color,
+                              border: `1px solid ${c.border}`,
+                              whiteSpace: 'nowrap'
+                            }}>{tag}</span>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                  <p className={styles.cardDesc} style={{ WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.desc}</p>
                   <div className={styles.cardFooter}>
                     <span className={styles.cardPrice}>{item.price.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
                     {getItemQuantity(item.id) > 0 ? (
@@ -566,7 +668,7 @@ function DiscoveryPageContent() {
               <span className={styles.chatUnreadBadgeSmall}>{unreadChatCount}</span>
             </div>
           )}
-          <button className={styles.fabSupportPill} onClick={() => { setUnreadChatCount(0); setLastUnreadMsg(null); lastChatCheckRef.current = Date.now(); router.push(`/chat?from=${encodeURIComponent(`/discovery?resid=${resid}&tableid=${tableid}`)}`); }}>
+          <button className={styles.fabSupportPill} onClick={() => { setUnreadChatCount(0); setLastUnreadMsg(null); lastChatCheckRef.current = Date.now(); router.push(`/chat?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(`/menu?style=discovery&resid=${resid}&tableid=${tableid}`)}`); }}>
             <div className={styles.staffAvatarWrapper}>
               <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff&backgroundColor=ffdfbf" className={styles.staffAvatarMini} alt="Staff" />
               <div className={styles.onlineDot}></div>

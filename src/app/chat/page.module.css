@@ -160,6 +160,7 @@
     font-size: 0.95rem;
     line-height: 1.5;
     font-weight: 500;
+    white-space: pre-wrap;
 }
 
 .msgOrderAction {

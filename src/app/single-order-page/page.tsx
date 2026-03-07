@@ -166,6 +166,7 @@ export default function StorefrontPreview() {
     ];
 
     const [blocks, setBlocks] = useState<any[]>(defaultBlocks);
+    const [toast, setToast] = useState<{ message: string; submessage: string } | null>(null);
 
     useEffect(() => {
         const fetchBlocks = () => {
@@ -1298,6 +1299,19 @@ export default function StorefrontPreview() {
                 onDismiss={() => setShowOnboarding(false)}
                 isShifted={cartTotalCount > 0 && cartTotalPrice < PROMO_THRESHOLD}
             />
+
+            {/* Custom Toast styling */}
+            {toast && (
+                <div className="fixed top-1/2 left-1/2 min-w-40 -translate-x-1/2 -translate-y-1/2 z-[9999] pointer-events-none animate-[popIn_0.3s_cubic-bezier(0.175,0.885,0.32,1.275)]">
+                    <div className="bg-slate-900/90 backdrop-blur-md rounded-[20px] p-5 shadow-2xl flex flex-col items-center justify-center gap-2 border border-white/10 ring-1 ring-black/5">
+                        <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center animate-pulse">
+                            <CheckCircle2 size={24} className="text-green-400" />
+                        </div>
+                        <h4 className="text-white font-bold text-base mt-1 whitespace-nowrap">{toast.message}</h4>
+                        {toast.submessage && <p className="text-slate-400 text-xs font-medium">{toast.submessage}</p>}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

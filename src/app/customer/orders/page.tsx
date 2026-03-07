@@ -39,7 +39,7 @@ export default function OrderHistoryPage() {
         <div className={styles.container}>
             {/* Header with Actions */}
             <header className={styles.header}>
-                <Link href="/single-order-page" style={{ textDecoration: 'none' }}>
+                <Link href="/menu?style=single-order-page" style={{ textDecoration: 'none' }}>
                     <button className={styles.backButton}>
                         <ChevronLeft size={24} />
                     </button>

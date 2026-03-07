@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CreditCard, Ticket, X, Check, Loader2, Sparkles, Smile, Frown } from 'lucide-react';
+import { ChevronLeft, CreditCard, Ticket, X, Check, Loader2, Sparkles, Smile, Frown, ChevronDown, ChevronUp } from 'lucide-react';
 import styles from './page.module.css';
 
 const MOCK_VOUCHERS = [
@@ -20,6 +20,7 @@ function BillContent() {
     const { t, language } = useLanguage();
     const resid = searchParams.get('resid') || '100';
     const tableid = searchParams.get('tableid') || 'A-12';
+    const from = searchParams.get('from') || `/menu?style=discovery&resid=${resid}&tableid=${tableid}`;
 
     const [billItems, setBillItems] = React.useState<any[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -28,6 +29,7 @@ function BillContent() {
     const [paymentStatus, setPaymentStatus] = React.useState<'IDLE' | 'SENDING' | 'SUCCESS'>('IDLE');
     const [isFeedbackSubmitted, setIsFeedbackSubmitted] = React.useState(false);
     const [showToast, setShowToast] = React.useState(false);
+    const [isBillCollapsed, setIsBillCollapsed] = React.useState(false);
     const router = useRouter();
     const feedbackRef = React.useRef<HTMLDivElement>(null);
 
@@ -102,6 +104,7 @@ function BillContent() {
 
             if (res.ok && data.success) {
                 setPaymentStatus('SUCCESS');
+                setIsBillCollapsed(true);
                 setShowToast(true);
                 setTimeout(() => setShowToast(false), 4000);
                 setTimeout(() => {
@@ -126,11 +129,9 @@ function BillContent() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <Link href={`/table-orders?resid=${resid}&tableid=${tableid}`} style={{ textDecoration: 'none' }}>
-                    <button className={styles.backButton}>
-                        <ChevronLeft size={24} />
-                    </button>
-                </Link>
+                <button className={styles.backButton} onClick={() => router.push(from)}>
+                    <ChevronLeft size={24} />
+                </button>
                 <h1 className={styles.pageTitle}>{t('Hoá đơn tạm tính')}</h1>
             </header>
 
@@ -164,59 +165,83 @@ function BillContent() {
                         </div>
                     </div>
 
-                    <div className={styles.itemList}>
-                        {billItems.map((item: any) => (
-                            <div key={item.id} className={styles.itemRow}>
-                                <div className={styles.itemNameGroup}>
-                                    <span className={styles.itemName}>{item.name}</span>
-                                    <span className={styles.itemQty}>{item.qty} x {item.price.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}</span>
-                                </div>
-                                <span className={styles.itemTotal}>
-                                    {(item.qty * item.price).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}
-                                </span>
+                    {(!isBillCollapsed || paymentStatus !== 'SUCCESS') && (
+                        <>
+                            <div className={styles.itemList}>
+                                {billItems.map((item: any) => (
+                                    <div key={item.id} className={styles.itemRow}>
+                                        <div className={styles.itemNameGroup}>
+                                            <span className={styles.itemName}>{item.name}</span>
+                                            <span className={styles.itemQty}>{item.qty} x {item.price.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}</span>
+                                        </div>
+                                        <span className={styles.itemTotal}>
+                                            {(item.qty * item.price).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
 
-                    {paymentStatus === 'IDLE' && (
-                        <div className={styles.voucherSection}>
-                            <div className={styles.voucherInvite}>
-                                <Sparkles size={16} color="#F59E0B" />
-                                <span>{t('Bạn có muốn áp dụng Voucher không?')}</span>
+                            {paymentStatus === 'IDLE' && (
+                                <div className={styles.voucherSection}>
+                                    <div className={styles.voucherInvite}>
+                                        <Sparkles size={16} color="#F59E0B" />
+                                        <span>{t('Bạn có muốn áp dụng Voucher không?')}</span>
+                                    </div>
+                                    <button
+                                        className={`${styles.voucherInput} ${selectedVoucher ? styles.hasVoucher : ''}`}
+                                        onClick={() => setIsVoucherSheetOpen(true)}
+                                    >
+                                        <Ticket size={18} />
+                                        <span className={styles.voucherCodeText}>
+                                            {selectedVoucher ? `${t('Đã chọn')}: ${selectedVoucher.code}` : t('Chọn voucher hoặc nhập mã...')}
+                                        </span>
+                                        {selectedVoucher ? <Check size={16} color="#10B981" /> : <ChevronLeft style={{ transform: 'rotate(-90deg)' }} size={16} />}
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className={styles.summarySection}>
+                                <div className={styles.summaryRow}>
+                                    <span>{t('Tạm tính')}</span>
+                                    <span>{subtotal.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
+                                </div>
+                                {discount > 0 && (
+                                    <div className={`${styles.summaryRow} ${styles.discountRow}`}>
+                                        <span>{t('Giảm giá')} ({selectedVoucher.code})</span>
+                                        <span>-{discount.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
+                                    </div>
+                                )}
+                                <div className={styles.summaryRow}>
+                                    <span>VAT (8%)</span>
+                                    <span>{vat.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
+                                </div>
                             </div>
-                            <button
-                                className={`${styles.voucherInput} ${selectedVoucher ? styles.hasVoucher : ''}`}
-                                onClick={() => setIsVoucherSheetOpen(true)}
-                            >
-                                <Ticket size={18} />
-                                <span className={styles.voucherCodeText}>
-                                    {selectedVoucher ? `${t('Đã chọn')}: ${selectedVoucher.code}` : t('Chọn voucher hoặc nhập mã...')}
-                                </span>
-                                {selectedVoucher ? <Check size={16} color="#10B981" /> : <ChevronLeft style={{ transform: 'rotate(-90deg)' }} size={16} />}
-                            </button>
-                        </div>
+                        </>
                     )}
 
-                    <div className={styles.summarySection}>
-                        <div className={styles.summaryRow}>
-                            <span>{t('Tạm tính')}</span>
-                            <span>{subtotal.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
-                        </div>
-                        {discount > 0 && (
-                            <div className={`${styles.summaryRow} ${styles.discountRow}`}>
-                                <span>{t('Giảm giá')} ({selectedVoucher.code})</span>
-                                <span>-{discount.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
-                            </div>
-                        )}
-                        <div className={styles.summaryRow}>
-                            <span>VAT (8%)</span>
-                            <span>{vat.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
-                        </div>
-                        <div className={styles.summaryTotal}>
-                            <span>{t('Tổng cộng')}</span>
-                            <span className={styles.totalPrice}>{total.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
+                    <div className={styles.summaryTotal} style={isBillCollapsed && paymentStatus === 'SUCCESS' ? { borderTop: 'none', marginTop: 0, paddingTop: 0 } : {}}>
+                        <span>{t('Tổng cộng')}</span>
+                        <div style={{ textAlign: 'right' }}>
+                            <div className={styles.totalPrice}>{total.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</div>
+                            {isBillCollapsed && paymentStatus === 'SUCCESS' && (
+                                <button
+                                    className={styles.collapsedExpandBtn}
+                                    onClick={() => setIsBillCollapsed(false)}
+                                >
+                                    {t('Xem chi tiết')} <ChevronDown size={14} />
+                                </button>
+                            )}
                         </div>
                     </div>
+
+                    {!isBillCollapsed && paymentStatus === 'SUCCESS' && (
+                        <button
+                            className={styles.expandedCollapseBtn}
+                            onClick={() => setIsBillCollapsed(true)}
+                        >
+                            <ChevronUp size={16} /> {t('Thu gọn')}
+                        </button>
+                    )}
 
                     {paymentStatus === 'SUCCESS' && (
                         <div className={styles.paymentConfirmedBadge}>

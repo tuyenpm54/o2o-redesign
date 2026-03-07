@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import fs from 'fs';
-import path from 'path';
 import { getDb } from '@/lib/db';
-
-const messagesPath = path.join(process.cwd(), 'src/data/messages.json');
 
 async function getAuthenticatedUser() {
     const cookieStore = await cookies();
@@ -23,40 +19,40 @@ export async function GET() {
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     try {
-        if (!fs.existsSync(messagesPath)) return NextResponse.json([]);
-        const messages = JSON.parse(fs.readFileSync(messagesPath, 'utf8'));
-
-        // Filter messages for this table and user
-        const filtered = messages.filter((m: any) =>
-            m.resid === auth.resid &&
-            m.tableid === auth.tableid
+        const db = await getDb();
+        const messages = await db.all(
+            'SELECT * FROM chat_messages WHERE resid = ? AND tableid = ? ORDER BY timestamp DESC LIMIT 5',
+            [auth.resid, auth.tableid]
         );
 
-        // Limit to 5 most recent messages
-        return NextResponse.json(filtered.slice(-5));
+        return NextResponse.json(messages.reverse().map(m => ({
+            id: m.id,
+            userId: m.user_id,
+            resid: m.resid,
+            tableid: m.tableid,
+            sender: m.sender,
+            time: m.time,
+            timestamp: m.timestamp,
+            type: m.type,
+            typeId: m.typeId,
+            content: m.content
+        })));
     } catch (e) {
         return NextResponse.json({ error: 'Failed' }, { status: 500 });
     }
 }
 
 
-function addMessageToFile(auth: { userId: string; tableid: string; resid: string }, msg: any) {
+async function addMessageToFile(auth: { userId: string; tableid: string; resid: string }, msg: any) {
     try {
-        const messages = fs.existsSync(messagesPath) ? JSON.parse(fs.readFileSync(messagesPath, 'utf8')) : [];
+        const db = await getDb();
         const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const msgId = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-        messages.push({
-            id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            userId: auth.userId,
-            resid: auth.resid,
-            tableid: auth.tableid,
-            sender: 'restaurant',
-            time: timeStr,
-            timestamp: Date.now(),
-            ...msg
-        });
-
-        fs.writeFileSync(messagesPath, JSON.stringify(messages, null, 2));
+        await db.run(
+            'INSERT INTO chat_messages (id, user_id, resid, tableid, sender, type, typeId, content, time, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [msgId, auth.userId, auth.resid, auth.tableid, 'restaurant', msg.type, msg.typeId || null, msg.content, timeStr, Date.now()]
+        );
     } catch (e) {
         console.error('[Chat] Failed to add message:', e);
     }
@@ -65,7 +61,6 @@ function addMessageToFile(auth: { userId: string; tableid: string; resid: string
 function scheduleStaffResponse(auth: { userId: string; tableid: string; resid: string }, content: string, lang: string = 'vi', typeId?: string) {
     const isEn = lang === 'en';
 
-    // 1. Message: Request sent to staff (1.5s delay)
     const sentText = isEn
         ? "Your request has been sent to the staff, please wait for confirmation."
         : "Yêu cầu của bạn đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận";
@@ -77,7 +72,6 @@ function scheduleStaffResponse(auth: { userId: string; tableid: string; resid: s
         });
     }, 1500);
 
-    // 2. Message: Staff received/processing (5-8s delay)
     const receivedText = isEn
         ? "Staff have received your request and are processing it."
         : "Nhân viên đã nhận được yêu cầu của bạn và đang xử lý";
@@ -98,25 +92,30 @@ export async function POST(request: Request) {
 
     try {
         const { content, categoryId, typeId, lang } = await request.json();
-        const messages = fs.existsSync(messagesPath) ? JSON.parse(fs.readFileSync(messagesPath, 'utf8')) : [];
+
+        const db = await getDb();
+        const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const timestamp = Date.now();
+        const msgId = `msg-${timestamp}`;
 
         const newMsg = {
-            id: `msg-${Date.now()}`,
+            id: msgId,
             userId: auth.userId,
             resid: auth.resid,
             tableid: auth.tableid,
             sender: 'user',
-            time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-            timestamp: Date.now(),
+            time: timeStr,
+            timestamp: timestamp,
             type: categoryId || 'OTHER', // Tech ID for category
             typeId,
             content
         };
 
-        messages.push(newMsg);
-        fs.writeFileSync(messagesPath, JSON.stringify(messages, null, 2));
+        await db.run(
+            'INSERT INTO chat_messages (id, user_id, resid, tableid, sender, type, typeId, content, time, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [newMsg.id, newMsg.userId, newMsg.resid, newMsg.tableid, newMsg.sender, newMsg.type, newMsg.typeId, newMsg.content, newMsg.time, newMsg.timestamp]
+        );
 
-        // Schedule staff auto-response for support requests
         if (categoryId === 'SUPPORT' || categoryId === 'OTHER') {
             scheduleStaffResponse(auth, content, lang || 'vi', typeId);
         }

@@ -17,7 +17,7 @@ function TableOrdersContent() {
     const searchParams = useSearchParams();
     const resid = searchParams.get('resid') || '100'; // Fallback if missing, though it should be there
     const tableid = searchParams.get('tableid') || 'A-12';
-    const fromPath = searchParams.get('from') || '/single-order-page';
+    const fromPath = searchParams.get('from') || '/menu?style=single-order-page';
     const { user } = useAuth();
     const { t, language } = useLanguage();
 
@@ -28,7 +28,10 @@ function TableOrdersContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [unreadChatCount, setUnreadChatCount] = useState(0);
     const [lastUnreadMsg, setLastUnreadMsg] = useState<string | null>(null);
-    const lastChatCheckRef = React.useRef<number>(Date.now() - 5000); // Check slightly in past to catch current order msg
+    // Demo mode: each real 5s = 2 simulated minutes
+    const [demoOffset, setDemoOffset] = useState(0); // simulated extra ms
+    const mountTimeRef = React.useRef(Date.now()); // treat mount time as order placement time
+    const lastChatCheckRef = React.useRef<number>(Date.now() - 5000);
 
     // Poll for unread chat messages
     useEffect(() => {
@@ -77,6 +80,13 @@ function TableOrdersContent() {
         const interval = setInterval(fetchData, 30000); // Poll every 30s
         return () => clearInterval(interval);
     }, [resid, tableid]);
+
+    // Demo tick: every 5 real seconds = +2 simulated minutes
+    useEffect(() => {
+        const SIMULATED_PER_TICK = 2 * 60 * 1000; // 2 minutes in ms
+        const timer = setInterval(() => setDemoOffset(prev => prev + SIMULATED_PER_TICK), 5000);
+        return () => clearInterval(timer);
+    }, []);
 
     // Aggregate orders based on selection
     const getDisplayData = () => {
@@ -173,8 +183,56 @@ function TableOrdersContent() {
         return styles.pending;
     };
 
+    // Time-aware status info (demo mode: demoOffset advances 2min per 5s tick)
+    const getStatusInfo = (order: any) => {
+        const status = (order.status || '').toLowerCase();
+
+        // Terminal states: no time tracking needed
+        if (status.includes('đã phục vụ') || status === 'served') {
+            return { colorStyle: {} as React.CSSProperties, timeLabel: null, isLate: false };
+        }
+
+        // Use confirmedAt if available, otherwise treat mount time as baseline
+        const baseTime = order.confirmedAt
+            ? new Date(order.confirmedAt).getTime()
+            : mountTimeRef.current;
+        // Simulated elapsed = real elapsed + demo offset
+        const realElapsed = Date.now() - baseTime;
+        const elapsedMs = realElapsed + demoOffset;
+        const elapsedMin = Math.floor(elapsedMs / 60000);
+
+        // SLA thresholds per status (minutes)
+        const SLA: Record<string, { warn: number; danger: number }> = {
+            'xác nhận': { warn: 3, danger: 5 },
+            'chờ chế biến': { warn: 4, danger: 7 },
+            'đang chế biến': { warn: 10, danger: 15 },
+            'chờ phục vụ': { warn: 5, danger: 10 },
+            'mang ra': { warn: 3, danger: 5 },
+        };
+
+        const matchedKey = Object.keys(SLA).find(k => status.includes(k));
+        const sla = matchedKey ? SLA[matchedKey] : null;
+
+        let colorStyle: React.CSSProperties = {};
+        let isLate = false;
+        if (sla) {
+            if (elapsedMin >= sla.danger) {
+                colorStyle = { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' };
+                isLate = true;
+            } else if (elapsedMin >= sla.warn) {
+                colorStyle = { background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' };
+            }
+        }
+
+        const timeLabel = elapsedMin > 0 ? `${elapsedMin}p` : null;
+        return { colorStyle, timeLabel, isLate };
+    };
+
+
+
     const renderOrderItem = (order: any, idx: number, isPending: boolean) => {
         const member = order.member;
+        const { colorStyle, timeLabel, isLate } = getStatusInfo(order);
         return (
             <div key={`${isPending ? 'sel' : 'conf'}-${order.id}-${idx}`} className={styles.orderItem}>
                 <div className={styles.itemInfoWrapper}>
@@ -201,8 +259,20 @@ function TableOrdersContent() {
                         </div>
                     </div>
                 </div>
-                <div className={`${styles.statusBadge} ${isPending ? styles.pending : getStatusClass(order.status)}`}>
-                    {isPending ? t('Đang chọn') : t(order.status)}
+                <div
+                    className={`${styles.statusBadge} ${isPending ? styles.pending : getStatusClass(order.status)}`}
+                    style={!isPending ? colorStyle : {}}
+                >
+                    <span>{isPending ? t('Đang chọn') : t(order.status)}</span>
+                    {!isPending && timeLabel && (
+                        <span style={{
+                            fontSize: '10px',
+                            marginTop: '2px',
+                            opacity: 0.85,
+                            display: 'block',
+                            fontWeight: isLate ? 700 : 500
+                        }}>{timeLabel} {isLate ? '⚠️' : ''}</span>
+                    )}
                 </div>
             </div>
         );
@@ -231,11 +301,12 @@ function TableOrdersContent() {
                     <span>{t('Bàn')} {tableid} • {members.length} {t('người')}</span>
                 </div>
                 <div className={styles.headerRight}>
-                    <button className={styles.historyBtn} onClick={() => router.push(`/order-history/rounds?resid=${resid}&tableid=${tableid}`)}>
+                    <button className={styles.historyBtn} onClick={() => router.push(`/order-history/rounds?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(`/table-orders?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(fromPath)}`)}`)}>
                         <History size={20} />
                     </button>
                 </div>
             </header>
+
 
             <div className={styles.memberSlider}>
                 {/* All Option */}
@@ -330,7 +401,7 @@ function TableOrdersContent() {
 
             {isAllOrdering && (
                 <div className={styles.invoiceStickyFooter}>
-                    <button className="btn-footer-primary" onClick={() => router.push(`/bill?resid=${resid}&tableid=${tableid}`)}>
+                    <button className="btn-footer-primary" onClick={() => router.push(`/bill?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(`/table-orders?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(fromPath)}`)}`)}>
                         <ReceiptText size={20} />
                         {t('Hoá đơn tạm tính')}
                         <ChevronRight size={20} style={{ marginLeft: 'auto' }} />

@@ -7,6 +7,9 @@ const COLORS = ['Pink', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'T
 export async function POST() {
     try {
         const db = await getDb();
+        const cookieStore = await cookies();
+        const existingSessionId = cookieStore.get('session_id')?.value;
+
         const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
         const guestId = `g_${Date.now()}`;
 
@@ -26,15 +29,33 @@ export async function POST() {
             [guestUser.id, guestUser.phone, guestUser.name, guestUser.points, guestUser.tier, guestUser.avatar, guestUser.preferences, guestUser.isGuest]
         );
 
-        const sessionId = crypto.randomUUID();
-        const expires = Date.now() + (24 * 60 * 60 * 1000); // 1 day for guests
+        const guestExpires = Date.now() + (24 * 60 * 60 * 1000); // 1 day
 
+        if (existingSessionId) {
+            // ✅ Keep the same session — just switch user_id to the new guest
+            const existingSession = await db.get('SELECT * FROM sessions WHERE id = ?', [existingSessionId]);
+            if (existingSession) {
+                await db.run(
+                    'UPDATE sessions SET user_id = ?, expires = ? WHERE id = ?',
+                    [guestId, guestExpires, existingSessionId]
+                );
+
+                const responseUser = {
+                    ...guestUser,
+                    preferences: [],
+                    isGuest: true
+                };
+                return NextResponse.json({ user: responseUser, success: true });
+            }
+        }
+
+        // No existing session — create a fresh one
+        const sessionId = crypto.randomUUID();
         await db.run(
             'INSERT INTO sessions (id, user_id, expires) VALUES (?, ?, ?)',
-            [sessionId, guestUser.id, expires]
+            [sessionId, guestUser.id, guestExpires]
         );
 
-        const cookieStore = await cookies();
         cookieStore.set('session_id', sessionId, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -43,7 +64,6 @@ export async function POST() {
             path: '/',
         });
 
-        // Convert back to frontend format
         const responseUser = {
             ...guestUser,
             preferences: [],

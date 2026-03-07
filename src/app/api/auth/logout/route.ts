@@ -7,13 +7,39 @@ export async function POST() {
         const cookieStore = await cookies();
         const sessionId = cookieStore.get('session_id')?.value;
 
-        if (sessionId) {
-            const db = await getDb();
-            await db.run('DELETE FROM sessions WHERE id = ?', [sessionId]);
-            cookieStore.delete('session_id');
+        if (!sessionId) {
+            return NextResponse.json({ success: true });
         }
 
-        return NextResponse.json({ success: true });
+        const db = await getDb();
+        const COLORS = ['Pink', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Teal'];
+        const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+        const guestId = `g_${Date.now()}`;
+
+        // Create a new guest user
+        await db.run(
+            'INSERT INTO users (id, phone, name, points, tier, avatar, preferences, isGuest) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [guestId, 'Guest', `${randomColor} Guest`, 0, 'Guest', `https://api.dicebear.com/7.x/bottts/svg?seed=${guestId}`, '[]', 1]
+        );
+
+        // ✅ Keep same session — just switch the user_id to the new guest
+        await db.run(
+            'UPDATE sessions SET user_id = ?, expires = ? WHERE id = ?',
+            [guestId, Date.now() + (24 * 60 * 60 * 1000), sessionId]
+        );
+
+        const responseUser = {
+            id: guestId,
+            name: `${randomColor} Guest`,
+            phone: 'Guest',
+            points: 0,
+            tier: 'Guest',
+            avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${guestId}`,
+            preferences: [],
+            isGuest: true
+        };
+
+        return NextResponse.json({ user: responseUser, success: true });
     } catch (error) {
         console.error('Logout error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

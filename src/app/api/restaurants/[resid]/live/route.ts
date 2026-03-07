@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import fs from 'fs';
-import path from 'path';
 import { getDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -26,8 +24,6 @@ export async function GET(
         const sessionId = cookieStore.get('session_id')?.value;
 
         const db = await getDb();
-        const cartsPath = path.join(process.cwd(), 'src/data/carts.json');
-        const ordersPath = path.join(process.cwd(), 'src/data/orders.json');
 
         // Update current session's location if it exists
         if (sessionId) {
@@ -53,57 +49,76 @@ export async function GET(
             [Date.now()]
         );
 
-        const carts = fs.existsSync(cartsPath) ? JSON.parse(fs.readFileSync(cartsPath, 'utf8')) : {};
-        const orders = fs.existsSync(ordersPath) ? JSON.parse(fs.readFileSync(ordersPath, 'utf8')) : {};
+        // Fetch carts and orders directly from table using JOIN could be better
+        // For now let's just fetch all carts/orders. Wait, we ONLY need those at the same table!
+        const tableMembers = dbSessions.filter((s: any) => {
+            const sRes = String(s.resid || '');
+            const sTab = String(s.tableid || '');
+            const isSelf = sessionId && (s.session_id === sessionId);
+            const isAtTable = sRes === resid && sTab === tableid;
+            const now = Date.now();
+            const isActive = (now - (s.lastActive || 0)) < 300000; // 5 minutes
 
-        const activeMembers = dbSessions
-            .filter((s: any) => {
-                const sRes = String(s.resid || '');
-                const sTab = String(s.tableid || '');
+            return isSelf || (isAtTable && isActive);
+        });
 
-                // Current user is always counted at the table they're requesting
-                const isSelf = sessionId && (s.session_id === sessionId);
+        const activeMembers = [];
+        for (const s of tableMembers) {
+            const userIds = [s.user_id];
 
-                // Other members: must be at the same table AND been active in last 5 minutes.
-                // 5 min window is safe: frontend polls every 5s so any open browser stays fresh.
-                // Stale sessions (closed browsers, left the app) expire after 5 min of inactivity.
-                const isAtTable = sRes === resid && sTab === tableid;
-                const now = Date.now();
-                const isActive = (now - (s.lastActive || 0)) < 300000; // 5 minutes
+            const userCartItems = await db.all(
+                'SELECT item_id as id, name, price, qty as quantity FROM cart_items WHERE user_id = ? AND resid = ?',
+                [s.user_id, resid]
+            );
 
-                return isSelf || (isAtTable && isActive);
-            })
-            .map((s: any) => {
-                const cartKey = `${s.user_id}_${resid}`;
-                const userCart = carts[cartKey] || { items: [], total: 0 };
-                const userOrders = orders[cartKey] || { items: [] };
+            const userOrderItems = await db.all(
+                'SELECT id, name, price, qty, status, timestamp FROM order_items WHERE user_id = ? AND resid = ?',
+                [s.user_id, resid]
+            );
 
-                return {
-                    id: s.user_id,
-                    name: s.name,
-                    avatar: s.avatar,
-                    phone: s.phone,
-                    tier: s.tier,
-                    preferences: JSON.parse(s.preferences || '[]'),
-                    isGuest: !!s.isGuest,
-                    draftItems: userCart.items,
-                    confirmedOrders: userOrders.items,
-                    status: userCart.items.length > 0 ? 'ordering' : 'done'
-                };
+            // group userCartItems like { item: { id, name, price }, quantity } for frontend compatibility
+            const draftItems = userCartItems.map(item => ({
+                item: { id: item.id, name: item.name, price: item.price },
+                quantity: item.quantity
+            }));
+
+            activeMembers.push({
+                id: s.user_id,
+                name: s.name,
+                avatar: s.avatar,
+                phone: s.phone,
+                tier: s.tier,
+                preferences: JSON.parse(s.preferences || '[]'),
+                isGuest: !!s.isGuest,
+                draftItems: draftItems,
+                confirmedOrders: userOrderItems,
+                status: userCartItems.length > 0 ? 'ordering' : 'done'
             });
+        }
 
-        const messagesPath = path.join(process.cwd(), 'src/data/messages.json');
-        const messages = fs.existsSync(messagesPath) ? JSON.parse(fs.readFileSync(messagesPath, 'utf8')) : [];
+        // Limit retrieving messages to last 30s for this table
+        const messages = await db.all(
+            `SELECT * FROM chat_messages 
+             WHERE tableid = ? AND resid = ? AND sender = 'restaurant' AND timestamp > ?
+             ORDER BY timestamp ASC LIMIT 3`,
+            [tableid, resid, Date.now() - 30000]
+        );
 
         return NextResponse.json({
             count: activeMembers.length,
             members: activeMembers,
-            notifications: messages.filter((m: any) =>
-                m.tableid === tableid &&
-                m.resid === resid &&
-                (Date.now() - new Date(m.timestamp || Date.now()).getTime()) < 30000 &&
-                m.sender === 'restaurant'
-            ).slice(-3),
+            notifications: messages.map(m => ({
+                id: m.id,
+                userId: m.user_id,
+                resid: m.resid,
+                tableid: m.tableid,
+                sender: m.sender,
+                time: m.time,
+                timestamp: m.timestamp,
+                type: m.type,
+                typeId: m.typeId,
+                content: m.content
+            })),
             debug_v3: { resid, tableid, sessionId, member_count: activeMembers.length }
         });
     } catch (error) {

@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import fs from 'fs';
-import path from 'path';
-
 import { getDb } from '@/lib/db';
 
 async function getAuthenticatedUser() {
@@ -17,24 +14,16 @@ async function getAuthenticatedUser() {
     return { userId: session.user_id, tableid: session.tableid };
 }
 
-function addChatMessage(userId: string, resid: string, tableid: string, content: string, type: string = 'Gọi món') {
+async function addChatMessage(userId: string, resid: string, tableid: string, content: string, type: string = 'Gọi món') {
     try {
-        const messagesPath = path.join(process.cwd(), 'src/data/messages.json');
-        const messages = fs.existsSync(messagesPath) ? JSON.parse(fs.readFileSync(messagesPath, 'utf8')) : [];
+        const db = await getDb();
         const timeHeader = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const msgId = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-        messages.push({
-            id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            userId,
-            resid,
-            tableid: tableid || 'A-12',
-            sender: 'restaurant',
-            time: timeHeader,
-            timestamp: Date.now(),
-            type,
-            content
-        });
-        fs.writeFileSync(messagesPath, JSON.stringify(messages, null, 2));
+        await db.run(
+            'INSERT INTO chat_messages (id, user_id, resid, tableid, sender, type, content, time, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [msgId, userId, resid, tableid || 'A-12', 'restaurant', type, content, timeHeader, Date.now()]
+        );
     } catch (e) {
         console.error("[Order API] Failed to add chat message:", e);
     }
@@ -46,86 +35,57 @@ export async function POST(request: Request) {
     const userId = session.userId;
     const tableid = session.tableid;
 
-    const { resId } = await request.json();
+    const { resId, items: directItems } = await request.json();
     if (!resId) return NextResponse.json({ error: 'Missing resId' }, { status: 400 });
 
     try {
-        const cartsPath = path.join(process.cwd(), 'src/data/carts.json');
-        const ordersPath = path.join(process.cwd(), 'src/data/orders.json');
+        const db = await getDb();
+        let itemsToOrder = [];
 
-        const carts = fs.existsSync(cartsPath) ? JSON.parse(fs.readFileSync(cartsPath, 'utf8')) : {};
-        const orders = fs.existsSync(ordersPath) ? JSON.parse(fs.readFileSync(ordersPath, 'utf8')) : {};
+        if (directItems && directItems.length > 0) {
+            itemsToOrder = directItems;
+        } else {
+            const cartItems = await db.all(
+                'SELECT * FROM cart_items WHERE user_id = ? AND resid = ?',
+                [userId, resId]
+            );
 
-        const cartKey = `${userId}_${resId}`;
-        const userCart = carts[cartKey];
+            if (cartItems.length === 0) {
+                return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
+            }
 
-        if (!userCart || userCart.items.length === 0) {
-            return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
+            itemsToOrder = cartItems.map(item => ({
+                id: item.item_id,
+                name: item.name,
+                price: item.price,
+                quantity: item.qty
+            }));
+
+            await db.run('DELETE FROM cart_items WHERE user_id = ? AND resid = ?', [userId, resId]);
         }
 
-        // Move to orders
-        let userOrders = orders[cartKey] || { items: [] };
+        const newOrders = [];
+        const timestamp = Date.now();
 
-        const newOrders = userCart.items.map((cartItem: any) => ({
-            id: `o_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-            name: cartItem.item.name,
-            price: cartItem.item.price,
-            qty: cartItem.quantity,
-            status: 'Chờ xác nhận', // Initial status
-            timestamp: Date.now()
-        }));
+        for (const item of itemsToOrder) {
+            const orderId = `o_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            await db.run(
+                'INSERT INTO order_items (id, user_id, resid, tableid, item_id, name, price, qty, status, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [orderId, userId, resId, tableid, item.id || 0, item.name, item.price, item.quantity, 'Chờ xác nhận', timestamp]
+            );
+            newOrders.push({
+                id: orderId,
+                name: item.name,
+                price: item.price,
+                qty: item.quantity,
+                status: 'Chờ xác nhận',
+                timestamp
+            });
+        }
 
-        userOrders.items = [...userOrders.items, ...newOrders];
-        orders[cartKey] = userOrders;
+        await addChatMessage(userId, resId, tableid, "Yêu cầu gọi món đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận.");
 
-        // Clear cart
-        delete carts[cartKey];
-
-        fs.writeFileSync(cartsPath, JSON.stringify(carts, null, 2));
-        fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2));
-
-        // Initial acknowledgement in chat
-        addChatMessage(userId, resId, tableid, "Yêu cầu gọi món đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận.");
-
-        // --- SIMULATED STATUS PROGRESSION FOR THE ROUND ---
-        const orderRoundIds = newOrders.map((o: any) => o.id);
-        const firstItemName = newOrders[0].name;
-
-        // Helper to update status in file and add chat message
-        const updateRound = (statusForData: string, messageContent: string, delay: number) => {
-            setTimeout(() => {
-                try {
-                    if (!fs.existsSync(ordersPath)) return;
-                    const currentOrders = JSON.parse(fs.readFileSync(ordersPath, 'utf8'));
-                    if (currentOrders[cartKey]) {
-                        // Check if items still exist (not cleared by payment)
-                        const items = currentOrders[cartKey].items;
-                        const roundExists = items.some((o: any) => orderRoundIds.includes(o.id));
-                        if (!roundExists) return;
-
-                        items.forEach((o: any) => {
-                            if (orderRoundIds.includes(o.id)) o.status = statusForData;
-                        });
-                        fs.writeFileSync(ordersPath, JSON.stringify(currentOrders, null, 2));
-                        addChatMessage(userId, resId, tableid, messageContent);
-                    }
-                } catch (e) { }
-            }, delay);
-        };
-
-        // Step 1: CONFIRMED
-        updateRound("Đã xác nhận", `Các món bạn gọi đã được xác nhận.`, 6000);
-
-        // Step 2: COOKING
-        updateRound("Đang chế biến", `Các món bạn gọi đang được bếp chuẩn bị.`, 13000);
-
-        // Step 3: READY
-        updateRound("Chờ phục vụ", `Các món bạn gọi đã làm xong, đang chờ nhân viên mang ra.`, 20000);
-
-        // Step 4: SERVED
-        updateRound("Đã phục vụ", `Các món bạn gọi đã được phục vụ hoàn tất. Chúc bạn ngon miệng! 🎉`, 27000);
-
-        return NextResponse.json({ success: true, orders: userOrders.items });
+        return NextResponse.json({ success: true, orders: newOrders });
     } catch (e) {
         console.error("Order placement failed:", e);
         return NextResponse.json({ error: 'Failed to place order' }, { status: 500 });

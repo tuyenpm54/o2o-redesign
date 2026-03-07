@@ -1,0 +1,420 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #f8fafc;
+    overflow: hidden;
+}
+
+.header {
+    background-color: #fff;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Sidebar - Tables */
+.sidebar {
+    width: 320px;
+    background-color: #fff;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.sidebarHeader {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    background-color: #fff;
+    z-index: 5;
+}
+
+.sidebarTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tableList {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    gap: 8px;
+}
+
+.tableCard {
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tableCard:hover {
+    border-color: #cbd5e1;
+    background-color: #f8fafc;
+}
+
+.tableCard.active {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+    box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.tableName {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 16px;
+}
+
+.tableMeta {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.badge.active {
+    background-color: #ef4444;
+    color: white;
+}
+
+/* Main Area - Orders */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8fafc;
+    overflow-y: auto;
+}
+
+.mainHeader {
+    padding: 24px;
+    background-color: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mainTitle {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.orderGrid {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #94a3b8;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+}
+
+.emptyIcon {
+    opacity: 0.5;
+}
+
+.emptyText {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Order Card */
+.orderItemCard {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.orderItemHeader {
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.orderItemName {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.orderItemMeta {
+    font-size: 13px;
+    color: #64748b;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.qtyBadge {
+    font-weight: 700;
+    color: #0f172a;
+    background-color: #f1f5f9;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.itemActions {
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    gap: 12px;
+}
+
+.statusIndicator {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-align: center;
+}
+
+.status_choxacnhan {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.status_daxacnhan {
+    background-color: #e0f2fe;
+    color: #0284c7;
+}
+
+.status_dangchebien {
+    background-color: #fce7f3;
+    color: #db2777;
+}
+
+.status_chopucvu {
+    background-color: #fef08a;
+    color: #854d0e;
+}
+
+.status_daphucvu {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.doneText {
+    color: #10b981;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.actionBtn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.actionBtn.primary {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.actionBtn.primary:hover {
+    background-color: #2563eb;
+}
+
+.actionBtn.success {
+    background-color: #10b981;
+    color: white;
+}
+
+.actionBtn.success:hover {
+    background-color: #059669;
+}
+
+.actionBtn.outline {
+    background-color: transparent;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+}
+
+.actionBtn.outline:hover {
+    background-color: #f1f5f9;
+}
+
+/* Custom Additions */
+.filterGroup {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.filterBtn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    background-color: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.filterBtn:hover {
+    background-color: #e2e8f0;
+}
+
+.filterBtn.activeFilter {
+    background-color: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.tableContent {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.roundsContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.roundTabs {
+    display: flex;
+    background-color: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0 24px;
+    gap: 24px;
+    overflow-x: auto;
+}
+
+.roundTabBtn {
+    padding: 16px 0;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 15px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.roundTabBtn:hover {
+    color: #0f172a;
+}
+
+.roundTabBtn.activeRoundTab {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+
+.roundPanels {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.roundSection {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 24px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.roundSectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+}
+
+.roundSectionHeader h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.roundActionBtn {
+    padding: 8px 16px;
+    background-color: #10b981;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.roundActionBtn:hover {
+    background-color: #059669;
+}

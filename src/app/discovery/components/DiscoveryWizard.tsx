@@ -93,20 +93,35 @@ export function DiscoveryWizard({
                 <div className={styles.bottomSheet}>
                     {onboardingStep === 0 && isLoggedIn && user && user.preferences && user.preferences.length > 0 && form.preferences.length === 0 && !form.groupSize ? (
                         <>
-                            <div className={styles.sheetHeader} style={{ marginTop: '40px' }}>
-                                <div className={styles.expertBadge} style={{ marginBottom: '12px', display: 'inline-flex', alignSelf: 'flex-start' }}>
+                            <div className={styles.sheetHeader} style={{ marginTop: '32px', marginBottom: '20px' }}>
+                                <div className={styles.expertBadge} style={{ marginBottom: '10px', display: 'inline-flex', alignSelf: 'flex-start' }}>
                                     <Sparkles size={12} fill="currentColor" />
                                     <span>{t('XIN CHÀO')} {user.name?.toUpperCase()}</span>
                                 </div>
-                                <h1 className={styles.cinematicTitle} style={{ fontSize: '1.5rem', lineHeight: '1.3' }}>
-                                    {t('Xin chào')} {user.name}, {t('rất vui thấy bạn quay trở lại, bạn vẫn yêu cầu:')}
-                                    <span style={{ color: '#F59E0B' }}>
-                                        {user.preferences?.map((p: string) => {
-                                            const pref = preferencesList.find(xi => xi.id === p);
-                                            return pref ? ` "${pref.label}"` : "";
-                                        }).filter(Boolean).join(", ")}
-                                    </span> {t('như thường lệ chứ?')}
+                                <h1 className={styles.cinematicTitle} style={{ fontSize: '1.45rem', lineHeight: '1.3', marginBottom: '16px' }}>
+                                    {t('Rất vui thấy bạn quay trở lại! 👋')}
                                 </h1>
+                                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '14px', marginBottom: '16px', fontWeight: 500 }}>
+                                    {t('Bạn vẫn giữ lựa chọn như lần trước chứ?')}
+                                </p>
+                                {/* Preference tags */}
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
+                                    {user.preferences?.map((p: string) => {
+                                        const pref = preferencesList.find(xi => xi.id === p);
+                                        if (!pref) return null;
+                                        return (
+                                            <span key={p} style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                                background: 'rgba(245, 158, 11, 0.18)',
+                                                border: '1.5px solid rgba(245, 158, 11, 0.5)',
+                                                color: '#FDE68A', borderRadius: '100px',
+                                                padding: '6px 14px', fontSize: '13px', fontWeight: 700,
+                                            }}>
+                                                ✓ {pref.label}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '0 20px' }}>
@@ -119,7 +134,7 @@ export function DiscoveryWizard({
                                     style={{ width: '100%', padding: '16px' }}
                                 >
                                     <Sparkles size={20} />
-                                    <span>{t('Vâng, xem gợi ý ngay')}</span>
+                                    <span>{t('Ok, gợi ý ngay')}</span>
                                 </button>
                                 <button
                                     className={styles.cinematicActionBtn}
@@ -128,8 +143,8 @@ export function DiscoveryWizard({
                                         width: '100%',
                                         padding: '16px',
                                         background: 'transparent',
-                                        border: '1px solid #E2E8F0',
-                                        color: '#64748B',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        color: 'rgba(255,255,255,0.6)',
                                         boxShadow: 'none'
                                     }}
                                 >

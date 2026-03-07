@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import fs from 'fs';
-import path from 'path';
-
 import { getDb } from '@/lib/db';
 
 async function getAuthenticatedUser() {
@@ -26,11 +23,20 @@ export async function GET(request: Request) {
     if (!resId) return NextResponse.json({ error: 'Missing resId' }, { status: 400 });
 
     try {
-        const cartsPath = path.join(process.cwd(), 'src/data/carts.json');
-        const carts = JSON.parse(fs.readFileSync(cartsPath, 'utf8'));
+        const db = await getDb();
+        const cartItems = await db.all(
+            'SELECT * FROM cart_items WHERE user_id = ? AND resid = ? ORDER BY added_at ASC',
+            [userId, resId]
+        );
 
-        const userCart = carts[`${userId}_${resId}`] || { items: [], total: 0 };
-        return NextResponse.json(userCart);
+        const formattedItems = cartItems.map(row => ({
+            item: { id: row.item_id, name: row.name, price: row.price },
+            quantity: row.qty
+        }));
+
+        const total = formattedItems.reduce((acc, cur) => acc + (cur.item.price * cur.quantity), 0);
+
+        return NextResponse.json({ items: formattedItems, total });
     } catch (e) {
         return NextResponse.json({ error: 'Failed' }, { status: 500 });
     }
@@ -43,25 +49,40 @@ export async function POST(request: Request) {
     const { resId, item, quantity } = await request.json();
 
     try {
-        const cartsPath = path.join(process.cwd(), 'src/data/carts.json');
-        const carts = JSON.parse(fs.readFileSync(cartsPath, 'utf8'));
-        const cartKey = `${userId}_${resId}`;
+        const db = await getDb();
 
-        let cart = carts[cartKey] || { items: [], total: 0 };
+        const existingItem = await db.get(
+            'SELECT id, qty FROM cart_items WHERE user_id = ? AND resid = ? AND item_id = ?',
+            [userId, resId, item.id]
+        );
 
-        const existingIdx = cart.items.findIndex((i: any) => i.item.id === item.id);
-        if (existingIdx > -1) {
-            cart.items[existingIdx].quantity += quantity;
-        } else {
-            cart.items.push({ item, quantity });
+        if (existingItem) {
+            const newQty = existingItem.qty + quantity;
+            if (newQty <= 0) {
+                await db.run('DELETE FROM cart_items WHERE id = ?', [existingItem.id]);
+            } else {
+                await db.run('UPDATE cart_items SET qty = ? WHERE id = ?', [newQty, existingItem.id]);
+            }
+        } else if (quantity > 0) {
+            await db.run(
+                'INSERT INTO cart_items (user_id, resid, item_id, name, price, qty) VALUES (?, ?, ?, ?, ?, ?)',
+                [userId, resId, item.id, item.name, item.price, quantity]
+            );
         }
 
-        cart.total = cart.items.reduce((acc: number, cur: any) => acc + (cur.item.price * cur.quantity), 0);
+        const cartItems = await db.all(
+            'SELECT * FROM cart_items WHERE user_id = ? AND resid = ? ORDER BY added_at ASC',
+            [userId, resId]
+        );
 
-        carts[cartKey] = cart;
-        fs.writeFileSync(cartsPath, JSON.stringify(carts, null, 2));
+        const formattedItems = cartItems.map(row => ({
+            item: { id: row.item_id, name: row.name, price: row.price },
+            quantity: row.qty
+        }));
 
-        return NextResponse.json(cart);
+        const total = formattedItems.reduce((acc, cur) => acc + (cur.item.price * cur.quantity), 0);
+
+        return NextResponse.json({ items: formattedItems, total });
     } catch (e) {
         return NextResponse.json({ error: 'Failed' }, { status: 500 });
     }
