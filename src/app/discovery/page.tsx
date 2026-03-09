@@ -406,7 +406,7 @@ function DiscoveryPageContent() {
         m.confirmedOrders && m.confirmedOrders.some((o: any) => o.name === item.name && o.qty > 0)
       );
 
-      if (collisionFriend && !acknowledgedCollisions.current.has(item.name)) {
+      if (!isWizardShown && collisionFriend && !acknowledgedCollisions.current.has(item.name)) {
         const msg = collisionFriend.id === user?.id
           ? `Bạn đã gọi món này rồi`
           : `${collisionFriend.name} ở cùng bàn đã gọi món này`;
@@ -420,10 +420,12 @@ function DiscoveryPageContent() {
         return;
       }
 
-      const suggestions = getCrossSellSuggestions(item);
-      if (suggestions.length > 0) {
-        setCrossSellData({ mainItem: item, quantity, selections, suggestions });
-        return;
+      if (!isWizardShown) {
+        const suggestions = getCrossSellSuggestions(item);
+        if (suggestions.length > 0) {
+          setCrossSellData({ mainItem: item, quantity, selections, suggestions });
+          return;
+        }
       }
     }
     await proceedAddToCart(item, quantity, selections);
