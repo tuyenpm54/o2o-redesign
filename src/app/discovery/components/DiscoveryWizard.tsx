@@ -241,11 +241,14 @@ export function DiscoveryWizard({
                                                             </div>
                                                             <div className={styles.noteTagsWrap}>
                                                                 <span className={styles.noteTag}>{form.groupSize}</span>
-                                                                {form.preferences.map((p: string) => (
+                                                                {form.preferences.slice(0, 2).map((p: string) => (
                                                                     <span key={p} className={styles.noteTag}>
                                                                         {preferencesList.find((x) => x.id === p)?.label}
                                                                     </span>
                                                                 ))}
+                                                                {form.preferences.length > 2 && (
+                                                                    <span className={styles.noteTag}>+{form.preferences.length - 2}</span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
