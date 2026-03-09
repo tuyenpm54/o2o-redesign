@@ -1512,8 +1512,11 @@
 
 .smartPillList {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 85%, transparent 100%);
 }
 
 .smartPillItem {
@@ -1643,9 +1646,12 @@
 }
 
 .noteTagsWrap {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   display: flex;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 85%, transparent 100%);
 }
 
 .noteTag {
