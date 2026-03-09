@@ -40,9 +40,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 const res = await fetch('/api/auth/me');
                 if (res.ok) {
                     const data = await res.json();
-                    setIsLoggedIn(true);
-                    setUser(data.user);
-                    setIsGuest(!!data.user.isGuest);
+                    const userData = data.data?.user || data.user;
+                    if (userData) {
+                        setIsLoggedIn(true);
+                        setUser(userData);
+                        setIsGuest(!!userData.isGuest);
+                    }
                 }
             } catch (err) {
                 console.error("Auth check failed:", err);
@@ -62,10 +65,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
             if (res.ok) {
                 const data = await res.json();
-                setIsLoggedIn(true);
-                setUser(data.user);
-                setIsGuest(!!data.user.isGuest);
-                // No reload needed — same session_id, live polling auto-updates
+                const userData = data.data?.user || data.user;
+                if (userData) {
+                    setIsLoggedIn(true);
+                    setUser(userData);
+                    setIsGuest(!!userData.isGuest);
+                    // No reload needed — same session_id, live polling auto-updates
+                }
             }
         } catch (err) {
             console.error("Login failed:", err);
@@ -80,9 +86,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
             if (res.ok) {
                 const data = await res.json();
-                setIsLoggedIn(true);
-                setIsGuest(true);
-                setUser(data.user);
+                const userData = data.data?.user || data.user;
+                if (userData) {
+                    setIsLoggedIn(true);
+                    setIsGuest(true);
+                    setUser(userData);
+                }
             }
         } catch (err) {
             console.error("Guest login failed:", err);
@@ -97,9 +106,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const res = await fetch('/api/auth/logout', { method: 'POST' });
             if (res.ok) {
                 const data = await res.json();
-                setIsLoggedIn(true);
-                setIsGuest(true);
-                setUser(data.user);
+                const userData = data.data?.user || data.user;
+                if (userData) {
+                    setIsLoggedIn(true);
+                    setIsGuest(true);
+                    setUser(userData);
+                }
             } else {
                 setIsLoggedIn(false);
                 setIsGuest(false);
@@ -122,8 +134,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
             if (res.ok) {
                 const data = await res.json();
-                if (data.user) {
-                    setUser(data.user);
+                const userData = data.data?.user || data.user;
+                if (userData) {
+                    setUser(userData);
                 }
             }
         } catch (err) {

@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 
         // Check if item with SAME selections exists
         const existingItem = await db.get(
-            'SELECT id, qty FROM cart_items WHERE user_id = ? AND resid = ? AND item_id = ? AND (selections = ? OR (selections IS NULL AND ? IS NULL))',
+            'SELECT id, qty FROM cart_items WHERE user_id = ? AND resid = ? AND item_id = ? AND (selections = ? OR (selections IS NULL AND CAST(? AS TEXT) IS NULL))',
             [userId, resId, item.id, selectionsStr, selectionsStr]
         );
 
@@ -91,6 +91,7 @@ export async function POST(request: Request) {
 
         return ApiSuccess({ items: formattedItems, total });
     } catch (e) {
+        console.error("Cart POST Error:", e);
         return ApiError('Failed', 500);
     }
 }
