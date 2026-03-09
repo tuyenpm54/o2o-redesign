@@ -248,6 +248,14 @@ async function initDb(database: DBWrapper) {
     )
   `);
 
+  // Create Restaurant Menus table
+  await database.exec(`
+    CREATE TABLE IF NOT EXISTS restaurant_menus (
+      resid TEXT PRIMARY KEY,
+      menu_data TEXT
+    )
+  `);
+
   // Migrate initial data from users.json if it exists (run on first start)
   const usersJsonPath = path.join(process.cwd(), 'src/data/users.json');
   if (fs.existsSync(usersJsonPath)) {
