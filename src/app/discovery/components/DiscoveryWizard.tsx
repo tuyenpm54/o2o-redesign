@@ -53,6 +53,7 @@ export function DiscoveryWizard({
     cartPulse
 }: DiscoveryWizardProps) {
     const { t, language } = useLanguage();
+    const [isExpanded, setIsExpanded] = React.useState(false);
 
     if (!isOpen) return null;
 
@@ -239,15 +240,22 @@ export function DiscoveryWizard({
                                                                 <ChefHat size={14} className={styles.noteIcon} />
                                                                 <span className={styles.noteLabel}>{t('DỰA TRÊN YÊU CẦU:')}</span>
                                                             </div>
-                                                            <div className={styles.noteTagsWrap}>
+                                                            <div className={styles.noteTagsWrap} style={{ flexWrap: isExpanded ? 'wrap' : 'nowrap', overflow: isExpanded ? 'visible' : 'hidden' }}>
                                                                 <span className={styles.noteTag}>{form.groupSize}</span>
-                                                                {form.preferences.slice(0, 1).map((p: string) => (
+                                                                {form.preferences.slice(0, isExpanded ? form.preferences.length : 1).map((p: string) => (
                                                                     <span key={p} className={styles.noteTag}>
                                                                         {preferencesList.find((x) => x.id === p)?.label}
                                                                     </span>
                                                                 ))}
-                                                                {form.preferences.length > 1 && (
-                                                                    <span className={styles.noteTag}>+{form.preferences.length - 1}</span>
+                                                                {!isExpanded && form.preferences.length > 1 && (
+                                                                    <span className={styles.noteTag} onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}>
+                                                                        +{form.preferences.length - 1}
+                                                                    </span>
+                                                                )}
+                                                                {isExpanded && form.preferences.length > 1 && (
+                                                                    <span className={styles.noteTag} onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}>
+                                                                        {t('Thu gọn')}
+                                                                    </span>
                                                                 )}
                                                             </div>
                                                         </div>

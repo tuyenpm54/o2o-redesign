@@ -140,6 +140,8 @@ function DiscoveryPageContent() {
   const [editInitialSelections, setEditInitialSelections] = useState<any>(null);
   const [editCurrentQty, setEditCurrentQty] = useState<number>(0);
 
+  const [isCompactTagsExpanded, setIsCompactTagsExpanded] = useState(false);
+
   const [isCheckoutRequested, setIsCheckoutRequested] = useState(false);
   const [crossSellData, setCrossSellData] = useState<{ mainItem: any; quantity: number; selections?: any; suggestions: any[] } | null>(null);
 
@@ -594,11 +596,11 @@ function DiscoveryPageContent() {
               </div>
               <h3 className={styles.compactSmartTitle}>
                 {(() => {
-                  const hasPrefs = form.groupSize || form.preferences?.length > 0 || (isLoggedIn && user?.preferences?.length > 0);
+                  const hasPrefs = form.groupSize || (form.preferences?.length ?? 0) > 0 || (isLoggedIn && (user?.preferences?.length ?? 0) > 0);
                   if (!hasPrefs) return <span className={styles.smartIntro}>{t("Dành riêng cho bạn")}</span>;
 
                   const title = form.groupSize ? t('Dựa trên yêu cầu của bạn') : t('Dựa trên lựa chọn lần trước của bạn');
-                  const prefs = form.preferences?.length > 0 ? form.preferences : (user?.preferences || []);
+                  const prefs = (form.preferences?.length ?? 0) > 0 ? form.preferences : (user?.preferences || []);
 
                   let displayTags: { id: string, label: string }[] = [];
                   if (form.groupSize) displayTags.push({ id: 'group', label: form.groupSize });
@@ -610,12 +612,19 @@ function DiscoveryPageContent() {
                   return (
                     <div className={styles.smartContentCol}>
                       <span className={styles.smartIntro}>{title}</span>
-                      <div className={styles.smartPillList}>
-                        {displayTags.slice(0, 1).map(tag => (
+                      <div className={styles.smartPillList} style={{ flexWrap: isCompactTagsExpanded ? 'wrap' : 'nowrap', overflow: isCompactTagsExpanded ? 'visible' : 'hidden' }}>
+                        {displayTags.slice(0, isCompactTagsExpanded ? displayTags.length : 1).map(tag => (
                           <span key={tag.id} className={styles.smartPillItem}>{tag.label}</span>
                         ))}
-                        {displayTags.length > 1 && (
-                          <span className={styles.smartPillItem}>+{displayTags.length - 1}</span>
+                        {!isCompactTagsExpanded && displayTags.length > 1 && (
+                          <span className={styles.smartPillItem} onClick={(e) => { e.stopPropagation(); setIsCompactTagsExpanded(true); }}>
+                            +{displayTags.length - 1}
+                          </span>
+                        )}
+                        {isCompactTagsExpanded && displayTags.length > 1 && (
+                          <span className={styles.smartPillItem} onClick={(e) => { e.stopPropagation(); setIsCompactTagsExpanded(false); }}>
+                            {t('Thu gọn')}
+                          </span>
                         )}
                       </div>
                     </div>
