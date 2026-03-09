@@ -171,6 +171,30 @@ function TableOrdersContent() {
         }
     };
 
+    const handleCancelOrder = async (orderId: number) => {
+        if (!confirm(t('Bạn muốn huỷ món này?'))) return;
+        try {
+            const res = await fetch('/api/orders/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, resid })
+            });
+            if (res.ok) {
+                // Refresh data
+                const liveRes = await fetch(`/api/restaurants/${resid}/live?tableid=${tableid}`);
+                const data = await liveRes.json();
+                if (data.members) {
+                    setMembers(data.members);
+                }
+            } else {
+                const data = await res.json();
+                alert(data.error || t("Huỷ món thất bại"));
+            }
+        } catch (err) {
+            console.error("Cancel order failed:", err);
+        }
+    };
+
     const getStatusClass = (status: string) => {
         if (!status) return styles.pending;
         const s = status.toLowerCase();
@@ -256,6 +280,11 @@ function TableOrdersContent() {
                             <span className={styles.qty}>x{order.qty || 1}</span>
                             <span className={styles.dot}>•</span>
                             <span className={styles.price}>{(order.price || 0).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
+                            {!isPending && order.status === 'Chờ xác nhận' && (
+                                <button style={{ marginLeft: '12px', fontSize: '11px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0', textDecoration: 'underline' }} onClick={() => handleCancelOrder(order.id)}>
+                                    {t('Huỷ món')}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -24,6 +24,7 @@ import { DiscoveryFooter } from "./components/DiscoveryFooter";
 import { ItemDetailModal } from "./components/ItemDetailModal";
 import { CartDrawer } from "./components/CartDrawer";
 import { DiscoveryWizard } from "./components/DiscoveryWizard";
+import { CrossSellModal } from "./components/CrossSellModal";
 import pairingsData from "@/data/pairings.json";
 
 const BanIcon = ({ size, color = "currentColor" }: any) => (
@@ -139,8 +140,30 @@ function DiscoveryPageContent() {
   const [editInitialSelections, setEditInitialSelections] = useState<any>(null);
   const [editCurrentQty, setEditCurrentQty] = useState<number>(0);
 
+  const [isCheckoutRequested, setIsCheckoutRequested] = useState(false);
+  const [crossSellData, setCrossSellData] = useState<{ mainItem: any; quantity: number; selections?: any; suggestions: any[] } | null>(null);
+
+  const getCrossSellSuggestions = (item: any) => {
+    if (item.category !== 'Món Chính' && item.category !== 'Lẩu & Nướng') return [];
+    try { if (sessionStorage.getItem('cross_sell_shown') === 'true') return []; } catch (e) { }
+
+    const drinks = menuItems.filter(i => i.category.toLowerCase().includes('khát') || i.category.toLowerCase().includes('uống') || i.category.toLowerCase().includes('drink'));
+    return drinks.slice(0, 3);
+  };
+
   const isItemConfirmed = (itemName: string) => {
-    return tableMembers.some(m => m.confirmedOrders?.some((o: any) => o.name === itemName));
+    return tableMembers.some(m => m.confirmedOrders?.some((o: any) => o.name === itemName && o.qty > 0));
+  };
+
+  const getConfirmedQty = (itemName: string) => {
+    return tableMembers.reduce((sum, m) => {
+      const orders = m.confirmedOrders?.filter((o: any) => o.name === itemName) || [];
+      return sum + orders.reduce((s: number, o: any) => s + (Number(o.qty) || 0), 0);
+    }, 0);
+  };
+
+  const getDraftingUser = (itemId: number) => {
+    return tableMembers.find(m => m.id !== user?.id && m.draftItems?.some((d: any) => d.item.id === itemId && d.quantity > 0));
   };
 
   const getPairingMessage = React.useCallback((item: any) => {
@@ -256,6 +279,9 @@ function DiscoveryPageContent() {
         }
         setTableMembers(newMembers);
         membersRef.current = newMembers;
+        if (liveData.hasOwnProperty('isCheckoutRequested')) {
+          setIsCheckoutRequested(liveData.isCheckoutRequested);
+        }
       }
     } catch (err) { /* silently fail */ }
   };
@@ -365,9 +391,19 @@ function DiscoveryPageContent() {
   };
 
   const addToTotal = async (item: any, quantity: number = 1, selections?: any) => {
+    if (quantity > 0 && isCheckoutRequested) {
+      setToast({ message: "Bàn đang yêu cầu thanh toán", submessage: "Không thể gọi thêm món lúc này" });
+      return;
+    }
     if (quantity > 0) {
+      const draftingUser = getDraftingUser(item.id);
+      if (draftingUser) {
+        setToast({ message: `${draftingUser.name} đang chọn món này`, submessage: "Vui lòng chờ họ gọi hoặc đổi món khác" });
+        return;
+      }
+
       const collisionFriend = tableMembers.find(m =>
-        m.confirmedOrders && m.confirmedOrders.some((o: any) => o.name === item.name)
+        m.confirmedOrders && m.confirmedOrders.some((o: any) => o.name === item.name && o.qty > 0)
       );
 
       if (collisionFriend && !acknowledgedCollisions.current.has(item.name)) {
@@ -381,6 +417,12 @@ function DiscoveryPageContent() {
           selections,
           message: `${msg}, bạn có chắc muốn gọi thêm không?`
         });
+        return;
+      }
+
+      const suggestions = getCrossSellSuggestions(item);
+      if (suggestions.length > 0) {
+        setCrossSellData({ mainItem: item, quantity, selections, suggestions });
         return;
       }
     }
@@ -447,6 +489,11 @@ function DiscoveryPageContent() {
       );
       const currentQty = Number(currentEntry?.quantity || 0);
       const diff = targetQty - currentQty;
+
+      if (diff > 0 && isCheckoutRequested) {
+        setToast({ message: "Bàn đang yêu cầu thanh toán", submessage: "Không thể gọi thêm món lúc này" });
+        return;
+      }
 
       if (diff !== 0) {
         await proceedAddToCart(item, diff, selections);
@@ -651,71 +698,92 @@ function DiscoveryPageContent() {
 
         <section className={styles.menuGridSection}>
           <div className={styles.menuGrid}>
-            {displayMenuItems.map((item: any) => (
-              <div key={item.id} className={styles.menuCard} onClick={() => setSelectedItem(item)}>
-                <div className={styles.cardHero}>
-                  <img src={item.img} className={styles.cardImg} alt={item.name} />
-                  {isItemConfirmed(item.name) && (
-                    <div className={styles.confirmedBadgeOver}>
-                      <Check size={10} /> {t('Đã gọi')}
-                    </div>
-                  )}
-                  {getItemQuantity(item.id) > 0 && (
-                    <div className={`${styles.itemQuantityBadge} ${isItemConfirmed(item.name) ? styles.withConfirmed : ""}`}>
-                      {getItemQuantity(item.id)}
-                    </div>
-                  )}
-                </div>
-                <div className={styles.cardBody}>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {getPairingMessage(item) && (
-                      <div className={styles.pairingBadgeInline}>
-                        <Sparkles size={10} fill="#CA8A04" color="#CA8A04" />
-                        {getPairingMessage(item)}
+            {displayMenuItems.map((item: any) => {
+              const confirmedQty = getConfirmedQty(item.name);
+              const isConfirmed = confirmedQty > 0;
+              const draftingUser = getDraftingUser(item.id);
+              return (
+                <div key={item.id} className={`${styles.menuCard} ${isConfirmed ? styles.menuCardConfirmed : ""}`} onClick={() => setSelectedItem(item)}>
+                  <div className={styles.cardHero}>
+                    <img src={item.img} className={styles.cardImg} alt={item.name} />
+                    {isConfirmed && (
+                      <div className={styles.confirmedBadgeOver}>
+                        <Check size={10} /> x{confirmedQty} {t('Đã gọi')}
+                      </div>
+                    )}
+                    {!isConfirmed && draftingUser && (
+                      <div className={styles.draftingBadgeOver}>
+                        {draftingUser.avatar ? (
+                          <img src={draftingUser.avatar} alt={draftingUser.name} style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: draftingUser.color || '#ccc', objectFit: 'cover' }} />
+                        ) : (
+                          <Users size={10} />
+                        )}
+                        <span style={{ maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draftingUser.name}</span> {t('đang chọn')}
+                      </div>
+                    )}
+                    {getItemQuantity(item.id) > 0 && (
+                      <div className={`${styles.itemQuantityBadge} ${isConfirmed ? styles.withConfirmed : ""}`}>
+                        {getItemQuantity(item.id)}
                       </div>
                     )}
                   </div>
-                  <h4 className={styles.cardName}>{item.name}</h4>
-                  {item.tags && item.tags.length > 0 && (() => {
-                    const palette = [
-                      { bg: '#fef3c7', color: '#92400e', border: '#fde68a' },
-                      { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
-                      { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0' },
-                      { bg: '#fce7f3', color: '#9d174d', border: '#fbcfe8' },
-                      { bg: '#ede9fe', color: '#5b21b6', border: '#ddd6fe' },
-                      { bg: '#ffedd5', color: '#9a3412', border: '#fed7aa' },
-                    ];
-                    return (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
-                        {item.tags.slice(0, 4).map((tag: string, i: number) => {
-                          const c = palette[i % palette.length];
-                          return (
-                            <span key={tag} style={{
-                              fontSize: '10px', fontWeight: 700,
-                              padding: '2px 7px', borderRadius: '6px',
-                              background: c.bg, color: c.color,
-                              border: `1px solid ${c.border}`,
-                              whiteSpace: 'nowrap'
-                            }}>{tag}</span>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                  <p className={styles.cardDesc} style={{ WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.desc}</p>
-                  <div className={styles.cardFooter}>
-                    <span className={styles.cardPrice}>{item.price.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
-                    {getItemQuantity(item.id) > 0 ? (
-                      <div className={styles.qtySelectorMini}>
-                        <button className={styles.miniQtyBtn} onClick={(e) => { e.stopPropagation(); removeFromTotal(item); }}>-</button>
-                        <span className={styles.miniQtyValue}>{getItemQuantity(item.id)}</span>
-                        <button className={styles.miniQtyBtn} onClick={(e) => { e.stopPropagation(); addToTotal(item); }}>+</button>
-                      </div>
-                    ) : <button className={styles.addBtnSmall} onClick={(e) => { e.stopPropagation(); addToTotal(item); }}>+</button>}
+                  <div className={styles.cardBody}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {getPairingMessage(item) && (
+                        <div className={styles.pairingBadgeInline}>
+                          <Sparkles size={10} fill="#CA8A04" color="#CA8A04" />
+                          {getPairingMessage(item)}
+                        </div>
+                      )}
+                    </div>
+                    <h4 className={styles.cardName}>{item.name}</h4>
+                    {item.tags && item.tags.length > 0 && (() => {
+                      const palette = [
+                        { bg: '#fef3c7', color: '#92400e', border: '#fde68a' },
+                        { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
+                        { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0' },
+                        { bg: '#fce7f3', color: '#9d174d', border: '#fbcfe8' },
+                        { bg: '#ede9fe', color: '#5b21b6', border: '#ddd6fe' },
+                        { bg: '#ffedd5', color: '#9a3412', border: '#fed7aa' },
+                      ];
+                      return (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                          {item.tags.slice(0, 4).map((tag: string, i: number) => {
+                            const c = palette[i % palette.length];
+                            return (
+                              <span key={tag} style={{
+                                fontSize: '10px', fontWeight: 700,
+                                padding: '2px 7px', borderRadius: '6px',
+                                background: c.bg, color: c.color,
+                                border: `1px solid ${c.border}`,
+                                whiteSpace: 'nowrap'
+                              }}>{tag}</span>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                    <p className={styles.cardDesc} style={{ WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.desc}</p>
+                    <div className={styles.cardFooter}>
+                      <span className={styles.cardPrice}>{item.price.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
+                      {getItemQuantity(item.id) > 0 ? (
+                        <div className={styles.qtySelectorMini}>
+                          <button className={styles.miniQtyBtn} onClick={(e) => { e.stopPropagation(); removeFromTotal(item); }}>-</button>
+                          <span className={styles.miniQtyValue}>{getItemQuantity(item.id)}</span>
+                          <button className={styles.miniQtyBtn} onClick={(e) => { e.stopPropagation(); addToTotal(item); }}>+</button>
+                        </div>
+                      ) : (
+                        isConfirmed ? (
+                          <button className={styles.addBtnSmallOutline} onClick={(e) => { e.stopPropagation(); addToTotal(item); }}>{t('Gọi thêm')}</button>
+                        ) : (
+                          <button className={styles.addBtnSmall} onClick={(e) => { e.stopPropagation(); addToTotal(item); }}>+</button>
+                        )
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
         <DiscoveryFooter />
@@ -761,6 +829,7 @@ function DiscoveryPageContent() {
         onClose={() => setIsCartDrawerOpen(false)}
         cartItems={cartItems}
         total={total}
+        isCheckoutRequested={isCheckoutRequested}
         onPlaceOrder={handlePlaceOrder}
         onEditItem={handleEditCartItem}
       />
@@ -805,7 +874,7 @@ function DiscoveryPageContent() {
                 className={styles.collisionConfirmBtn}
                 onClick={() => {
                   acknowledgedCollisions.current.add(collisionData.item.name);
-                  proceedAddToCart(collisionData.item, collisionData.quantity);
+                  addToTotal(collisionData.item, collisionData.quantity, collisionData.selections);
                   setCollisionData(null);
                 }}
               >
@@ -814,6 +883,30 @@ function DiscoveryPageContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {crossSellData && (
+        <CrossSellModal
+          isOpen={true}
+          onClose={() => {
+            // If skip cross sell, still add main item
+            try { sessionStorage.setItem('cross_sell_shown', 'true'); } catch (e) { }
+            proceedAddToCart(crossSellData.mainItem, crossSellData.quantity, crossSellData.selections);
+            setCrossSellData(null);
+          }}
+          mainItem={crossSellData.mainItem}
+          suggestions={crossSellData.suggestions}
+          onConfirm={async (mainItem, selectedSuggestions) => {
+            try { sessionStorage.setItem('cross_sell_shown', 'true'); } catch (e) { }
+            setCrossSellData(null);
+
+            // Wait for sequential adds to avoid cart fetch race conditions
+            await proceedAddToCart(mainItem, crossSellData.quantity, crossSellData.selections);
+            for (const s of selectedSuggestions) {
+              await proceedAddToCart(s, 1);
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -8,6 +8,7 @@ interface CartDrawerProps {
     onClose: () => void;
     cartItems: { id?: number; item: any; quantity: number; selections?: any }[];
     total: number;
+    isCheckoutRequested?: boolean;
     onPlaceOrder: () => void;
     onEditItem: (cartEntry: any) => void;
 }
@@ -17,6 +18,7 @@ export function CartDrawer({
     onClose,
     cartItems,
     total,
+    isCheckoutRequested,
     onPlaceOrder,
     onEditItem
 }: CartDrawerProps) {
@@ -89,9 +91,15 @@ export function CartDrawer({
                         <button className={styles.drawerSecondaryBtn} onClick={onClose}>
                             {t('Xem chi tiết bàn')}
                         </button>
-                        <button className={styles.drawerPrimaryBtn} onClick={onPlaceOrder}>
-                            {t('Gửi gọi món')} <ChevronRight size={18} />
-                        </button>
+                        {isCheckoutRequested ? (
+                            <button className={styles.drawerPrimaryBtn} disabled style={{ backgroundColor: '#9ca3af', cursor: 'not-allowed' }}>
+                                {t('Đang Thanh Toán')}
+                            </button>
+                        ) : (
+                            <button className={styles.drawerPrimaryBtn} onClick={onPlaceOrder}>
+                                {t('Gửi gọi món')} <ChevronRight size={18} />
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

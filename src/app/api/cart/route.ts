@@ -12,12 +12,13 @@ async function getAuthenticatedUser() {
     const session = await db.get('SELECT * FROM sessions WHERE id = ?', [sessionId]);
     if (!session || session.expires < Date.now()) return null;
 
-    return session.user_id;
+    return { id: session.user_id, tableid: session.tableid };
 }
 
 export async function GET(request: Request) {
-    const userId = await getAuthenticatedUser();
-    if (!userId) return ApiSuccess({ items: [], total: 0 });
+    const user = await getAuthenticatedUser();
+    if (!user) return ApiSuccess({ items: [], total: 0 });
+    const userId = user.id;
 
     const { searchParams } = new URL(request.url);
     const resId = searchParams.get('resId');
@@ -46,14 +47,23 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-    const userId = await getAuthenticatedUser();
-    if (!userId) return ApiError('Unauthorized', 401);
+    const user = await getAuthenticatedUser();
+    if (!user) return ApiError('Unauthorized', 401);
+    const userId = user.id;
 
     const { resId, item, quantity, selections } = await request.json();
     const selectionsStr = selections ? JSON.stringify(selections) : null;
 
     try {
         const db = await getDb();
+
+        // Check if table is locked for checkout
+        if (quantity > 0 && user.tableid) {
+            const checkoutStatus = await db.get('SELECT value FROM kv_store WHERE key = ?', [`checkout_requested_${resId}_${user.tableid}`]);
+            if (checkoutStatus && checkoutStatus.value === 'true') {
+                return ApiError('Bàn đang yêu cầu thanh toán, không thể gọi thêm món.', 403);
+            }
+        }
 
         // Check if item with SAME selections exists
         const existingItem = await db.get(

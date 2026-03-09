@@ -104,9 +104,13 @@ export async function GET(
             [tableid, resid, Date.now() - 30000]
         );
 
+        // Fetch checkout requested status
+        const checkoutStatus = await db.get('SELECT value FROM kv_store WHERE key = ?', [`checkout_requested_${resid}_${tableid}`]);
+
         return NextResponse.json({
             count: activeMembers.length,
             members: activeMembers,
+            isCheckoutRequested: checkoutStatus?.value === 'true',
             notifications: messages.map(m => ({
                 id: m.id,
                 userId: m.user_id,

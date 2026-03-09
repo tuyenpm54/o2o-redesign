@@ -4990,3 +4990,50 @@
 .collisionConfirmBtn:active {
   transform: scale(0.98);
 }
+
+.menuCardConfirmed {
+  border: 2px solid #10b981;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.2);
+}
+
+.addBtnSmallOutline {
+  background: transparent;
+  color: #10b981;
+  border: 1.5px solid #10b981;
+  width: auto;
+  min-width: 44px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 10px;
+  transition: all 0.2s;
+}
+
+.addBtnSmallOutline:hover {
+  background: #10b981;
+  color: #fff;
+}
+
+.draftingBadgeOver {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #ef4444;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+  z-index: 11;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}

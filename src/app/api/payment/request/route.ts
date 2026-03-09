@@ -32,6 +32,12 @@ export async function POST(request: Request) {
             [`msg-${now}-payment-req`, auth.userId, auth.resid, auth.tableid, 'user', 'PAYMENT', isEn ? 'Payment request' : 'Yêu cầu thanh toán', timeStr, now]
         );
 
+        // Set table as checking out to prevent new orders
+        await db.run(
+            'INSERT INTO kv_store (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+            [`checkout_requested_${auth.resid}_${auth.tableid}`, 'true']
+        );
+
         // 2. Restaurant auto-confirm after a short delay (simulated inline)
         const confirmTime = new Date(now + 5000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
         const confirmContent = isEn
