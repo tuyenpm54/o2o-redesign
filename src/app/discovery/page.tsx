@@ -597,7 +597,7 @@ function DiscoveryPageContent() {
                   <div className={styles.smartContentCol}>
                     <span className={styles.smartIntro}>{t('Dựa trên lựa chọn lần trước của bạn')}</span>
                     <div className={styles.smartPillList}>
-                      {user.preferences.slice(0, 2).map((p: string) => {
+                      {user.preferences.slice(0, 1).map((p: string) => {
                         const pref = preferencesList.find(xi => xi.id === p);
                         if (!pref) return null;
                         return (
@@ -606,9 +606,9 @@ function DiscoveryPageContent() {
                           </span>
                         );
                       })}
-                      {user.preferences.length > 2 && (
+                      {user.preferences.length > 1 && (
                         <span className={styles.smartPillItem}>
-                          +{user.preferences.length - 2}
+                          +{user.preferences.length - 1}
                         </span>
                       )}
                     </div>
