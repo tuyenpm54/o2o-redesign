@@ -593,29 +593,34 @@ function DiscoveryPageContent() {
                 <div className={styles.compactSmartBadge}>{t('GÓI Ý THÔNG MINH')}</div>
               </div>
               <h3 className={styles.compactSmartTitle}>
-                {isLoggedIn && user && user.preferences?.length ? (
-                  <div className={styles.smartContentCol}>
-                    <span className={styles.smartIntro}>{t('Dựa trên lựa chọn lần trước của bạn')}</span>
-                    <div className={styles.smartPillList}>
-                      {user.preferences.slice(0, 1).map((p: string) => {
-                        const pref = preferencesList.find(xi => xi.id === p);
-                        if (!pref) return null;
-                        return (
-                          <span key={p} className={styles.smartPillItem}>
-                            ✓ {pref.label}
-                          </span>
-                        );
-                      })}
-                      {user.preferences.length > 1 && (
-                        <span className={styles.smartPillItem}>
-                          +{user.preferences.length - 1}
-                        </span>
-                      )}
+                {(() => {
+                  const hasPrefs = form.groupSize || form.preferences?.length > 0 || (isLoggedIn && user?.preferences?.length > 0);
+                  if (!hasPrefs) return <span className={styles.smartIntro}>{t("Dành riêng cho bạn")}</span>;
+
+                  const title = form.groupSize ? t('Dựa trên yêu cầu của bạn') : t('Dựa trên lựa chọn lần trước của bạn');
+                  const prefs = form.preferences?.length > 0 ? form.preferences : (user?.preferences || []);
+
+                  let displayTags: { id: string, label: string }[] = [];
+                  if (form.groupSize) displayTags.push({ id: 'group', label: form.groupSize });
+                  prefs.forEach((p: string) => {
+                    const pref = preferencesList.find(xi => xi.id === p);
+                    if (pref) displayTags.push({ id: p, label: '✓ ' + pref.label });
+                  });
+
+                  return (
+                    <div className={styles.smartContentCol}>
+                      <span className={styles.smartIntro}>{title}</span>
+                      <div className={styles.smartPillList}>
+                        {displayTags.slice(0, 1).map(tag => (
+                          <span key={tag.id} className={styles.smartPillItem}>{tag.label}</span>
+                        ))}
+                        {displayTags.length > 1 && (
+                          <span className={styles.smartPillItem}>+{displayTags.length - 1}</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <span className={styles.smartIntro}>{t("Dành riêng cho bạn")}</span>
-                )}
+                  );
+                })()}
               </h3>
             </div>
           </div>
