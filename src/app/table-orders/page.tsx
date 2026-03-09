@@ -322,7 +322,14 @@ function TableOrdersContent() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <button className={styles.backBtn} onClick={() => router.push(`${fromPath}?resid=${resid}&tableid=${tableid}`)}>
+                <button className={styles.backBtn} onClick={() => {
+                    if (fromPath.includes('resid=')) {
+                        router.push(fromPath);
+                    } else {
+                        const separator = fromPath.includes('?') ? '&' : '?';
+                        router.push(`${fromPath}${separator}resid=${resid}&tableid=${tableid}`);
+                    }
+                }}>
                     <ArrowLeft size={24} />
                 </button>
                 <div className={styles.headerTitle}>
@@ -447,7 +454,7 @@ function TableOrdersContent() {
                         {lastUnreadMsg}
                     </div>
                 )}
-                <button className={styles.fabSupportPill} onClick={() => { setUnreadChatCount(0); setLastUnreadMsg(null); lastChatCheckRef.current = Date.now(); router.push(`/chat?from=${encodeURIComponent(`/table-orders?resid=${resid}&tableid=${tableid}&from=${fromPath}`)}`); }}>
+                <button className={styles.fabSupportPill} onClick={() => { setUnreadChatCount(0); setLastUnreadMsg(null); lastChatCheckRef.current = Date.now(); router.push(`/chat?from=${encodeURIComponent(`/table-orders?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(fromPath)}`)}`); }}>
                     <div className={styles.staffAvatarWrapper}>
                         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff&backgroundColor=ffdfbf" className={styles.staffAvatarMini} alt="Staff" />
                         <div className={styles.onlineDot}></div>

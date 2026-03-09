@@ -135,7 +135,10 @@ function ChatContent() {
             <div className={styles.chatFooter}>
                 {/* View cart shortcut */}
                 <button
-                    onClick={() => router.push(`/table-orders?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(fromUrl)}`)}
+                    onClick={() => {
+                        const backToChat = `/chat?from=${encodeURIComponent(fromUrl)}`;
+                        router.push(`/table-orders?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(backToChat)}`);
+                    }}
                     style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         width: '100%', padding: '12px 16px',
