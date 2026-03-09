@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { Clock, CheckCircle2, User, Utensils, ChefHat } from 'lucide-react';
 import styles from './page.module.css';
 
 const ORDER_FLOW = [
@@ -17,6 +18,13 @@ export default function PosPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState<string>('All');
     const [activeRoundId, setActiveRoundId] = useState<string | null>(null);
+
+    const parseDate = (ts: any) => {
+        if (!ts) return null;
+        const n = Number(ts);
+        const d = new Date(isNaN(n) ? ts : n);
+        return isNaN(d.getTime()) ? null : d;
+    };
 
     const fetchOrders = async () => {
         try {
@@ -287,7 +295,8 @@ export default function PosPage() {
                                                     Tất cả các lượt ({rounds.length})
                                                 </button>
                                                 {rounds.map((r, i) => {
-                                                    const timeStr = r.timestamp ? new Date(r.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+                                                    const d = parseDate(r.timestamp);
+                                                    const timeStr = d ? d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
                                                     return (
                                                         <button
                                                             key={r.id}
@@ -305,9 +314,20 @@ export default function PosPage() {
                                                     <div key={round.id} className={styles.roundSection}>
                                                         {activeRoundId === null && (
                                                             <div className={styles.roundSectionHeader}>
-                                                                <h4>Lượt {rounds.indexOf(round) + 1} - Lên lúc {round.timestamp ? new Date(round.timestamp).toLocaleTimeString('vi-VN') : ''}</h4>
+                                                                <div className={styles.roundTitle}>
+                                                                    Lượt {rounds.indexOf(round) + 1}
+                                                                    {round.timestamp && (() => {
+                                                                        const d = parseDate(round.timestamp);
+                                                                        return d ? (
+                                                                            <div className={styles.timeTag}>
+                                                                                <Clock size={14} />
+                                                                                {d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                                                            </div>
+                                                                        ) : null;
+                                                                    })()}
+                                                                </div>
                                                                 <button onClick={() => handleUpdateRound(round.items)} className={styles.roundActionBtn}>
-                                                                    Cập nhật toàn bộ lượt này
+                                                                    <CheckCircle2 size={16} /> Báo cập nhật cả lượt này
                                                                 </button>
                                                             </div>
                                                         )}
@@ -325,7 +345,7 @@ export default function PosPage() {
                                                                         <div>
                                                                             <div className={styles.orderItemName}>{order.name}</div>
                                                                             <div className={styles.orderItemMeta}>
-                                                                                <strong>Khách gọi:</strong> {order.userName}
+                                                                                <User size={13} strokeWidth={2.5} /> {order.userName}
                                                                             </div>
                                                                         </div>
                                                                         <div className={styles.qtyBadge}>x{order.qty}</div>
