@@ -378,13 +378,16 @@ function TableOrdersContent() {
                                         <Crown size={10} fill="#F59E0B" color="#F59E0B" />
                                     </div>
                                 )}
-                                {mem.status === 'done' && (
+                                {(!hasItems && (mem.confirmedOrders?.length || 0) > 0) && (
                                     <div className={styles.doneBadge}>
                                         <CheckCircle2 size={12} fill="white" />
                                     </div>
                                 )}
                                 <div className={styles.speechBubble}>
-                                    {isMe ? (hasItems ? t('đang chọn món...') : t('Chào bạn!')) : (mem.status === 'done' ? t('Đã xong') : '...')}
+                                    {isMe
+                                        ? (hasItems ? t('đang chọn món...') : t('Chào bạn!'))
+                                        : (hasItems ? '...' : ((mem.confirmedOrders?.length || 0) > 0 ? t('Đã gọi') : t('Đang xem')))
+                                    }
                                 </div>
                             </div>
                             <span className={styles.memberName}>{isMe ? t('Tôi') : mem.name}</span>
