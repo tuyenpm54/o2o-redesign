@@ -30,7 +30,7 @@ export function CrossSellModal({ isOpen, onClose, mainItem, suggestions, onConfi
     };
 
     return (
-        <div className={styles.collisionModalOverlay} style={{ zIndex: 1000 }}>
+        <div className={styles.collisionModalOverlay} style={{ zIndex: 5000 }}>
             <div className={styles.collisionModal} style={{ textAlign: 'left', padding: '24px' }}>
                 <button
                     onClick={onClose}
