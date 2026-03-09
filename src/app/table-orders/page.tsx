@@ -144,6 +144,7 @@ function TableOrdersContent() {
 
     const { pending: pendingOrders, confirmed: confirmedOrders } = getDisplayData();
     const totalAmount = [...pendingOrders, ...confirmedOrders].reduce((acc, o) => acc + (o.price * (o.qty || 1)), 0);
+    const pendingTotalAmount = pendingOrders.reduce((acc: number, o: any) => acc + (o.price * (o.qty || 1)), 0);
 
     const handlePlaceOrder = async () => {
         try {
@@ -415,6 +416,16 @@ function TableOrdersContent() {
                                 <div className={styles.groupSection}>
                                     <h3 className={styles.groupTitle} style={{ color: '#F97316' }}>{t('Món đang chọn')} ({pendingOrders.length})</h3>
                                     {pendingOrders.map((o: any, i: number) => renderOrderItem(o, i, true))}
+
+                                    {(selectedMemberId === 'me' || selectedMemberId === user?.id) && (
+                                        <div style={{ marginTop: '16px' }}>
+                                            <button className="btn-footer-primary" onClick={handlePlaceOrder} style={{ position: 'relative', width: '100%', marginBottom: 0 }}>
+                                                <Send size={20} />
+                                                {t('Gửi yêu cầu gọi món')} • {pendingTotalAmount.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ
+                                                <ChevronRight size={20} style={{ marginLeft: 'auto' }} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             {confirmedOrders.length > 0 && (
@@ -427,16 +438,6 @@ function TableOrdersContent() {
                     )}
                 </div>
             </main>
-
-            {pendingOrders.length > 0 && (selectedMemberId === 'me' || selectedMemberId === user?.id) && (
-                <div className={styles.orderStickyFooter}>
-                    <button className="btn-footer-primary" onClick={handlePlaceOrder}>
-                        <Send size={20} />
-                        {t('Gửi yêu cầu gọi món')} • {totalAmount.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ
-                        <ChevronRight size={20} style={{ marginLeft: 'auto' }} />
-                    </button>
-                </div>
-            )}
 
             {isAllOrdering && (
                 <div className={styles.invoiceStickyFooter}>
