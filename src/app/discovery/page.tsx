@@ -33,7 +33,7 @@ const BanIcon = ({ size, color = "currentColor" }: any) => (
   </svg>
 );
 
-function MemberLobbyLocal({ members }: any) {
+function MemberLobbyLocal({ members, currentUser }: any) {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useLanguage();
@@ -41,10 +41,17 @@ function MemberLobbyLocal({ members }: any) {
 
   // Count total items across all members
   const totalItems = members.reduce((acc: number, m: any) => {
-    const draft = (m.draftItems || []).reduce((s: number, d: any) => s + (d.quantity || 1), 0);
-    const confirmed = (m.confirmedOrders || []).reduce((s: number, o: any) => s + (o.qty || 1), 0);
+    const draft = (m.draftItems || []).reduce((s: number, d: any) => s + (Number(d.quantity) || 1), 0);
+    const confirmed = (m.confirmedOrders || []).reduce((s: number, o: any) => s + (Number(o.qty) || 1), 0);
     return acc + draft + confirmed;
   }, 0);
+
+  const myItemsCount = members
+    .filter((m: any) => m.id === currentUser?.id)
+    .reduce((acc: number, m: any) => {
+      const draft = (m.draftItems || []).reduce((s: number, d: any) => s + (Number(d.quantity) || 1), 0);
+      return acc + draft;
+    }, 0);
 
   return (
     <div className={styles.lobbyWrapper}>
@@ -61,36 +68,33 @@ function MemberLobbyLocal({ members }: any) {
             {members.slice(0, 5).map((m: any, idx: number) => {
               const color = m.color || colors[m.name.length % colors.length];
               const initials = m.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+              const isMe = m.id === currentUser?.id;
+              const hasDraft = (m.draftItems || []).length > 0;
+              const draftQty = (m.draftItems || []).reduce((s: number, d: any) => s + (Number(d.quantity) || 1), 0);
+
               return (
-                <div key={m.id} className={styles.stackedAvatarItem} style={{ zIndex: 10 - idx }}>
+                <div key={m.id} className={`${styles.stackedAvatarItem} ${isMe ? styles.isMeAvatar : ""}`} style={{ zIndex: 10 - idx }}>
                   {m.avatar ? (
                     <img src={m.avatar} alt={m.name} className={styles.avatarImgSmall} />
                   ) : (
                     <div className={styles.avatarInitialsSmall} style={{ backgroundColor: color }}>{initials}</div>
                   )}
+                  {draftQty > 0 && <div className={styles.avatarDraftBadge}>{draftQty}</div>}
                 </div>
               );
             })}
           </div>
           {members.length > 5 && <span className={styles.moreCount}>+{members.length - 5}</span>}
-          <span className={styles.inlineStatus}>
-            {totalItems > 0 ? t('đang chọn món...') : t('đang chọn món...')}
-          </span>
-          {totalItems > 0 && (
-            <span style={{
-              marginLeft: 'auto',
-              background: '#f97316',
-              color: '#fff',
-              fontSize: '11px',
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: '20px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}>
-              {totalItems} món
+          <div className={styles.lobbyStatusInfo}>
+            <span className={styles.inlineStatus}>
+              {myItemsCount > 0 ? `${t('Giỏ hàng của bạn')}: ${myItemsCount}` : t('đang chọn món...')}
             </span>
-          )}
+            {totalItems > 0 && totalItems > myItemsCount && (
+              <span className={styles.otherWaitStatus}>
+                • {t('Bàn đã có')} {totalItems} món
+              </span>
+            )}
+          </div>
           <ChevronRight size={14} className={styles.inlineChevron} />
         </div>
       </div>
@@ -106,7 +110,6 @@ function DiscoveryPageContent() {
   const pathname = usePathname();
   const { isLoggedIn, user, isLoadingAuth, loginAsGuest } = useAuth();
   const { t, language } = useLanguage();
-
   const [restaurant, setRestaurant] = useState<any>(null);
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [preferencesList, setPreferencesList] = useState<any[]>([]);
@@ -122,16 +125,19 @@ function DiscoveryPageContent() {
   const [total, setTotal] = useState(0);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [cartPulse, setCartPulse] = useState(false);
-  const [cartItems, setCartItems] = useState<{ item: any; quantity: number }[]>([]);
+  const [cartItems, setCartItems] = useState<{ id?: number; item: any; quantity: number; selections?: any }[]>([]);
   const [activeCategory, setActiveCategory] = useState("");
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [lastUnreadMsg, setLastUnreadMsg] = useState<string | null>(null);
   const membersRef = useRef<any[]>([]);
-  const lastChatCheckRef = useRef<number>(Date.now() - 5000); // 5s buffer to catch initial messages
+  const lastChatCheckRef = useRef<number>(Date.now() - 5000);
   const acknowledgedCollisions = useRef<Set<string>>(new Set());
-  const seenMemberIds = useRef<Set<string>>(new Set()); // track members we've already notified about
-  const [collisionData, setCollisionData] = useState<{ item: any; quantity: number; message: string } | null>(null);
+  const seenMemberIds = useRef<Set<string>>(new Set());
+  const [collisionData, setCollisionData] = useState<{ item: any; quantity: number; selections?: any; message: string } | null>(null);
+
+  const [editInitialSelections, setEditInitialSelections] = useState<any>(null);
+  const [editCurrentQty, setEditCurrentQty] = useState<number>(0);
 
   const isItemConfirmed = (itemName: string) => {
     return tableMembers.some(m => m.confirmedOrders?.some((o: any) => o.name === itemName));
@@ -327,7 +333,38 @@ function DiscoveryPageContent() {
     setIsWizardShown(false);
   };
 
-  const addToTotal = async (item: any, quantity: number = 1) => {
+  const proceedAddToCart = async (item: any, quantity: number, selections?: any) => {
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resId: resid, item, quantity, selections })
+      });
+      if (res.ok) {
+        setCartPulse(true);
+        setTimeout(() => setCartPulse(false), 500);
+        await fetchData(); // Wait for data sync
+
+        if (quantity > 0) {
+          setToast({ message: `Đã thêm ${item.name}`, submessage: "Món ăn đã được lưu vào giỏ hàng" });
+          setTimeout(() => setToast(null), 3000);
+        }
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setToast({
+          message: "Lỗi thêm vào giỏ hàng",
+          submessage: errorData.error || "Vui lòng thử lại sau"
+        });
+        setTimeout(() => setToast(null), 4000);
+      }
+    } catch (e) {
+      console.error("Cart update failed", e);
+      setToast({ message: "Lỗi kết nối", submessage: "Không thể thêm món vào giỏ hàng" });
+      setTimeout(() => setToast(null), 4000);
+    }
+  };
+
+  const addToTotal = async (item: any, quantity: number = 1, selections?: any) => {
     if (quantity > 0) {
       const collisionFriend = tableMembers.find(m =>
         m.confirmedOrders && m.confirmedOrders.some((o: any) => o.name === item.name)
@@ -341,45 +378,22 @@ function DiscoveryPageContent() {
         setCollisionData({
           item,
           quantity,
+          selections,
           message: `${msg}, bạn có chắc muốn gọi thêm không?`
         });
         return;
       }
     }
-    await proceedAddToCart(item, quantity);
-  };
-
-  const proceedAddToCart = async (item: any, quantity: number) => {
-    try {
-      const res = await fetch('/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resId: resid, item, quantity })
-      });
-      if (res.ok) {
-        setCartPulse(true);
-        setTimeout(() => setCartPulse(false), 500);
-        fetchData();
-      }
-    } catch (e) {
-      console.error("Cart update failed", e);
-    }
+    await proceedAddToCart(item, quantity, selections);
   };
 
   const removeFromTotal = async (item: any) => {
-    const currentQty = getItemQuantity(item.id);
-    if (currentQty <= 0) return;
-    await addToTotal(item, -1);
+    // For grid +/- buttons, find the first available entry of this item to remove 1 qty
+    const cartEntry = cartItems.find(i => i.item.id === item.id);
+    if (cartEntry) {
+      await proceedAddToCart(item, -1, cartEntry.selections);
+    }
   };
-
-  const syncCartQuantity = async (item: any, newQty: number) => {
-    const currentQty = getItemQuantity(item.id);
-    const diff = newQty - currentQty;
-    if (diff === 0) return;
-    await addToTotal(item, diff);
-  };
-
-  const getItemQuantity = (id: number) => cartItems.find(i => i.item.id === id)?.quantity || 0;
 
   const handlePlaceOrder = async () => {
     try {
@@ -393,8 +407,7 @@ function DiscoveryPageContent() {
         setTotal(0);
         closeWizard();
         setIsCartDrawerOpen(false);
-        // NO REDIRECT - stay on discovery page to see the bubble
-        setTimeout(checkUnread, 1000); // Check for the immediate confirmation msg
+        setTimeout(checkUnread, 1000);
       } else {
         const data = await res.json();
         setToast({ message: data.error || "Đặt món thất bại", submessage: "Vui lòng thử lại sau" });
@@ -406,6 +419,50 @@ function DiscoveryPageContent() {
   const handleNextOnboarding = () => {
     if (onboardingStep <= categories.length) setOnboardingStep((prev) => prev + 1);
     else handlePlaceOrder();
+  };
+
+  const handleEditCartItem = (cartEntry: any) => {
+    setSelectedItem(cartEntry.item);
+    setEditInitialSelections(cartEntry.selections);
+    setEditCurrentQty(Number(cartEntry.quantity) || 1);
+    setIsCartDrawerOpen(false);
+  };
+
+  const syncCartQuantity = async (item: any, newQty: number, selections?: any) => {
+    const targetQty = Number(newQty);
+
+    // If we are in edit mode and selections have CHANGED, we need to remove the old one first
+    if (editInitialSelections && JSON.stringify(editInitialSelections) !== JSON.stringify(selections)) {
+      // Remove old variant completely
+      await proceedAddToCart(item, -editCurrentQty, editInitialSelections);
+      // Add new variant with new desired quantity
+      if (targetQty > 0) {
+        await proceedAddToCart(item, targetQty, selections);
+      }
+    } else {
+      // Standard quantity update for same selections (or new add)
+      const currentEntry = cartItems.find(i =>
+        i.item.id === item.id &&
+        JSON.stringify(i.selections) === JSON.stringify(selections)
+      );
+      const currentQty = Number(currentEntry?.quantity || 0);
+      const diff = targetQty - currentQty;
+
+      if (diff !== 0) {
+        await proceedAddToCart(item, diff, selections);
+      }
+    }
+
+    // Cleanup edit state
+    setSelectedItem(null);
+    setEditInitialSelections(null);
+    setEditCurrentQty(0);
+  };
+
+  const getItemQuantity = (id: number) => {
+    return cartItems
+      .filter(i => i.item.id === id)
+      .reduce((sum, curr) => sum + Number(curr.quantity), 0);
   };
 
   if (isLoading) return (
@@ -457,7 +514,11 @@ function DiscoveryPageContent() {
           }
         }}
         handleNextOnboarding={handleNextOnboarding}
-        openDetails={setSelectedItem}
+        openDetails={(item: any) => {
+          setSelectedItem(item);
+          setEditInitialSelections(null);
+          setEditCurrentQty(0);
+        }}
         getItemQuantity={getItemQuantity}
         addToTotal={addToTotal}
         removeFromTotal={removeFromTotal}
@@ -470,7 +531,7 @@ function DiscoveryPageContent() {
       <main className={styles.personalizedContent}>
         {tableMembers.length > 0 && (
           <div style={{ margin: '0 16px 24px' }}>
-            <MemberLobbyLocal members={tableMembers} />
+            <MemberLobbyLocal members={tableMembers} currentUser={user} />
           </div>
         )}
 
@@ -701,13 +762,18 @@ function DiscoveryPageContent() {
         cartItems={cartItems}
         total={total}
         onPlaceOrder={handlePlaceOrder}
-        onEditItem={(item) => { setSelectedItem(item); setIsCartDrawerOpen(false); }}
+        onEditItem={handleEditCartItem}
       />
 
       <ItemDetailModal
         item={selectedItem}
-        currentQty={getItemQuantity(selectedItem?.id)}
-        onClose={() => setSelectedItem(null)}
+        currentQty={editCurrentQty > 0 ? editCurrentQty : getItemQuantity(selectedItem?.id)}
+        initialSelections={editInitialSelections}
+        onClose={() => {
+          setSelectedItem(null);
+          setEditInitialSelections(null);
+          setEditCurrentQty(0);
+        }}
         onUpdateCart={syncCartQuantity}
         getItemQuantity={getItemQuantity}
       />

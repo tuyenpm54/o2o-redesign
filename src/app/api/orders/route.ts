@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getDb } from '@/lib/db';
+import { ApiSuccess, ApiError } from '@/lib/api-response';
 
 async function getAuthenticatedUser() {
     const cookieStore = await cookies();
@@ -31,12 +32,12 @@ async function addChatMessage(userId: string, resid: string, tableid: string, co
 
 export async function POST(request: Request) {
     const session = await getAuthenticatedUser();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session) return ApiError('Unauthorized', 401);
     const userId = session.userId;
     const tableid = session.tableid;
 
     const { resId, items: directItems } = await request.json();
-    if (!resId) return NextResponse.json({ error: 'Missing resId' }, { status: 400 });
+    if (!resId) return ApiError('Missing resId', 400);
 
     try {
         const db = await getDb();
@@ -51,14 +52,15 @@ export async function POST(request: Request) {
             );
 
             if (cartItems.length === 0) {
-                return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
+                return ApiError('Cart is empty', 400);
             }
 
             itemsToOrder = cartItems.map(item => ({
                 id: item.item_id,
                 name: item.name,
                 price: item.price,
-                quantity: item.qty
+                quantity: item.qty,
+                selections: item.selections // This is already a string from DB
             }));
 
             await db.run('DELETE FROM cart_items WHERE user_id = ? AND resid = ?', [userId, resId]);
@@ -70,8 +72,8 @@ export async function POST(request: Request) {
         for (const item of itemsToOrder) {
             const orderId = `o_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
             await db.run(
-                'INSERT INTO order_items (id, user_id, resid, tableid, item_id, name, price, qty, status, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [orderId, userId, resId, tableid, item.id || 0, item.name, item.price, item.quantity, 'Chờ xác nhận', timestamp]
+                'INSERT INTO order_items (id, user_id, resid, tableid, item_id, name, price, qty, status, selections, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [orderId, userId, resId, tableid, item.id || 0, item.name, item.price, item.quantity, 'Chờ xác nhận', item.selections, timestamp]
             );
             newOrders.push({
                 id: orderId,
@@ -85,9 +87,9 @@ export async function POST(request: Request) {
 
         await addChatMessage(userId, resId, tableid, "Yêu cầu gọi món đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận.");
 
-        return NextResponse.json({ success: true, orders: newOrders });
+        return ApiSuccess({ orders: newOrders });
     } catch (e) {
         console.error("Order placement failed:", e);
-        return NextResponse.json({ error: 'Failed to place order' }, { status: 500 });
+        return ApiError('Failed to place order', 500);
     }
 }

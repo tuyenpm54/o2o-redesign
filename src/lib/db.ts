@@ -193,9 +193,17 @@ async function initDb(database: DBWrapper) {
       name TEXT,
       price INTEGER,
       qty INTEGER,
+      selections TEXT,
       added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Ensure selections column exists (for migrating existing local DBs)
+  try {
+    await database.exec(`ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS selections TEXT`);
+  } catch (e) {
+    // Column might already exist or table might not exist yet (though we just created it IF NOT EXISTS)
+  }
 
   await database.exec(`
     CREATE TABLE IF NOT EXISTS order_items (
@@ -208,9 +216,14 @@ async function initDb(database: DBWrapper) {
       price INTEGER,
       qty INTEGER,
       status TEXT,
+      selections TEXT,
       timestamp BIGINT
     )
   `);
+
+  try {
+    await database.exec(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS selections TEXT`);
+  } catch (e) { }
 
   await database.exec(`
     CREATE TABLE IF NOT EXISTS chat_messages (

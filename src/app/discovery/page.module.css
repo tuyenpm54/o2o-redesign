@@ -4314,6 +4314,44 @@
   font-size: 1.2rem;
 }
 
+.avatarDraftBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f97316;
+  color: white;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid white;
+  z-index: 20;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.isMeAvatar {
+  border: 2px solid #f97316 !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+}
+
+.lobbyStatusInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 8px;
+  flex: 1;
+}
+
+.otherWaitStatus {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
 /* Static Footer */
 .staticFooter {
   padding: 40px 24px;

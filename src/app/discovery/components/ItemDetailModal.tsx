@@ -6,16 +6,45 @@ import { useLanguage } from "@/context/LanguageContext";
 interface ItemDetailModalProps {
     item: any;
     currentQty: number;
+    initialSelections?: {
+        size: string;
+        toppings: string[];
+        note: string;
+    };
     onClose: () => void;
-    onUpdateCart: (item: any, quantity: number) => void;
+    onUpdateCart: (item: any, quantity: number, selections: any) => void;
     getItemQuantity: (id: number) => number;
 }
 
-export function ItemDetailModal({ item, currentQty, onClose, onUpdateCart, getItemQuantity }: ItemDetailModalProps) {
-    const [detailQty, setDetailQty] = useState(currentQty);
+export function ItemDetailModal({ item, currentQty, initialSelections, onClose, onUpdateCart, getItemQuantity }: ItemDetailModalProps) {
     const { t, language } = useLanguage();
 
+    const [detailQty, setDetailQty] = useState(Number(currentQty) || 1);
+    const [size, setSize] = useState(initialSelections?.size || "M");
+    const [toppings, setToppings] = useState<string[]>(initialSelections?.toppings || []);
+    const [note, setNote] = useState(initialSelections?.note || "");
+
+    useEffect(() => {
+        if (item) {
+            const finalQty = Number(currentQty) > 0 ? Number(currentQty) : 1;
+            setDetailQty(finalQty);
+            setSize(initialSelections?.size || "M");
+            setToppings(initialSelections?.toppings || []);
+            setNote(initialSelections?.note || "");
+        }
+    }, [item, currentQty, initialSelections]);
+
     if (!item) return null;
+
+    const handleToppingToggle = (topping: string) => {
+        setToppings(prev =>
+            prev.includes(topping)
+                ? prev.filter(t => t !== topping)
+                : [...prev, topping]
+        );
+    };
+
+    const isEditMode = Number(currentQty) > 0;
 
     return (
         <div className={styles.detailOverlay}>
@@ -25,7 +54,11 @@ export function ItemDetailModal({ item, currentQty, onClose, onUpdateCart, getIt
                 </button>
                 <div className={styles.detailScrollBody}>
                     <div className={styles.detailHero}>
-                        <img src={item.img} alt={item.name} />
+                        <img
+                            src={item.img}
+                            alt={item.name}
+                            onError={(e) => { e.currentTarget.src = '/food/default-food.jpg'; }}
+                        />
                         <div className={styles.heroGradient}></div>
                         {item.matchScore > 10 && (
                             <div className={styles.perfectMatchBadge} style={{ top: '24px', left: '24px' }}>
@@ -71,8 +104,14 @@ export function ItemDetailModal({ item, currentQty, onClose, onUpdateCart, getIt
                                 </h4>
                                 <div className={styles.sizeSelector}>
                                     {["S", "M", "L"].map((s) => (
-                                        <label key={s} className={styles.sizeRadio}>
-                                            <input type="radio" name="size" defaultChecked={s === "M"} />
+                                        <label key={s} className={`${styles.sizeRadio} ${size === s ? styles.sizeActive : ''}`}>
+                                            <input
+                                                type="radio"
+                                                name="size"
+                                                checked={size === s}
+                                                onChange={() => setSize(s)}
+                                                className="hidden"
+                                            />
                                             <span className={styles.sizeLabel}>{s}</span>
                                         </label>
                                     ))}
@@ -85,20 +124,29 @@ export function ItemDetailModal({ item, currentQty, onClose, onUpdateCart, getIt
                                         "Thêm phô mai (+15k)",
                                         "Thêm trứng (+10k)",
                                         "Xốt đậm đà",
-                                    ].map((t) => (
-                                        <label key={t} className={styles.toppingCheckbox}>
-                                            <input type="checkbox" />
+                                    ].map((topName) => (
+                                        <label key={topName} className={styles.toppingCheckbox}>
+                                            <input
+                                                type="checkbox"
+                                                checked={toppings.includes(topName)}
+                                                onChange={() => handleToppingToggle(topName)}
+                                            />
                                             <span className={styles.checkVisual}>
                                                 <Check size={14} strokeWidth={3} />
                                             </span>
-                                            <span className={styles.toppingText}>{t}</span>
+                                            <span className={styles.toppingText}>{topName}</span>
                                         </label>
                                     ))}
                                 </div>
                             </div>
                             <div className={styles.optionGroup}>
                                 <h4 className={styles.optionTitle}>{t('Ghi chú cho bếp')}</h4>
-                                <textarea className={styles.noteInput} placeholder={t("Ví dụ: Ít cay, không hành...")} />
+                                <textarea
+                                    className={styles.noteInput}
+                                    placeholder={t("Ví dụ: Ít cay, không hành...")}
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                />
                             </div>
                             <div className={styles.detailScrollSpacer}></div>
                         </div>
@@ -117,11 +165,14 @@ export function ItemDetailModal({ item, currentQty, onClose, onUpdateCart, getIt
                     <button
                         className={styles.addToCartBtn}
                         onClick={() => {
-                            onUpdateCart(item, detailQty);
+                            onUpdateCart(item, detailQty, { size, toppings, note });
                         }}
                     >
                         <span className={styles.btnText}>
-                            {getItemQuantity(item.id) > 0 ? (detailQty === 0 ? t("Xoá") : t("Cập nhật")) : t("Thêm vào giỏ")} - {(item.price * detailQty).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ
+                            {detailQty === 0
+                                ? t("Xoá")
+                                : (isEditMode ? t("Cập nhật") : t("Thêm vào giỏ"))
+                            } - {(item.price * detailQty).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ
                         </span>
                     </button>
                 </div>

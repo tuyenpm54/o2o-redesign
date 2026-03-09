@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getDb } from '@/lib/db';
+import { ApiSuccess, ApiError } from '@/lib/api-response';
 
 const COLORS = ['Pink', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Teal'];
 
@@ -45,7 +46,7 @@ export async function POST() {
                     preferences: [],
                     isGuest: true
                 };
-                return NextResponse.json({ user: responseUser, success: true });
+                return ApiSuccess({ user: responseUser });
             }
         }
 
@@ -70,9 +71,9 @@ export async function POST() {
             isGuest: true
         };
 
-        return NextResponse.json({ user: responseUser, success: true });
+        return ApiSuccess({ user: responseUser });
     } catch (error) {
         console.error('Guest login error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return ApiError('Internal Server Error', 500);
     }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getDb } from '@/lib/db';
+import { ApiSuccess, ApiError } from '@/lib/api-response';
 
 export async function GET() {
     try {
@@ -8,7 +9,7 @@ export async function GET() {
         const sessionId = cookieStore.get('session_id')?.value;
 
         if (!sessionId) {
-            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+            return ApiError('Not authenticated', 401);
         }
 
         const db = await getDb();
@@ -17,23 +18,23 @@ export async function GET() {
         const session = await db.get('SELECT * FROM sessions WHERE id = ?', [sessionId]);
 
         if (!session || session.expires < Date.now()) {
-            return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
+            return ApiError('Session expired or invalid', 401);
         }
 
         // Get user from SQLite
         const user = await db.get('SELECT * FROM users WHERE id = ?', [session.user_id]);
 
         if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+            return ApiError('User not found', 404);
         }
 
         // Parse preferences
         user.preferences = JSON.parse(user.preferences || '[]');
         user.isGuest = !!user.isGuest;
 
-        return NextResponse.json({ user });
+        return ApiSuccess({ user });
     } catch (error) {
         console.error('Me error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return ApiError('Internal Server Error', 500);
     }
 }

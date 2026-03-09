@@ -6,10 +6,10 @@ import { useLanguage } from "@/context/LanguageContext";
 interface CartDrawerProps {
     isOpen: boolean;
     onClose: () => void;
-    cartItems: { item: any; quantity: number }[];
+    cartItems: { id?: number; item: any; quantity: number; selections?: any }[];
     total: number;
     onPlaceOrder: () => void;
-    onEditItem: (item: any, quantity: number) => void;
+    onEditItem: (cartEntry: any) => void;
 }
 
 export function CartDrawer({
@@ -48,15 +48,29 @@ export function CartDrawer({
                     </div>
 
                     <div className={styles.cartItemList}>
-                        {cartItems.map((itemObj) => (
-                            <div key={itemObj.item.id} className={styles.cartDrawerItem}>
-                                <img src={itemObj.item.img} className={styles.cartItemImg} alt={itemObj.item.name} />
+                        {cartItems.map((itemObj, idx) => (
+                            <div key={`${itemObj.item.id}-${idx}`} className={styles.cartDrawerItem}>
+                                <img
+                                    src={itemObj.item.img}
+                                    className={styles.cartItemImg}
+                                    alt={itemObj.item.name}
+                                    onError={(e) => { e.currentTarget.src = '/food/default-food.jpg'; }}
+                                />
                                 <div className={styles.cartItemInfo}>
                                     <h4 className={styles.cartItemName}>{itemObj.item.name}</h4>
-                                    <span className={styles.cartItemEdit} onClick={() => onEditItem(itemObj.item, itemObj.quantity)}>{t('Chỉnh sửa')}</span>
+                                    {itemObj.selections && (
+                                        <div className={styles.cartItemSelections}>
+                                            <span className={styles.selectionPill}>{itemObj.selections.size}</span>
+                                            {itemObj.selections.toppings?.map((t: string) => (
+                                                <span key={t} className={styles.selectionTopping}>+ {t.split('(')[0].trim()}</span>
+                                            ))}
+                                            {itemObj.selections.note && <p className={styles.selectionNote}>"{itemObj.selections.note}"</p>}
+                                        </div>
+                                    )}
+                                    <span className={styles.cartItemEdit} onClick={() => onEditItem(itemObj)}>{t('Chỉnh sửa')}</span>
                                 </div>
                                 <div className={styles.cartItemPriceInfo}>
-                                    <span className={styles.cartItemPrice}>{(itemObj.item.price * itemObj.quantity).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}</span>
+                                    <span className={styles.cartItemPrice}>{(itemObj.item.price * itemObj.quantity).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
                                     <div className={styles.cartItemQtyBadge}>
                                         {itemObj.quantity}
                                     </div>

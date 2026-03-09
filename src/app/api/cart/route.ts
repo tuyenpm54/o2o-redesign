@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getDb } from '@/lib/db';
+import { ApiSuccess, ApiError } from '@/lib/api-response';
 
 async function getAuthenticatedUser() {
     const cookieStore = await cookies();
@@ -16,11 +17,11 @@ async function getAuthenticatedUser() {
 
 export async function GET(request: Request) {
     const userId = await getAuthenticatedUser();
-    if (!userId) return NextResponse.json({ items: [], total: 0 });
+    if (!userId) return ApiSuccess({ items: [], total: 0 });
 
     const { searchParams } = new URL(request.url);
     const resId = searchParams.get('resId');
-    if (!resId) return NextResponse.json({ error: 'Missing resId' }, { status: 400 });
+    if (!resId) return ApiError('Missing resId', 400);
 
     try {
         const db = await getDb();
@@ -30,30 +31,34 @@ export async function GET(request: Request) {
         );
 
         const formattedItems = cartItems.map(row => ({
+            id: row.id, // Database row ID
             item: { id: row.item_id, name: row.name, price: row.price },
-            quantity: row.qty
+            quantity: row.qty,
+            selections: row.selections ? JSON.parse(row.selections) : null
         }));
 
         const total = formattedItems.reduce((acc, cur) => acc + (cur.item.price * cur.quantity), 0);
 
-        return NextResponse.json({ items: formattedItems, total });
+        return ApiSuccess({ items: formattedItems, total });
     } catch (e) {
-        return NextResponse.json({ error: 'Failed' }, { status: 500 });
+        return ApiError('Failed', 500);
     }
 }
 
 export async function POST(request: Request) {
     const userId = await getAuthenticatedUser();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return ApiError('Unauthorized', 401);
 
-    const { resId, item, quantity } = await request.json();
+    const { resId, item, quantity, selections } = await request.json();
+    const selectionsStr = selections ? JSON.stringify(selections) : null;
 
     try {
         const db = await getDb();
 
+        // Check if item with SAME selections exists
         const existingItem = await db.get(
-            'SELECT id, qty FROM cart_items WHERE user_id = ? AND resid = ? AND item_id = ?',
-            [userId, resId, item.id]
+            'SELECT id, qty FROM cart_items WHERE user_id = ? AND resid = ? AND item_id = ? AND (selections = ? OR (selections IS NULL AND ? IS NULL))',
+            [userId, resId, item.id, selectionsStr, selectionsStr]
         );
 
         if (existingItem) {
@@ -61,12 +66,12 @@ export async function POST(request: Request) {
             if (newQty <= 0) {
                 await db.run('DELETE FROM cart_items WHERE id = ?', [existingItem.id]);
             } else {
-                await db.run('UPDATE cart_items SET qty = ? WHERE id = ?', [newQty, existingItem.id]);
+                await db.run('UPDATE cart_items SET qty = ?, added_at = CURRENT_TIMESTAMP WHERE id = ?', [newQty, existingItem.id]);
             }
         } else if (quantity > 0) {
             await db.run(
-                'INSERT INTO cart_items (user_id, resid, item_id, name, price, qty) VALUES (?, ?, ?, ?, ?, ?)',
-                [userId, resId, item.id, item.name, item.price, quantity]
+                'INSERT INTO cart_items (user_id, resid, item_id, name, price, qty, selections) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [userId, resId, item.id, item.name, item.price, quantity, selectionsStr]
             );
         }
 
@@ -76,14 +81,16 @@ export async function POST(request: Request) {
         );
 
         const formattedItems = cartItems.map(row => ({
+            id: row.id,
             item: { id: row.item_id, name: row.name, price: row.price },
-            quantity: row.qty
+            quantity: row.qty,
+            selections: row.selections ? JSON.parse(row.selections) : null
         }));
 
         const total = formattedItems.reduce((acc, cur) => acc + (cur.item.price * cur.quantity), 0);
 
-        return NextResponse.json({ items: formattedItems, total });
+        return ApiSuccess({ items: formattedItems, total });
     } catch (e) {
-        return NextResponse.json({ error: 'Failed' }, { status: 500 });
+        return ApiError('Failed', 500);
     }
 }
