@@ -66,6 +66,12 @@ export function DiscoveryWizard({
         }));
     };
 
+    const CRAVING_OPTIONS = [
+        { id: 'craving_grill', label: t('Nướng / BBQ'), tags: ['Đậm đà', 'Signature', 'Best Seller', 'Nhóm 2'] },
+        { id: 'craving_hotpot', label: t('Lẩu / Canh nóng'), tags: ['Hải sản', 'Nhóm 4-6', 'Nhóm 8-10', 'Bán chạy'] },
+        { id: 'craving_light', label: t('Thanh đạm'), tags: ['Thanh đạm', 'Healthy', 'Ít cay'] },
+    ];
+
     return (
         <div className={styles.cinematicOverlay}>
             <div className={styles.videoContainer}>
@@ -155,15 +161,25 @@ export function DiscoveryWizard({
                         </>
                     ) : onboardingStep === 0 ? (
                         <>
-                            <div className={styles.sheetHeader} style={{ marginTop: '60px' }}>
-                                <h1 className={styles.cinematicTitle} dangerouslySetInnerHTML={{ __html: t('Hôm nay mình đi mấy người?') }}></h1>
-                                <p className={styles.cinematicSubtitle}>{t('Để chúng tôi chuẩn bị bàn chu đáo nhất')}</p>
+                            <div className={styles.sheetHeader} style={{ marginTop: '28px' }}>
+                                <p style={{
+                                    color: 'rgba(255,255,255,0.9)',
+                                    fontSize: '16px',
+                                    fontWeight: 700,
+                                    marginBottom: '10px',
+                                    letterSpacing: '-0.01em',
+                                }}>
+                                    {t('Xin chào, chúc bạn ngon miệng! 🙌')}
+                                </p>
+                                <h1 className={styles.cinematicTitle} style={{ fontSize: '22px', marginBottom: '4px' }} dangerouslySetInnerHTML={{ __html: t('Hôm nay bạn đến để dịp gì?') }}></h1>
+                                <p className={styles.cinematicSubtitle} style={{ marginBottom: '4px' }}>{t('Chúng tôi sẽ gợi ý món phù hợp nhất cho bạn')}</p>
                             </div>
                             <div className={styles.cinematicOptionsScroll}>
                                 {[
-                                    { id: "Nhóm 2", label: "1-2", sub: t("Hẹn hò") },
-                                    { id: "Nhóm 4-6", label: "4-6", sub: t("Gia đình") },
-                                    { id: "Nhóm 8-10", label: "8+", sub: t("Tiệc tùng") },
+                                    { id: "Nhóm 2", label: t("Hẹn hò"), sub: t("1–2 người") },
+                                    { id: "Nhóm 4-6", label: t("Gia đình"), sub: t("Có trẻ em") },
+                                    { id: "Nhóm bạn", label: t("Bạn bè"), sub: t("3–6 người") },
+                                    { id: "Nhóm 8-10", label: t("Tiệc lớn"), sub: t("7+ người") },
                                 ].map((o) => (
                                     <button
                                         key={o.id}
@@ -177,8 +193,8 @@ export function DiscoveryWizard({
                                     </button>
                                 ))}
                             </div>
-                            <div className={styles.cinematicPrefs}>
-                                <span className={styles.prefLabel}>{t('Lưu ý:')}</span>
+                            <div className={styles.cinematicPrefs} style={{ marginTop: '10px' }}>
+                                <span className={styles.prefLabel}>{t('Có ai trong nhóm cần lưu ý gì không?')}</span>
                                 {preferencesList.map((p) => (
                                     <button
                                         key={p.id}
@@ -186,6 +202,18 @@ export function DiscoveryWizard({
                                         onClick={() => togglePreference(p.id)}
                                     >
                                         {p.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className={styles.cinematicPrefs} style={{ marginTop: '10px' }}>
+                                <span className={styles.prefLabel}>{t('Hôm nay bạn thèm gì?')}</span>
+                                {CRAVING_OPTIONS.map((c) => (
+                                    <button
+                                        key={c.id}
+                                        className={`${styles.cinematicChip} ${form.cravingMood === c.id ? styles.active : ''}`}
+                                        onClick={() => setForm({ ...form, cravingMood: form.cravingMood === c.id ? '' : c.id })}
+                                    >
+                                        {c.label}
                                     </button>
                                 ))}
                             </div>
@@ -213,6 +241,11 @@ export function DiscoveryWizard({
                                             if (form.preferences.includes("noOnion") && item.onionFree) score += 1;
                                             if (form.preferences.includes("healthy") && item.tags.includes("Thanh đạm")) score += 1;
                                             if (form.preferences.includes("noSeafood") && item.seafood) score -= 100;
+                                            // Craving mood scoring
+                                            if (form.cravingMood) {
+                                                const cravingOpt = CRAVING_OPTIONS.find(c => c.id === form.cravingMood);
+                                                if (cravingOpt && item.tags.some((t: string) => cravingOpt.tags.includes(t))) score += 5;
+                                            }
                                             return { ...item, matchScore: score };
                                         }).filter((item: any) => item.matchScore > -50).sort((a: any, b: any) => b.matchScore - a.matchScore);
 

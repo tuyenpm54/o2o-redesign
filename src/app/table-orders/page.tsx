@@ -418,11 +418,13 @@ function TableOrdersContent() {
                                     {pendingOrders.map((o: any, i: number) => renderOrderItem(o, i, true))}
 
                                     {(selectedMemberId === 'me' || selectedMemberId === user?.id) && (
-                                        <div style={{ marginTop: '16px' }}>
-                                            <button className="btn-footer-primary" onClick={handlePlaceOrder} style={{ position: 'relative', width: '100%', marginBottom: 0 }}>
-                                                <Send size={20} />
-                                                {t('Gửi yêu cầu gọi món')} • {pendingTotalAmount.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ
-                                                <ChevronRight size={20} style={{ marginLeft: 'auto' }} />
+                                        <div style={{ marginTop: '20px', padding: '0 4px', marginBottom: '8px' }}>
+                                            <button className={styles.premiumSendBtn} onClick={handlePlaceOrder}>
+                                                <div className={styles.btnContentLeft}>
+                                                    <Send size={18} />
+                                                    <span className={styles.btnTitle}>{t('Gửi yêu cầu gọi món')}</span>
+                                                </div>
+                                                <span className={styles.btnPrice}>{pendingTotalAmount.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ</span>
                                             </button>
                                         </div>
                                     )}

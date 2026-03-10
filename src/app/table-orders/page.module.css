@@ -529,3 +529,43 @@
     font-weight: 700;
     font-size: 0.9rem;
 }
+
+/* Refined Small Send Button */
+.premiumSendBtn {
+    width: 100%;
+    background: #FFF7ED;
+    color: #EA580C;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #FED7AA;
+}
+
+.premiumSendBtn:hover {
+    background: #FFEDD5;
+}
+
+.premiumSendBtn:active {
+    transform: scale(0.98);
+}
+
+.btnContentLeft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btnTitle {
+    font-weight: 600;
+}
+
+.btnPrice {
+    font-weight: 800;
+}

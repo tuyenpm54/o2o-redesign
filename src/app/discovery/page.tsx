@@ -122,7 +122,7 @@ function DiscoveryPageContent() {
 
   const [isWizardShown, setIsWizardShown] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
-  const [form, setForm] = useState<{ groupSize: string; preferences: string[] }>({ groupSize: "", preferences: [] });
+  const [form, setForm] = useState<{ groupSize: string; preferences: string[]; cravingMood: string }>({ groupSize: "", preferences: [], cravingMood: "" });
   const [total, setTotal] = useState(0);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [cartPulse, setCartPulse] = useState(false);

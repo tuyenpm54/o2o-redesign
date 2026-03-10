@@ -201,8 +201,8 @@
   border: 1px solid #ffffff1a;
   border-radius: 28px;
   flex-direction: column;
-  gap: 24px;
-  padding: 12px 24px 24px;
+  gap: 14px;
+  padding: 12px 20px 20px;
   animation: 0.6s cubic-bezier(0.16, 1, 0.3, 1) page-module__WLiWLW__slideUp;
   display: flex;
   box-shadow: 0 20px 40px #00000080;
@@ -230,22 +230,23 @@
 
 .cinematicOptionsScroll {
   gap: 10px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
 
 .cinematicCard {
   cursor: pointer;
   background: #ffffff14;
   border: 1px solid #ffffff0d;
-  border-radius: 16px;
+  border-radius: 14px;
   flex-direction: column;
   flex: 1;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  height: 110px;
-  padding: 16px;
-  transition: all 0.2s;
+  gap: 4px;
+  height: 68px;
+  padding: 10px;
+  transition: all 0.2s ease;
   display: flex;
 }
 
@@ -292,10 +293,11 @@
 .prefLabel {
   color: #ffffff99;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   margin-right: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  width: 100%;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .onboardingScrollBox {
@@ -1037,8 +1039,8 @@
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 99px;
-  padding: 8px 16px;
-  font-size: 13px;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
