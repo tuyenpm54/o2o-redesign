@@ -158,7 +158,7 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
     fetchLiveTableData: table.fetchLiveTableData
   };
 
-  const { activeOrders, orderRounds, latestStatus, suggestions } = useUserState(user, table.tableMembers, table.menuItems, table.scenarioConfigs, table.tableOrders);
+  const { activeOrders, orderRounds, latestStatus, suggestions } = useUserState(user, table.tableMembers, table.menuItems, table.tableOrders);
   const intent: any = null; 
   const minutesSinceLastOrder = 0;
 
@@ -187,7 +187,7 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
 
   const {
     restaurant, menuItems, preferencesList, setPreferencesList,
-    categories, tableMembers, sittingSince, scenarioConfigs,
+    categories, tableMembers, sittingSince,
     isLoading, fetchLiveTableData, fetchMainData,
     seenMemberIds, membersRef, isItemConfirmed, getConfirmedQty,
     getDraftingUser, topItems, personalizedItems,

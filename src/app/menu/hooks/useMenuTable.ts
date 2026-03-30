@@ -44,7 +44,6 @@ export function useMenuTable({
   const [sittingSince, setSittingSince] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  const [scenarioConfigs, setScenarioConfigs] = useState<any[]>([]);
   const seenMemberIds = useRef<Set<string>>(new Set());
   const membersRef = useRef<any[]>(tableMembers);
   const mountTimeRef = useRef<number>(Date.now());
@@ -60,11 +59,8 @@ export function useMenuTable({
     } catch(e) {}
   }, []);
 
-  useEffect(() => {
-    fetch(`/api/admin/scenarios?resid=${resid}`)
-      .then(res => res.json())
-      .then(data => { if (data.success) setScenarioConfigs(data.data); })
-      .catch(console.error);
+    useEffect(() => {
+    // legacy fetch removed
   }, [resid]);
 
   const localVersionRef = useRef<number>(0);
@@ -238,7 +234,6 @@ export function useMenuTable({
     tableMembers, setTableMembers,
     tableOrders,
     sittingSince, setSittingSince,
-    scenarioConfigs, setScenarioConfigs,
     isLoading, setIsLoading,
     fetchLiveTableData, fetchMainData,
     seenMemberIds, membersRef,

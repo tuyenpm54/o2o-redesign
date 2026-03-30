@@ -13,7 +13,7 @@ export interface UserState {
     hasOrderedDessert: boolean;
 }
 
-export function useUserState(user: any, members: any[], allMenuItems: any[] = [], scenarioConfigs: any[] = [], tableOrders: any[] = []) {
+export function useUserState(user: any, members: any[], allMenuItems: any[] = [], tableOrders: any[] = []) {
     const isReturningGuest = useMemo(() => (user?.visitCount || 0) >= 2, [user]);
 
     // tableOrders is now an array of rounds: [{ roundId, items: [...], ... }, ...]
@@ -62,23 +62,17 @@ export function useUserState(user: any, members: any[], allMenuItems: any[] = []
     const intent = useMemo((): UserIntent => {
         if (activeOrders.length === 0 || minutesSinceLastOrder === null) return 'NONE';
 
-        // Helper to get threshold or default
-        const getThreshold = (key: string, def: number) => {
-            const config = scenarioConfigs.find(c => c.scenario_key === key);
-            if (config && !config.is_enabled) return 999999; // Effectively disable
-            return config ? config.time_threshold : def;
-        };
-
-        const postMealThreshold = getThreshold('POST_MEAL_PAYMENT', 45);
-        const longWaitThreshold = getThreshold('LONG_WAIT_ALERT', 30);
-        const unconfirmedThreshold = getThreshold('UNCONFIRMED_ALERT', 15);
-        const quickAddThreshold = getThreshold('QUICK_ADD', 5);
+        // Hardcoded thresholds since dynamic scenarios are removed
+        const postMealThreshold = 45;
+        const longWaitThreshold = 30;
+        const unconfirmedThreshold = 15;
+        const quickAddThreshold = 5;
 
         if (minutesSinceLastOrder >= postMealThreshold) return 'POST_MEAL_PAYMENT';
 
         if (latestStatus === 'pending') {
             if (minutesSinceLastOrder >= unconfirmedThreshold) return 'UNCONFIRMED_ALERT';
-            return 'QUICK_ADD'; // Prioritize suggestions while waiting
+            return 'QUICK_ADD'; 
         }
 
         if (latestStatus !== 'done' && minutesSinceLastOrder >= longWaitThreshold) {
@@ -88,7 +82,7 @@ export function useUserState(user: any, members: any[], allMenuItems: any[] = []
         if (minutesSinceLastOrder <= quickAddThreshold) return 'QUICK_ADD';
 
         return 'NONE';
-    }, [minutesSinceLastOrder, activeOrders, latestStatus, scenarioConfigs]);
+    }, [minutesSinceLastOrder, activeOrders, latestStatus]);
 
     const hasOrderedDessert = useMemo(() => {
         return activeOrders.some((o: any) =>

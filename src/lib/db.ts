@@ -344,17 +344,6 @@ async function initDb(database: DBWrapper) {
     ALTER TABLE restaurant_menus ADD COLUMN IF NOT EXISTS item_overrides TEXT DEFAULT '{}';
     ALTER TABLE restaurant_menus ADD COLUMN IF NOT EXISTS pos_sync_config TEXT DEFAULT '{}';
 
-    -- Restaurant Scenarios
-    CREATE TABLE IF NOT EXISTS restaurant_scenarios (
-      id TEXT PRIMARY KEY,
-      res_id TEXT,
-      scenario_key TEXT,
-      is_enabled INTEGER DEFAULT 1,
-      time_threshold INTEGER,
-      config TEXT DEFAULT '{}',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(res_id, scenario_key)
-    );
 
     -- Restaurant Display Configs
     CREATE TABLE IF NOT EXISTS restaurant_display_configs (

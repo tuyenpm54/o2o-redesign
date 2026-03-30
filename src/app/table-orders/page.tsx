@@ -110,24 +110,6 @@ function TableOrdersContent() {
         };
 
         fetchData(true);
-        const fetchScenarios = async () => {
-            try {
-                const res = await fetch(`/api/admin/scenarios?resid=${resid}`);
-                const data = await res.json();
-                if (data.success) {
-                    const avatarConfig = data.data.find((s: any) => s.scenario_key === 'DETAILED_ORDER_AVATAR_LIST');
-                    if (avatarConfig) {
-                        setIsAvatarListEnabled(avatarConfig.is_enabled);
-                        if (!avatarConfig.is_enabled) {
-                            setSelectedMemberId('all');
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error("Failed to fetch scenarios:", err);
-            }
-        };
-        fetchScenarios();
         const interval = setInterval(fetchData, 5000); // Poll every 5s for snappy updates
         return () => clearInterval(interval);
     }, [resid, tableid]);

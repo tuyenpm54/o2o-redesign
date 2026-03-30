@@ -325,7 +325,7 @@ export default function DisplayConfigPage() {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [isAddBlockModalOpen, setIsAddBlockModalOpen] = useState(false);
-    const [liveTableScenario, setLiveTableScenario] = useState<any>(null);
+
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'layout' | 'action'>('layout');
 
@@ -351,14 +351,6 @@ export default function DisplayConfigPage() {
     useEffect(() => {
         const fetchAllConfig = async () => {
             try {
-                // Fetch Scenarios
-                const resScenarios = await fetch('/api/admin/scenarios?resid=100');
-                const dataScenarios = await resScenarios.json();
-                if (dataScenarios.success) {
-                    const avatarScenario = dataScenarios.data.find((s: any) => s.scenario_key === 'DETAILED_ORDER_AVATAR_LIST');
-                    setLiveTableScenario(avatarScenario);
-                }
-
                 const resDisplay = await fetch('/api/admin/display?resid=100');
                 const dataDisplay = await resDisplay.json();
                 if (dataDisplay.success) {
@@ -382,19 +374,6 @@ export default function DisplayConfigPage() {
         fetchAllConfig();
     }, []);
 
-    const saveLiveTableScenario = async (updated: any) => {
-        try {
-            await fetch('/api/admin/scenarios', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updated)
-            });
-            setLiveTableScenario(updated);
-            alert('Đã cập nhật cấu hình Live Table!');
-        } catch (error) {
-            alert('Lỗi khi cập nhật cấu hình');
-        }
-    };
 
     // Chỉ mở Modal khi click
     const handleSaveAndPublishClick = () => {
@@ -834,38 +813,6 @@ export default function DisplayConfigPage() {
                                             );
                                         })}
 
-                                    {/* Live Table Configuration (Injected into Action Features) */}
-                                    {liveTableScenario && (
-                                        <div className={`bg-white dark:bg-black/20 border rounded-2xl p-5 transition-all ${liveTableScenario.is_enabled ? 'border-blue-500/30' : 'border-slate-200 dark:border-white/10 opacity-75'}`}>
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${liveTableScenario.is_enabled ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600' : 'bg-slate-100 dark:bg-white/5 text-slate-400'}`}>
-                                                        <UsersRound size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Hiển thị Avatar thành viên tại bàn</h4>
-                                                        <p className="text-[10px] text-slate-500 leading-tight pr-4">Cho phép khách hàng thấy ai đang cùng ngồi tại bàn trong trang chi tiết đơn hàng.</p>
-                                                    </div>
-                                                </div>
-                                                <label className="relative inline-flex items-center cursor-pointer shrink-0 scale-75">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={liveTableScenario.is_enabled}
-                                                        onChange={(e) => {
-                                                            const updated = { ...liveTableScenario, is_enabled: e.target.checked };
-                                                            setLiveTableScenario(updated);
-                                                            saveLiveTableScenario(updated);
-                                                        }}
-                                                        className="sr-only peer"
-                                                    />
-                                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
-                                                </label>
-                                            </div>
-                                            <div className="text-[10px] text-slate-400 italic font-medium">
-                                                Tính năng này giúp tăng tính tương tác và minh bạch khi gọi món nhóm.
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                             )}

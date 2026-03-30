@@ -53,10 +53,6 @@ export function AdminSidebar() {
                     <MonitorSmartphone size={20} />
                     <span>Cấu hình hiển thị</span>
                 </Link>
-                <Link href="/admin/scenarios" className={navLink('/admin/scenarios')}>
-                    <Settings size={20} />
-                    <span>Cấu hình kịch bản</span>
-                </Link>
             </nav>
 
             <div className="p-4 border-t border-slate-200/50 dark:border-white/[0.05] space-y-3">
