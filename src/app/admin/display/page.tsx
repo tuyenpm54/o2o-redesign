@@ -329,6 +329,24 @@ export default function DisplayConfigPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'layout' | 'action'>('layout');
 
+    // Mới thêm: State cho Publish Target Modal
+    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+    const [publishScope, setPublishScope] = useState<'brand' | 'specific'>('brand');
+    const [availableRestaurants, setAvailableRestaurants] = useState<any[]>([]);
+    const [selectedRestaurants, setSelectedRestaurants] = useState<string[]>([]);
+
+    // Load available restaurants list for Target Modal
+    useEffect(() => {
+        fetch('/api/restaurants')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setAvailableRestaurants(data);
+                }
+            })
+            .catch(err => console.error("Failed to fetch restaurants:", err));
+    }, []);
+
     // Unified Fetch for Config & Scenarios
     useEffect(() => {
         const fetchAllConfig = async () => {
@@ -378,14 +396,29 @@ export default function DisplayConfigPage() {
         }
     };
 
-    const handleSaveAndPublish = async () => {
+    // Chỉ mở Modal khi click
+    const handleSaveAndPublishClick = () => {
+        setIsPublishModalOpen(true);
+    };
+
+    // Thực thi khi người dùng Submit trong Modal
+    const executePublish = async () => {
+        if (publishScope === 'specific' && selectedRestaurants.length === 0) {
+            alert('Vui lòng chọn ít nhất 1 cửa hàng để áp dụng.');
+            return;
+        }
+
         setIsSaving(true);
         try {
+            const targetIds = publishScope === 'brand' 
+                ? availableRestaurants.map(r => r.id) 
+                : selectedRestaurants;
+
             // Bước 1: Lưu cấu hình hiện tại vào nháp
             const postRes = await fetch('/api/admin/display', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ res_id: '100', blocks })
+                body: JSON.stringify({ res_ids: targetIds, blocks })
             });
             
             if (!postRes.ok) throw new Error('Lỗi khi lưu thiết kế');
@@ -394,10 +427,11 @@ export default function DisplayConfigPage() {
             const res = await fetch('/api/admin/display', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ res_id: '100' })
+                body: JSON.stringify({ res_ids: targetIds })
             });
             if (res.ok) {
                 alert('Đã lưu và áp dụng thành công!');
+                setIsPublishModalOpen(false);
             } else {
                 alert('Lỗi khi áp dụng thiết kế');
             }
@@ -847,7 +881,7 @@ export default function DisplayConfigPage() {
                         </button>
                         <button 
                             disabled={isSaving}
-                            onClick={handleSaveAndPublish}
+                            onClick={handleSaveAndPublishClick}
                             className="flex-[2] flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-all shadow-sm active:scale-95 disabled:opacity-50"
                         >
                             <ExternalLink className="w-4 h-4" />
@@ -984,6 +1018,111 @@ export default function DisplayConfigPage() {
                                 );
                             })}
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Publish Target Modal */}
+            <div className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 p-4 ${isPublishModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm" onClick={() => setIsPublishModalOpen(false)} />
+                <div className={`relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl transition-transform duration-500 ease-out flex flex-col max-h-[90vh] ${isPublishModalOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}>
+                    <div className="p-6 border-b border-slate-100 dark:border-white/10 shrink-0">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Áp dụng giao diện</h3>
+                                <p className="text-sm text-slate-500 mt-1">Chọn phạm vi cửa hàng bạn muốn cập nhật thiết kế này.</p>
+                            </div>
+                            <button onClick={() => setIsPublishModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 transition-colors">
+                                <X size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="p-6 overflow-y-auto flex-1 bg-slate-50 dark:bg-black/20 space-y-6">
+                        <div className="space-y-3">
+                            {/* Option: Toàn bộ thương hiệu */}
+                            <label className={`flex gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer ${publishScope === 'brand' ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-slate-200 dark:border-white/10 bg-white dark:bg-zinc-800 opacity-80 hover:opacity-100 hover:border-blue-300'}`}>
+                                <div className="pt-0.5">
+                                    <input 
+                                        type="radio" 
+                                        name="publishScope" 
+                                        value="brand"
+                                        checked={publishScope === 'brand'}
+                                        onChange={() => setPublishScope('brand')}
+                                        className="w-5 h-5 text-blue-600 border-slate-300 focus:ring-blue-500" 
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className={`font-bold text-base ${publishScope === 'brand' ? 'text-blue-700 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>Cả Thương Hiệu</h4>
+                                    <p className="text-sm text-slate-500 mt-1">Ghi đè cấu hình hiển thị lên TẤT CẢ các cửa hàng hiện có trong hệ thống.</p>
+                                </div>
+                            </label>
+
+                            {/* Option: Một số nhà hàng cụ thể */}
+                            <label className={`flex gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer ${publishScope === 'specific' ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-slate-200 dark:border-white/10 bg-white dark:bg-zinc-800 opacity-80 hover:opacity-100 hover:border-blue-300'}`}>
+                                <div className="pt-0.5">
+                                    <input 
+                                        type="radio" 
+                                        name="publishScope" 
+                                        value="specific"
+                                        checked={publishScope === 'specific'}
+                                        onChange={() => setPublishScope('specific')}
+                                        className="w-5 h-5 text-blue-600 border-slate-300 focus:ring-blue-500" 
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className={`font-bold text-base ${publishScope === 'specific' ? 'text-blue-700 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>Cửa Hàng Cụ Thể</h4>
+                                    <p className="text-sm text-slate-500 mt-1">Chỉ định cấu hình này cho một số cửa hàng được chọn.</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        {/* List of specific restaurants if selected */}
+                        {publishScope === 'specific' && (
+                            <div className="bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm animate-in fade-in slide-in-from-top-2">
+                                <h5 className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-3 border-b border-slate-100 dark:border-white/10 pb-2">Danh sách Cửa hàng</h5>
+                                {availableRestaurants.length === 0 ? (
+                                    <p className="text-sm text-slate-500 italic">Chưa đọc được danh sách nhà hàng. Đang tải...</p>
+                                ) : (
+                                    <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                        {availableRestaurants.map(r => (
+                                            <label key={r.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer">
+                                                <input 
+                                                    type="checkbox"
+                                                    checked={selectedRestaurants.includes(r.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setSelectedRestaurants([...selectedRestaurants, r.id]);
+                                                        else setSelectedRestaurants(selectedRestaurants.filter(id => id !== r.id));
+                                                    }}
+                                                    className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{r.name}</p>
+                                                    <p className="text-xs text-slate-500 truncate">{r.address}</p>
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="p-6 border-t border-slate-100 dark:border-white/10 bg-white dark:bg-zinc-900 shrink-0 flex gap-3 justify-end rounded-b-3xl">
+                        <button 
+                            disabled={isSaving}
+                            onClick={() => setIsPublishModalOpen(false)} 
+                            className="px-5 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 transition-colors disabled:opacity-50"
+                        >
+                            Hủy
+                        </button>
+                        <button 
+                            disabled={isSaving || (publishScope === 'specific' && selectedRestaurants.length === 0)}
+                            onClick={executePublish} 
+                            className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                        >
+                            {isSaving ? 'Đang lưu...' : 'Xác nhận Khởi tạo'}
+                        </button>
                     </div>
                 </div>
             </div>

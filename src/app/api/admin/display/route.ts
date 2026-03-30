@@ -38,18 +38,24 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { res_id, blocks } = body;
+        const { res_ids, blocks } = body;
 
-        if (!res_id) return ApiError('Missing restaurant ID');
+        // Fallback backward compatibility for older payload style
+        const targetIds = res_ids || (body.res_id ? [body.res_id] : []);
+
+        if (!targetIds || !Array.isArray(targetIds) || targetIds.length === 0) return ApiError('Missing restaurant IDs');
         if (!blocks) return ApiError('Missing blocks data');
 
         const db = await getDb();
-        await db.run(
-            'INSERT INTO restaurant_display_configs (id, res_id, draft_blocks) VALUES (?, ?, ?) ON CONFLICT (res_id) DO UPDATE SET draft_blocks = EXCLUDED.draft_blocks, updated_at = CURRENT_TIMESTAMP',
-            [crypto.randomUUID(), res_id, JSON.stringify(blocks)]
+        const promises = targetIds.map(resid => 
+            db.run(
+                'INSERT INTO restaurant_display_configs (id, res_id, draft_blocks) VALUES (?, ?, ?) ON CONFLICT (res_id) DO UPDATE SET draft_blocks = EXCLUDED.draft_blocks, updated_at = CURRENT_TIMESTAMP',
+                [crypto.randomUUID(), resid, JSON.stringify(blocks)]
+            )
         );
+        await Promise.all(promises);
 
-        return ApiSuccess({ res_id, blocks }, 'Draft configuration saved successfully');
+        return ApiSuccess({ res_ids: targetIds, blocks }, 'Draft configurations saved successfully');
     } catch (error) {
         console.error('Save display config error:', error);
         return ApiError('Failed to save display configuration', 500);
@@ -59,21 +65,22 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { res_id } = body;
+        const { res_ids } = body;
 
-        if (!res_id) return ApiError('Missing restaurant ID');
+        const targetIds = res_ids || (body.res_id ? [body.res_id] : []);
+        if (!targetIds || !Array.isArray(targetIds) || targetIds.length === 0) return ApiError('Missing restaurant IDs');
 
         const db = await getDb();
-        const config = await db.get('SELECT draft_blocks FROM restaurant_display_configs WHERE res_id = ?', [res_id]);
         
-        if (!config) return ApiError('Configuration not found');
-
-        await db.run(
-            'UPDATE restaurant_display_configs SET published_blocks = draft_blocks, updated_at = CURRENT_TIMESTAMP WHERE res_id = ?',
-            [res_id]
+        const promises = targetIds.map(resid => 
+            db.run(
+                'UPDATE restaurant_display_configs SET published_blocks = draft_blocks, updated_at = CURRENT_TIMESTAMP WHERE res_id = ?',
+                [resid]
+            )
         );
+        await Promise.all(promises);
 
-        return ApiSuccess(null, 'Configuration published successfully');
+        return ApiSuccess(null, 'Configurations published successfully');
     } catch (error) {
         console.error('Publish display config error:', error);
         return ApiError('Failed to publish configuration', 500);
