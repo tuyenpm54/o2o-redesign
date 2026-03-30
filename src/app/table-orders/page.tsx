@@ -281,7 +281,7 @@ function TableOrdersContent() {
 
     const handleRemind = async (orderName: string) => {
         try {
-            await fetch('/api/chat/send', {
+            await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -638,7 +638,7 @@ function TableOrdersContent() {
                             onClick={async () => {
                                 setIsRequestingPayment(true);
                                 try {
-                                    const res = await fetch("/api/chat/send", {
+                                    const res = await fetch("/api/chat", {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json" },
                                         body: JSON.stringify({

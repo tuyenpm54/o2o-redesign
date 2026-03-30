@@ -36,7 +36,7 @@ export function useServiceRequests(
     setActiveServiceRequests(prev => [...prev, ...newRequests]);
 
     for (const label of finalRequests) {
-      await fetch('/api/chat/send', {
+      await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
