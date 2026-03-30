@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-    SmilePlus, Frown, Ticket, ChevronRight, ReceiptText,
-    Loader2, CheckCircle2
+    SmilePlus, Frown, Ticket, ChevronRight, CheckCircle2, X
 } from "lucide-react";
 import styles from "./CheckoutSheet.module.css";
 import { useLanguage } from "@/context/LanguageContext";
@@ -57,17 +56,15 @@ export default function CheckoutSheet({
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [vouchers, setVouchers] = useState<Voucher[]>([]);
     const [bestVoucher, setBestVoucher] = useState<Voucher | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isSuccess, setIsSuccess] = useState(false);
 
-    // Fetch vouchers when sheet opens
+    // Track if feedback has been sent to avoid duplicate sends
+    const feedbackSentRef = useRef(false);
+
     useEffect(() => {
         if (!isOpen) return;
-        // Reset state on open
         setRating(null);
         setSelectedTags([]);
-        setIsSubmitting(false);
-        setIsSuccess(false);
+        feedbackSentRef.current = false;
 
         const fetchVouchers = async () => {
             try {
@@ -77,12 +74,10 @@ export default function CheckoutSheet({
                     const activeVouchers: Voucher[] = data.vouchers || [];
                     setVouchers(activeVouchers);
 
-                    // Find best match: active, meets min_order, highest discount value
                     const eligible = activeVouchers.filter(
                         (v) => v.min_order <= totalAmount
                     );
                     if (eligible.length > 0) {
-                        // Sort: FIXED by value desc, PERCENT by value desc
                         eligible.sort((a, b) => {
                             const aVal = a.discount_type === "PERCENT"
                                 ? (totalAmount * a.discount_value) / 100
@@ -104,54 +99,29 @@ export default function CheckoutSheet({
         fetchVouchers();
     }, [isOpen, userId, totalAmount]);
 
-    const toggleTag = (tag: string) => {
-        setSelectedTags((prev) =>
-            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-        );
-    };
-
-    const handleSubmit = async () => {
-        setIsSubmitting(true);
-        try {
-            // 1. Submit feedback if rating was given
-            if (rating) {
-                await fetch("/api/feedback", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        resid,
-                        tableid,
-                        table_session_id: tableSessionId,
-                        rating,
-                        tags: rating === "negative" ? selectedTags : [],
-                    }),
-                });
-            }
-
-            // 2. Send payment request via chat
-            await fetch("/api/chat/send", {
+    // Send feedback automatically when closing if rating exists
+    const handleClose = () => {
+        if (rating && !feedbackSentRef.current) {
+            feedbackSentRef.current = true;
+            fetch("/api/feedback", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     resid,
                     tableid,
-                    user_id: userId,
-                    content: "Yêu cầu thanh toán",
-                    type: "SUPPORT",
+                    table_session_id: tableSessionId,
+                    rating,
+                    tags: rating === "negative" ? selectedTags : [],
                 }),
-            });
-
-            setIsSuccess(true);
-            onPaymentSent?.();
-
-            // Auto-close after 2.5s
-            setTimeout(() => {
-                onClose();
-            }, 2500);
-        } catch (err) {
-            console.error("Checkout submit error:", err);
-            setIsSubmitting(false);
+            }).catch(console.error);
         }
+        onClose();
+    };
+
+    const toggleTag = (tag: string) => {
+        setSelectedTags((prev) =>
+            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+        );
     };
 
     const handleViewAllVouchers = () => {
@@ -163,155 +133,149 @@ export default function CheckoutSheet({
     if (!isOpen) return null;
 
     return (
-        <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.overlay} onClick={handleClose}>
             <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.dragHandle} />
 
-                {isSuccess ? (
-                    <div className={styles.successState}>
-                        <div className={styles.successIcon}>
+                <div className={styles.sheetContent}>
+                    {/* Success Header (Replaced standard title) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '8px' }}>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ECFDF5', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
                             <CheckCircle2 size={32} />
                         </div>
-                        <h3 className={styles.successTitle}>
-                            {t("Yêu cầu đã gửi!")}
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1E293B', textAlign: 'center' }}>
+                            {t("Gửi yêu cầu thanh toán thành công")}
                         </h3>
-                        <p className={styles.successSub}>
+                        <p style={{ fontSize: '0.9rem', color: '#64748B', textAlign: 'center', marginTop: '6px' }}>
                             {t("Vui lòng đợi nhân viên mang máy POS tới bàn nhé.")}
                         </p>
                     </div>
-                ) : (
-                    <div className={styles.sheetContent}>
-                        {/* Feedback Section */}
-                        <div className={styles.feedbackSection}>
-                            <span className={styles.feedbackLabel}>
-                                {t("Bữa ăn hôm nay thế nào?")}
-                            </span>
 
-                            <div className={styles.feedbackOptions}>
-                                <button
-                                    className={`${styles.feedbackBtn} ${styles.feedbackBtnPositive} ${rating === "positive" ? styles.selected : ""}`}
-                                    onClick={() => {
-                                        setRating("positive");
-                                        setSelectedTags([]);
-                                    }}
-                                >
-                                    <SmilePlus
-                                        size={28}
-                                        className={styles.feedbackIcon}
-                                    />
-                                    <span className={styles.feedbackBtnLabel}>
-                                        {t("Hài lòng")}
-                                    </span>
-                                </button>
+                    <div className={styles.divider} />
 
-                                <button
-                                    className={`${styles.feedbackBtn} ${styles.feedbackBtnNegative} ${rating === "negative" ? styles.selected : ""}`}
-                                    onClick={() => setRating("negative")}
-                                >
-                                    <Frown
-                                        size={28}
-                                        className={styles.feedbackIcon}
-                                    />
-                                    <span className={styles.feedbackBtnLabel}>
-                                        {t("Chưa hài lòng")}
-                                    </span>
-                                </button>
-                            </div>
+                    {/* Feedback Section */}
+                    <div className={styles.feedbackSection}>
+                        <span className={styles.feedbackLabel}>
+                            {t("Bữa ăn hôm nay thế nào?")}
+                        </span>
 
-                            {/* Negative tags — progressive disclosure */}
-                            {rating === "negative" && (
-                                <div className={styles.negativeTags}>
-                                    {NEGATIVE_TAGS.map((tag) => (
-                                        <button
-                                            key={tag}
-                                            className={`${styles.negativeTag} ${selectedTags.includes(tag) ? styles.selected : ""}`}
-                                            onClick={() => toggleTag(tag)}
-                                        >
-                                            {t(tag)}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                        <div className={styles.feedbackOptions}>
+                            <button
+                                className={`${styles.feedbackBtn} ${styles.feedbackBtnPositive} ${rating === "positive" ? styles.selected : ""}`}
+                                onClick={() => {
+                                    setRating("positive");
+                                    setSelectedTags([]);
+                                }}
+                            >
+                                <SmilePlus
+                                    size={28}
+                                    className={styles.feedbackIcon}
+                                />
+                                <span className={styles.feedbackBtnLabel}>
+                                    {t("Hài lòng")}
+                                </span>
+                            </button>
+
+                            <button
+                                className={`${styles.feedbackBtn} ${styles.feedbackBtnNegative} ${rating === "negative" ? styles.selected : ""}`}
+                                onClick={() => setRating("negative")}
+                            >
+                                <Frown
+                                    size={28}
+                                    className={styles.feedbackIcon}
+                                />
+                                <span className={styles.feedbackBtnLabel}>
+                                    {t("Chưa hài lòng")}
+                                </span>
+                            </button>
                         </div>
 
-                        <div className={styles.divider} />
-
-                        {/* Voucher Section */}
-                        <div className={styles.voucherSection}>
-                            <span className={styles.voucherLabel}>
-                                <Ticket size={16} color="#D97706" />
-                                {t("Voucher dành cho bạn")}
-                            </span>
-
-                            {bestVoucher ? (
-                                <>
-                                    <div
-                                        className={styles.voucherCard}
-                                        onClick={handleViewAllVouchers}
+                        {/* Negative tags — progressive disclosure */}
+                        {rating === "negative" && (
+                            <div className={styles.negativeTags}>
+                                {NEGATIVE_TAGS.map((tag) => (
+                                    <button
+                                        key={tag}
+                                        className={`${styles.negativeTag} ${selectedTags.includes(tag) ? styles.selected : ""}`}
+                                        onClick={() => toggleTag(tag)}
                                     >
-                                        <div className={styles.voucherCardIcon}>
-                                            <Ticket size={20} />
-                                        </div>
-                                        <div className={styles.voucherCardInfo}>
-                                            <div className={styles.voucherCardTitle}>
-                                                {bestVoucher.title}
+                                        {t(tag)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Voucher Section - ONLY render if there are any vouchers */}
+                    {vouchers.length > 0 && (
+                        <>
+                            <div className={styles.divider} />
+                            <div className={styles.voucherSection}>
+                                <span className={styles.voucherLabel}>
+                                    <Ticket size={16} color="#D97706" />
+                                    {t("Voucher dành cho bạn")}
+                                </span>
+
+                                {bestVoucher ? (
+                                    <>
+                                        <div
+                                            className={styles.voucherCard}
+                                            onClick={handleViewAllVouchers}
+                                        >
+                                            <div className={styles.voucherCardIcon}>
+                                                <Ticket size={20} />
                                             </div>
-                                            <div className={styles.voucherCardCode}>
-                                                {bestVoucher.code}
+                                            <div className={styles.voucherCardInfo}>
+                                                <div className={styles.voucherCardTitle}>
+                                                    {bestVoucher.title}
+                                                </div>
+                                                <div className={styles.voucherCardCode}>
+                                                    {bestVoucher.code}
+                                                </div>
                                             </div>
+                                            <ChevronRight size={18} color="#B45309" />
                                         </div>
-                                        <ChevronRight size={18} color="#B45309" />
-                                    </div>
+                                        <button
+                                            className={styles.voucherViewAll}
+                                            onClick={handleViewAllVouchers}
+                                        >
+                                            {t("Xem tất cả voucher")}
+                                            <ChevronRight size={14} />
+                                        </button>
+                                    </>
+                                ) : (
                                     <button
                                         className={styles.voucherViewAll}
                                         onClick={handleViewAllVouchers}
+                                        style={{ alignSelf: 'flex-start', background: '#F8FAFC', padding: '12px 16px', borderRadius: '12px', width: '100%', justifyContent: 'space-between', marginTop: '4px' }}
                                     >
-                                        {t("Xem tất cả voucher")}
-                                        <ChevronRight size={14} />
+                                        <span style={{ color: '#475569' }}>{t(`Bạn có ${vouchers.length} voucher (Chưa đủ điền kiện cho hoá đơn này)`)}</span>
+                                        <ChevronRight size={16} color="#94A3B8" />
                                     </button>
-                                </>
-                            ) : vouchers.length > 0 ? (
-                                <button
-                                    className={styles.voucherViewAll}
-                                    onClick={handleViewAllVouchers}
-                                >
-                                    {t(`Bạn có ${vouchers.length} voucher`)} →
-                                </button>
-                            ) : (
-                                <span className={styles.noVoucher}>
-                                    {t("Bạn chưa có voucher nào")}
-                                </span>
-                            )}
-                        </div>
-
-                        <div className={styles.divider} />
-
-                        {/* Total + CTA */}
-                        <div className={styles.totalRow}>
-                            <span className={styles.totalLabel}>
-                                {t("Tổng tạm tính")}
-                            </span>
-                            <span className={styles.totalValue}>
-                                {new Intl.NumberFormat("vi-VN").format(totalAmount)}đ
-                            </span>
-                        </div>
-
-                        <button
-                            className={`${styles.submitBtn} ${isSubmitting ? styles.submitBtnLoading : ""}`}
-                            onClick={handleSubmit}
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? (
-                                <Loader2 size={20} className={styles.spinner} />
-                            ) : (
-                                <ReceiptText size={20} />
-                            )}
-                            {isSubmitting
-                                ? t("Đang gửi...")
-                                : t("Gửi yêu cầu thanh toán")}
-                        </button>
-                    </div>
-                )}
+                                )}
+                            </div>
+                        </>
+                    )}
+                    
+                    {/* Replaced submit button with simple close button as requested */}
+                    <button
+                        style={{
+                            width: '100%',
+                            padding: '16px',
+                            borderRadius: '16px',
+                            border: 'none',
+                            background: '#F1F5F9',
+                            color: '#475569',
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            marginTop: '8px'
+                        }}
+                        onClick={handleClose}
+                    >
+                        {t("Đóng")}
+                    </button>
+                </div>
             </div>
         </div>
     );

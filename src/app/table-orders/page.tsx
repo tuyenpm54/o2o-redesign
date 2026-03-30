@@ -36,6 +36,7 @@ function TableOrdersContent() {
     const [isTableClosed, setIsTableClosed] = useState(false);
     const [viewMode, setViewMode] = useState<'summary' | 'timeline'>('timeline');
     const [isCheckoutSheetOpen, setIsCheckoutSheetOpen] = useState(false);
+    const [isRequestingPayment, setIsRequestingPayment] = useState(false);
     const [now, setNow] = useState(Date.now());
     const mountTimeRef = React.useRef(Date.now()); // treat mount time as order placement time
     const lastChatCheckRef = React.useRef<number>(Date.now() - 5000);
@@ -630,9 +631,38 @@ function TableOrdersContent() {
                         <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#DF1B41' }}>{new Intl.NumberFormat('vi-VN').format(totalAmount)}đ</span>
                     </div>
                     {showCheckoutButton && (
-                        <button className="btn-footer-primary" style={{ backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => setIsCheckoutSheetOpen(true)}>
-                            <ReceiptText size={20} />
-                            {t('Yêu cầu thanh toán')}
+                        <button 
+                            className="btn-footer-primary" 
+                            style={{ backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: isRequestingPayment ? 0.7 : 1 }} 
+                            disabled={isRequestingPayment}
+                            onClick={async () => {
+                                setIsRequestingPayment(true);
+                                try {
+                                    const res = await fetch("/api/chat/send", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                            resid,
+                                            tableid,
+                                            user_id: user?.id,
+                                            content: "Yêu cầu thanh toán",
+                                            type: "SUPPORT",
+                                        }),
+                                    });
+                                    if (res.ok) {
+                                        setIsCheckoutSheetOpen(true);
+                                    } else {
+                                        alert(t('Có lỗi xảy ra khi gửi yêu cầu'));
+                                    }
+                                } catch (err) {
+                                    alert(t('Có lỗi xảy ra khi gửi yêu cầu'));
+                                } finally {
+                                    setIsRequestingPayment(false);
+                                }
+                            }}
+                        >
+                            {isRequestingPayment ? <Loader2 size={20} className={styles.spinner} /> : <ReceiptText size={20} />}
+                            {isRequestingPayment ? t('Đang gửi...') : t('Yêu cầu thanh toán')}
                         </button>
                     )}
                 </div>
