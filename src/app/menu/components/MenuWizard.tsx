@@ -73,7 +73,7 @@ export function MenuWizard({
         { id: 'craving_hotpot', label: t('Lẩu / Canh nóng'), tags: ['Hải sản', 'Nhóm 4-6', 'Nhóm 8-10', 'Bán chạy'] },
         { id: 'craving_light', label: t('Thanh đạm'), tags: ['Thanh đạm', 'Healthy', 'Ít cay'] },
     ];
-    const CRAVING_OPTIONS = surveyConfig?.cravings
+    const CRAVING_OPTIONS: { id: string; label: string; tags: string[] }[] = surveyConfig?.cravings
         ? surveyConfig.cravings.map((c: any) => ({ ...c, tags: typeof c.tags === 'string' ? c.tags.split(',').map((t: string) => t.trim()) : c.tags }))
         : CRAVING_OPTIONS_DEFAULT;
 

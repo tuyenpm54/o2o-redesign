@@ -73,7 +73,7 @@ export function MenuWizardV2({
         { id: 'craving_hotpot', label: t('Lẩu / Canh nóng'), tags: ['Hải sản'] },
         { id: 'craving_light', label: t('Thanh đạm'), tags: ['Thanh đạm', 'Healthy', 'Ít cay'] },
     ];
-    const CRAVING_OPTIONS = surveyConfig?.cravings
+    const CRAVING_OPTIONS: { id: string; label: string; tags: string[] }[] = surveyConfig?.cravings
         ? surveyConfig.cravings.map((c: any) => ({ ...c, tags: typeof c.tags === 'string' ? c.tags.split(',').map((t: string) => t.trim()) : c.tags }))
         : CRAVING_OPTIONS_DEFAULT;
 
@@ -84,7 +84,7 @@ export function MenuWizardV2({
         { id: "Nhóm 8-10", label: t("Tiệc lớn"), sub: t("7+ người"), icon: <Star size={20} /> },
     ];
     const ICON_MAP = [<Heart size={20} />, <Users size={20} />, <UsersRound size={20} />, <Star size={20} />];
-    const GROUP_OPTIONS = surveyConfig?.groups
+    const GROUP_OPTIONS: { id: string; label: string; sub: string; icon: React.ReactNode }[] = surveyConfig?.groups
         ? surveyConfig.groups.map((g: any, i: number) => ({ ...g, icon: ICON_MAP[i % ICON_MAP.length] }))
         : GROUP_OPTIONS_DEFAULT;
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building2, Plus, Check, Edit2, X, FileText, Briefcase } from 'lucide-react';
 import styles from './VATInfoSection.module.css';
 
