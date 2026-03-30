@@ -68,12 +68,12 @@ export async function POST(request: Request) {
              await db.run('UPDATE user_vat_profiles SET is_default = 0 WHERE user_id = ?', [userId]);
         }
 
-        const newId = \`vat-\${Date.now()}\`;
+        const newId = `vat-${Date.now()}`;
 
-        await db.run(\`
+        await db.run(`
             INSERT INTO user_vat_profiles (id, user_id, company_name, tax_code, address, email, is_default)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        \`, [
+        `, [
             newId,
             userId,
             companyName,
