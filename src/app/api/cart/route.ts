@@ -22,18 +22,30 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const resId = searchParams.get('resId');
+    const tableid = searchParams.get('tableid');
     if (!resId) return ApiError('Missing resId', 400);
 
     try {
         const db = await getDb();
-        const cartItems = await db.all(
-            'SELECT * FROM cart_items WHERE user_id = ? AND resid = ? ORDER BY added_at ASC',
-            [userId, resId]
+        // Get active session
+        let activeSession = await db.get(
+            `SELECT id FROM table_sessions WHERE resid = ? AND LOWER(tableid) = LOWER(?) AND status = 'ACTIVE'`,
+            [resId, tableid || 'fallback']
         );
 
+        if (!activeSession) {
+            return ApiSuccess({ items: [], total: 0 });
+        }
+
+        // ISOLATION: Filter by user and table_session_id
+        let query = 'SELECT * FROM cart_items WHERE user_id = ? AND table_session_id = ?';
+        let params = [userId, activeSession.id];
+
+        const cartItems = await db.all(query + ' ORDER BY added_at ASC', params);
+
         const formattedItems = cartItems.map(row => ({
-            id: row.id, // Database row ID
-            item: { id: row.item_id, name: row.name, price: row.price },
+            id: row.id,
+            item: { id: row.item_id, name: row.name, price: row.price, img: row.img },
             quantity: row.qty,
             selections: row.selections ? JSON.parse(row.selections) : null
         }));
@@ -51,24 +63,48 @@ export async function POST(request: Request) {
     if (!user) return ApiError('Unauthorized', 401);
     const userId = user.id;
 
-    const { resId, item, quantity, selections } = await request.json();
+    const { resId, item, quantity, selections, tableid } = await request.json();
     const selectionsStr = selections ? JSON.stringify(selections) : null;
 
     try {
         const db = await getDb();
 
-        // Check if table is locked for checkout
-        if (quantity > 0 && user.tableid) {
-            const checkoutStatus = await db.get('SELECT value FROM kv_store WHERE key = ?', [`checkout_requested_${resId}_${user.tableid}`]);
+        // Check if table is locked for checkout — use provided tableid first, fallback to session
+        const activeTableId = tableid || user.tableid;
+        if (quantity > 0 && activeTableId) {
+            const checkoutStatus = await db.get('SELECT value FROM kv_store WHERE key = ?', [`checkout_requested_${resId}_${activeTableId}`]);
             if (checkoutStatus && checkoutStatus.value === 'true') {
                 return ApiError('Bàn đang yêu cầu thanh toán, không thể gọi thêm món.', 403);
             }
         }
 
-        // Check if item with SAME selections exists
+        // Get or Create active table session
+        let activeSession = await db.get(
+            `SELECT id FROM table_sessions WHERE resid = ? AND LOWER(tableid) = LOWER(?) AND status = 'ACTIVE'`,
+            [resId, activeTableId]
+        );
+        if (!activeSession) {
+            const newSessionId = crypto.randomUUID();
+            try {
+                await db.run(
+                    `INSERT INTO table_sessions (id, resid, tableid, status, started_at) VALUES (?, ?, ?, 'ACTIVE', ?)`,
+                    [newSessionId, resId, activeTableId, Date.now()]
+                );
+                activeSession = { id: newSessionId };
+            } catch (e: any) {
+                activeSession = await db.get(
+                    `SELECT id FROM table_sessions WHERE resid = ? AND LOWER(tableid) = LOWER(?) AND status = 'ACTIVE'`,
+                    [resId, activeTableId]
+                );
+                if (!activeSession) throw e;
+            }
+        }
+        const activeTableSessionId = activeSession.id;
+
+        // Check if item with SAME selections AND table_session_id exists
         const existingItem = await db.get(
-            'SELECT id, qty FROM cart_items WHERE user_id = ? AND resid = ? AND item_id = ? AND (selections = ? OR (selections IS NULL AND CAST(? AS TEXT) IS NULL))',
-            [userId, resId, item.id, selectionsStr, selectionsStr]
+            'SELECT id, qty FROM cart_items WHERE user_id = ? AND item_id = ? AND table_session_id = ? AND (selections = ? OR (selections IS NULL AND CAST(? AS TEXT) IS NULL))',
+            [userId, item.id, activeTableSessionId, selectionsStr, selectionsStr]
         );
 
         if (existingItem) {
@@ -80,24 +116,30 @@ export async function POST(request: Request) {
             }
         } else if (quantity > 0) {
             await db.run(
-                'INSERT INTO cart_items (user_id, resid, item_id, name, price, qty, selections) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [userId, resId, item.id, item.name, item.price, quantity, selectionsStr]
+                'INSERT INTO cart_items (user_id, resid, tableid, item_id, name, price, qty, selections, img, table_session_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [userId, resId, activeTableId, item.id, item.name, item.price, quantity, selectionsStr, item.img || null, activeTableSessionId]
             );
         }
 
         const cartItems = await db.all(
-            'SELECT * FROM cart_items WHERE user_id = ? AND resid = ? ORDER BY added_at ASC',
-            [userId, resId]
+            'SELECT * FROM cart_items WHERE user_id = ? AND table_session_id = ? ORDER BY added_at ASC',
+            [userId, activeTableSessionId]
         );
 
         const formattedItems = cartItems.map(row => ({
             id: row.id,
-            item: { id: row.item_id, name: row.name, price: row.price },
+            item: { id: row.item_id, name: row.name, price: row.price, img: row.img },
             quantity: row.qty,
             selections: row.selections ? JSON.parse(row.selections) : null
         }));
 
         const total = formattedItems.reduce((acc, cur) => acc + (cur.item.price * cur.quantity), 0);
+
+        // Bump table version to notify sync polling
+        await db.run(
+            'INSERT INTO kv_store (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+            [`table_version_${resId}_${activeTableId}`, Date.now().toString()]
+        );
 
         return ApiSuccess({ items: formattedItems, total });
     } catch (e) {

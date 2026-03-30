@@ -1,0 +1,1044 @@
+.cinematicOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3000;
+    background: #000;
+}
+
+.videoContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.bgVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.05); /* Prevent edge bleeding */
+}
+
+.videoOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* Soft colorful gradient map to make it look premium instead of pure black */
+    background: linear-gradient(135deg, rgba(15,23,42,0.4) 0%, rgba(15,23,42,0.8) 100%);
+    pointer-events: none;
+}
+
+.globalTopBar {
+    position: absolute;
+    top: env(safe-area-inset-top, 20px);
+    left: 0;
+    right: 0;
+    padding: 20px;
+    z-index: 10;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.cinematicSkip {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.cinematicSkip:active {
+    transform: scale(0.95);
+    background: rgba(255,255,255,0.25);
+}
+
+.bottomSheetContainer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    pointer-events: none;
+}
+
+.bottomSheet {
+    width: 100%;
+    min-height: 80vh;
+    pointer-events: auto;
+    /* Apple Vision Pro Glass effect */
+    background: rgba(30, 30, 35, 0.55);
+    backdrop-filter: blur(48px) saturate(150%);
+    -webkit-backdrop-filter: blur(48px) saturate(150%);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 40px 40px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -20px 80px rgba(0,0,0,0.4);
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.headerText {
+    padding: calc(env(safe-area-inset-top, 40px) + 60px) 24px 20px;
+}
+
+.greeting {
+    color: #FBBF24;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+}
+
+.mainTitle {
+    color: white;
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    background: linear-gradient(180deg, #FFFFFF 0%, #A0AEC0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Unified Tag Cloud Design */
+.scrollableContent {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 120px; /* Clear space for bottom fixed button */
+    scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+.scrollableContent::-webkit-scrollbar { display: none; }
+
+.sectionContainer {
+    margin-bottom: 32px;
+}
+
+.sectionHeader {
+    padding: 0 24px;
+    margin-bottom: 16px;
+    color: white;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sectionHeader span {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Primary Question: Bento Grid */
+.bentoGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 24px;
+}
+
+.bentoCard {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 18px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.bentoCard:active {
+    transform: scale(0.96);
+}
+
+.bentoCard.active {
+    background: radial-gradient(circle at top, rgba(223, 27, 65, 0.2), rgba(30, 30, 35, 0.4));
+    border-color: #DF1B41;
+    box-shadow: 0 8px 32px rgba(223, 27, 65, 0.2);
+}
+
+.bentoIconWrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2px;
+    color: rgba(255,255,255,0.6);
+    transition: all 0.3s;
+}
+
+.bentoCard.active .bentoIconWrap {
+    background: transparent;
+    color: #DF1B41;
+    box-shadow: none;
+    filter: drop-shadow(0 0 8px rgba(223, 27, 65, 0.6));
+    -webkit-filter: drop-shadow(0 0 8px rgba(223, 27, 65, 0.6));
+}
+
+.bentoLabel {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.bentoSub {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+}
+
+.tagCloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 0 24px;
+}
+
+.cloudPill {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255,255,255,0.7);
+    padding: 10px 16px;
+    border-radius: 99px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.cloudPillIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+}
+
+.cloudPill:active {
+    transform: scale(0.95);
+}
+
+.cloudPill.active {
+    background: rgba(251, 191, 36, 0.15); /* FBBF24 at 15% */
+    border-color: #FBBF24;
+    color: #FBBF24;
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
+    transform: translateY(-2px);
+}
+
+.cloudPill.active .cloudPillIcon {
+    opacity: 1;
+}
+
+/* Fixed Bottom Button Wrapper */
+.fixedBottomBtnWrap {
+    padding: 12px 20px calc(env(safe-area-inset-bottom, 20px) + 12px);
+    background: linear-gradient(to top, rgba(30, 30, 35, 1) 60%, rgba(30, 30, 35, 0) 100%);
+    border-radius: 0 0 40px 40px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+.mainActionBtn {
+    margin: 0;
+    width: 100%;
+    background: linear-gradient(135deg, #DF1B41 0%, #F56B0F 100%);
+    color: white;
+    border: none;
+    padding: 18px;
+    border-radius: 99px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 12px 32px rgba(223, 27, 65, 0.4);
+}
+
+.mainActionBtn:disabled {
+    opacity: 0.3;
+    background: rgba(255, 255, 255, 0.5);
+    color: rgba(15, 23, 42, 0.5);
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: scale(0.98);
+}
+
+.mainActionBtn:not(:disabled):active {
+    transform: scale(0.96);
+    background: #f1f5f9;
+}
+
+/* Screen 2 Ribbon */
+.ribbonHeader {
+    padding: 24px 20px 16px;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.ribbonTitle {
+    color: white;
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+}
+
+.ribbonChipsRow {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    align-items: center;
+}
+.ribbonChipsRow::-webkit-scrollbar { display: none; }
+
+.ribbonChip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ribbonConfigBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.3);
+    border: 1px dashed rgba(255,255,255,0.4);
+    color: rgba(255,255,255,0.9);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ribbonConfigBtn:active {
+    transform: scale(0.9);
+    background: rgba(255,255,255,0.2);
+}
+
+/* Stagger Animations */
+.stagger1 { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; transform: translateY(20px); }
+.stagger2 { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards; opacity: 0; transform: translateY(20px); }
+.stagger3 { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; opacity: 0; transform: translateY(20px); }
+.stagger4 { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards; opacity: 0; transform: translateY(20px); }
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Floating Bottom Bar */
+.floatingNav {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+    left: 20px;
+    right: 20px;
+    pointer-events: auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* ====== SCREEN 2 (SUGGESTIONS) GLASSMORPHIC STYLES ====== */
+.categorySection {
+    margin-bottom: 32px;
+}
+
+.categoryHeaderTitle {
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-bottom: 16px;
+    padding: 0 20px;
+    letter-spacing: -0.01em;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.horizontalScroll {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 0 20px 20px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+}
+.horizontalScroll::-webkit-scrollbar { display: none; }
+
+.glassCard {
+    flex: 0 0 240px;
+    width: 240px;
+    background: rgba(30, 30, 35, 0.45);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    scroll-snap-align: start;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.glassCard:active {
+    transform: scale(0.96);
+}
+
+.glassCardHero {
+    position: relative;
+    height: 180px;
+    width: 100%;
+}
+
+.glassCardImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.glassCardHero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to top, rgba(30, 30, 35, 1) 0%, rgba(30, 30, 35, 0) 100%);
+}
+
+.glassCardTag {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(223, 27, 65, 0.9);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(223, 27, 65, 0.4);
+    z-index: 2;
+    backdrop-filter: blur(4px);
+}
+
+.itemQuantityBadge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: #10B981;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+    z-index: 2;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.glassCardBody {
+    padding: 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    z-index: 2;
+}
+
+.glassCardName {
+    color: white;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.glassReasonRow {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.glassReasonPill {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.8);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.glassCardDesc {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+}
+
+.glassCardFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.glassCardPrice {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.glassAddBtn {
+    background: white;
+    color: #0f172a;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255,255,255,0.2);
+}
+
+.glassQtySelector {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+}
+
+.glassQtyBtn {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.glassQtyValue {
+    color: white;
+    font-weight: 700;
+    font-size: 0.95rem;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* ====== CART REVIEW (GLASSMORPHIC) ====== */
+.glassCartSection {
+    padding: 0 20px;
+    margin-bottom: 40px;
+}
+
+.glassEmptyCart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    gap: 16px;
+    font-weight: 500;
+}
+
+.glassCartList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.glassCartRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(30, 30, 35, 0.45);
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.glassCartThumb {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.glassCartThumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.glassCartMeta {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.glassCartMeta h4 {
+    margin: 0;
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.glassCartMeta p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.glassCartQty span {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.glassCartTotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    margin-top: 12px;
+    background: rgba(223, 27, 65, 0.15);
+    border: 1px solid rgba(223, 27, 65, 0.3);
+    border-radius: 16px;
+    color: white;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.glassCartTotalPrice {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #DF1B41;
+    text-shadow: 0 2px 12px rgba(223, 27, 65, 0.4);
+}
+
+/* ====== V3 MAGAZINE CONCIERGE STYLES ====== */
+
+.v3ScrollBox {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 64px; /* Dodge the absolute headers from MenuView */
+    padding-bottom: 120px; /* Dodge the floating nav */
+    scrollbar-width: none;
+}
+.v3ScrollBox::-webkit-scrollbar { display: none; }
+
+.contextRibbon {
+    margin: 0 20px 24px;
+    background: rgba(30, 30, 35, 0.45);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 99px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.contextRibbon::-webkit-scrollbar { display: none; }
+
+.contextRibbonLabel {
+    color: #FBBF24;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.contextRibbonPill {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ====== V4 COURSE CONCIERGE STYLES ====== */
+
+.courseFeedContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding: 0 20px 20px;
+}
+
+.courseSection {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.courseHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.courseHeaderDot {
+    width: 6px;
+    height: 6px;
+    background: #DF1B41;
+    border-radius: 50%;
+}
+
+.courseTitle {
+    color: white;
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.primaryCourseCard {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #1e1e24; /* Fallback */
+    aspect-ratio: 16 / 9;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.primaryCourseCard:active {
+    transform: scale(0.97);
+}
+
+.magazineCardImg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
+
+.magazineCardOverlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.magazineCardContent {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none; /* Let clicks pass to the card */
+}
+
+.magazineCardTitle {
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+
+.magazineCardDesc {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+    margin-bottom: 4px;
+}
+
+.magazineCardFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    pointer-events: auto; /* Buttons need clicks */
+}
+
+.magazineCardPrice {
+    color: #FBBF24;
+    font-size: 1.1rem;
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.liquidAddBtn {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.liquidAddBtn:active {
+    background: rgba(255,255,255,0.3);
+    transform: scale(0.9);
+}
+
+.magazineQtySelector {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 99px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.magazineQtyBtn {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.magazineQtyValue {
+    color: white;
+    font-weight: 800;
+    font-size: 0.95rem;
+    min-width: 24px;
+    text-align: center;
+}
+
+/* Alternatives Row */
+.alternativesRow {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 8px; /* For scrollbar or touch area */
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.alternativesRow::-webkit-scrollbar { display: none; }
+
+.altCard {
+    flex: 0 0 140px;
+    width: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.altCardThumbBox {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    background: #1e1e24;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.altCardImg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.altBadge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+.altCardInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.altCardTitle {
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3;
+}
+
+.altCardPriceRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.altCardPrice {
+    color: #FBBF24;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.liquidAddBtnSmall {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}

@@ -1,0 +1,101 @@
+.stepperWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding: 6px 0 2px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    gap: 8px;
+}
+
+.stepperTrack {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+}
+
+.stepItem {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.stepCircle {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #E2E8F0;
+    color: #94A3B8;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.stepLabel {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #94A3B8;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+}
+
+.stepLine {
+    flex: 1;
+    height: 2px;
+    background: #E2E8F0;
+    margin: 0 4px;
+    min-width: 12px;
+    border-radius: 99px;
+    transition: background 0.2s ease;
+}
+
+.stepLineDone {
+    background: var(--menu-accent, #F97316);
+}
+
+.stepActive .stepCircle {
+    background: var(--menu-accent, #F97316);
+    color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.stepActive .stepLabel {
+    color: var(--menu-text, #C2410C);
+    font-weight: 700;
+}
+
+.stepDone .stepCircle {
+    background: #10B981;
+    color: white;
+}
+
+.stepDone .stepLabel {
+    color: var(--menu-text-secondary, #059669);
+}
+
+.dismissBtn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #D4A97440;
+    color: #92400E;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
+    opacity: 0.5;
+}
+
+.dismissBtn:active {
+    background: #FDE68A;
+    opacity: 1;
+}

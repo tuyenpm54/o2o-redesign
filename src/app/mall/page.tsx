@@ -13,7 +13,7 @@ import {
 
 import styles from './page.module.css';
 
-import { ContextBanner, Order } from '@/modules/customer/components/ContextBanner/ContextBanner';
+import { ContextBanner, Order, SupportRequest } from '@/modules/customer/components/ContextBanner/ContextBanner';
 import { MemberLobby } from '@/modules/customer/components/MemberLobby/MemberLobby';
 import { useAuth } from '@/context/AuthContext';
 import { usePathname } from 'next/navigation';
@@ -275,104 +275,68 @@ export default function MallOrderingPage() {
         });
     };
 
-    // Support Request States - Per Option Status Tracking
-    // Status: IDLE → SENDING → PENDING → IN_PROGRESS → IDLE
-    type SupportStatus = 'IDLE' | 'SENDING' | 'PENDING' | 'IN_PROGRESS';
-
+    // Support Request States
     const SUPPORT_OPTIONS = [
         { id: 'cutlery', label: 'Lấy thêm bát đũa' },
         { id: 'napkin', label: 'Lấy giấy ăn' },
         { id: 'clean', label: 'Dọn bàn' },
         { id: 'payment', label: 'Yêu cầu thanh toán' },
-        { id: 'other', label: 'Khác' },
     ];
 
-    const [supportStatuses, setSupportStatuses] = useState<Record<string, SupportStatus>>({});
-
-    // State for support menu view switching
-    const [supportView, setSupportView] = useState<'OPTIONS' | 'INPUT_OTHER'>('OPTIONS');
+    const [supportRequests, setSupportRequests] = useState<SupportRequest[]>([]);
+    const [selectedSupportOptions, setSelectedSupportOptions] = useState<string[]>([]);
     const [otherRequestText, setOtherRequestText] = useState('');
-    const [lastOtherText, setLastOtherText] = useState(''); // Store the last submitted text
 
-    const handleSupportRequest = (optionId: string) => {
-        // Prevent if not IDLE
-        if (supportStatuses[optionId] && supportStatuses[optionId] !== 'IDLE') return;
-
-        // Special handling for "Khác" - switch view inside menu
-        if (optionId === 'other') {
-            setSupportView('INPUT_OTHER');
-            return;
-        }
-
-        setShowSupportMenu(false);
-
-        // 1. Set to SENDING
-        setSupportStatuses(prev => ({ ...prev, [optionId]: 'SENDING' }));
-
-        // Simulate API call (1.5s)
-        setTimeout(() => {
-            // 2. Set to PENDING (Đang chờ - Request sent, waiting for staff)
-            setSupportStatuses(prev => ({ ...prev, [optionId]: 'PENDING' }));
-
-            // Simulate Staff Confirmation after 5 seconds
-            setTimeout(() => {
-                // 3. Set to IN_PROGRESS (Đang nhận - Staff received)
-                setSupportStatuses(prev => ({ ...prev, [optionId]: 'IN_PROGRESS' }));
-
-                // Simulate Completion after another 10 seconds
-                setTimeout(() => {
-                    // 4. Back to IDLE
-                    setSupportStatuses(prev => ({ ...prev, [optionId]: 'IDLE' }));
-                    // Clear lastOtherText when completed
-                    if (optionId === 'other') setLastOtherText('');
-                }, 10000);
-
-            }, 5000);
-
-        }, 1500);
+    const toggleSupportOption = (optionId: string) => {
+        setSelectedSupportOptions(prev => 
+            prev.includes(optionId) ? prev.filter(id => id !== optionId) : [...prev, optionId]
+        );
     };
 
-    // Handle submit for "Khác" with custom text
-    const handleSubmitOtherRequest = () => {
-        if (!otherRequestText.trim()) return;
+    const submitSupportRequest = () => {
+        if (selectedSupportOptions.length === 0 && !otherRequestText.trim()) return;
 
-        setLastOtherText(otherRequestText.trim());
-        handleCloseSupportMenu();
+        const reqId = `req-${Date.now()}`;
+        const newReq: SupportRequest = {
+            id: reqId,
+            items: [...selectedSupportOptions],
+            otherText: otherRequestText.trim(),
+            status: 'PENDING',
+            createdAt: Date.now()
+        };
+
+        setSupportRequests(prev => [...prev, newReq]);
+        setSelectedSupportOptions([]);
         setOtherRequestText('');
+        setShowSupportMenu(false);
 
-        // 1. Set to SENDING
-        setSupportStatuses(prev => ({ ...prev, 'other': 'SENDING' }));
-
-        // Same flow as other requests
+        // Simulate Staff Confirmation after 5 seconds
         setTimeout(() => {
-            setSupportStatuses(prev => ({ ...prev, 'other': 'PENDING' }));
+            setSupportRequests(prev => prev.map(req => {
+                if (req.id === reqId) {
+                    return { ...req, status: 'CONFIRMED', confirmedAt: Date.now() };
+                }
+                return req;
+            }));
+
+            // Auto-hide after 30 seconds from confirmation
             setTimeout(() => {
-                setSupportStatuses(prev => ({ ...prev, 'other': 'IN_PROGRESS' }));
-                setTimeout(() => {
-                    setSupportStatuses(prev => ({ ...prev, 'other': 'IDLE' }));
-                    setLastOtherText('');
-                }, 10000);
-            }, 5000);
-        }, 1500);
+                setSupportRequests(prev => prev.filter(req => req.id !== reqId));
+            }, 30000);
+        }, 5000);
     };
 
     // Close menu and reset view
     const handleCloseSupportMenu = () => {
         setShowSupportMenu(false);
-        setTimeout(() => setSupportView('OPTIONS'), 300); // Reset after animation
-    };
-
-    const getStatusText = (status: SupportStatus) => {
-        switch (status) {
-            case 'SENDING': return 'Đang gửi...';
-            case 'PENDING': return 'Đang chờ';
-            case 'IN_PROGRESS': return 'Đang nhận';
-            default: return '';
-        }
+        setTimeout(() => {
+            setSelectedSupportOptions([]);
+            setOtherRequestText('');
+        }, 300); // Reset after animation
     };
 
     // Check if any request is active (for FAB indicator)
-    const hasActiveRequest = Object.values(supportStatuses).some(s => s !== 'IDLE' && s !== undefined);
+    const hasActiveRequest = supportRequests.length > 0;
 
     // Cart Actions
     const addToCart = (id: number) => setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
@@ -619,7 +583,7 @@ export default function MallOrderingPage() {
                     model="A"
                     tableId="A-12"
                     activeOrders={activeOrders}
-                    supportStatuses={supportStatuses}
+                    supportRequests={supportRequests}
                 />
 
 
@@ -762,38 +726,12 @@ export default function MallOrderingPage() {
                 {hasActiveRequest && (
                     <div className={styles.chatBubble}>
                         {(() => {
-                            const activeRequests = Object.entries(supportStatuses)
-                                .filter(([, status]) => status && status !== 'IDLE');
+                            const pendingCount = supportRequests.filter(r => r.status === 'PENDING').length;
+                            const confirmedCount = supportRequests.filter(r => r.status === 'CONFIRMED').length;
 
-                            // Count by status
-                            const pendingCount = activeRequests.filter(([, s]) => s === 'PENDING').length;
-                            const inProgressCount = activeRequests.filter(([, s]) => s === 'IN_PROGRESS').length;
-                            const sendingCount = activeRequests.filter(([, s]) => s === 'SENDING').length;
-
-                            // If only 1 request, show specific name
-                            if (activeRequests.length === 1) {
-                                const [id, status] = activeRequests[0];
-                                const option = SUPPORT_OPTIONS.find(o => o.id === id);
-                                const label = (id === 'other' && lastOtherText) ? lastOtherText : option?.label;
-
-                                if (status === 'SENDING') return `Đang gửi "${label}"...`;
-                                if (status === 'PENDING') return `"${label}" đang chờ xác nhận`;
-                                if (status === 'IN_PROGRESS') return `"${label}" đã được nhận`;
-                            }
-
-                            // Multiple requests - show summary
-                            const parts = [];
-                            if (inProgressCount > 0) {
-                                parts.push(`${inProgressCount} yêu cầu đã nhận`);
-                            }
-                            if (pendingCount > 0) {
-                                parts.push(`${pendingCount} yêu cầu đang chờ`);
-                            }
-                            if (sendingCount > 0) {
-                                parts.push(`${sendingCount} đang gửi`);
-                            }
-
-                            return parts.join(', ');
+                            if (pendingCount > 0) return `${pendingCount} yêu cầu đang chờ xác nhận`;
+                            if (confirmedCount > 0) return `Nhân viên đang ra hỗ trợ`;
+                            return 'Đang xử lý yêu cầu';
                         })()}
                     </div>
                 )
@@ -803,18 +741,11 @@ export default function MallOrderingPage() {
                     className={`${styles.staffFab} ${hasActiveRequest ? styles.active : ''}`}
                     onClick={() => setShowSupportMenu(true)}
                 >
-                    <div className={styles.staffIconWrapper}>
-                        <img
-                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff"
-                            alt="Staff"
-                            className={styles.staffAvatar}
-                        />
-                        <div className={styles.onlineBadge} />
-                    </div>
+                    <BellRing size={22} className={styles.staffIcon} />
                     <span className={styles.staffLabel}>Hỗ trợ</span>
                     {hasActiveRequest && (
                         <span className={styles.activeCount}>
-                            {Object.values(supportStatuses).filter(s => s && s !== 'IDLE').length}
+                            {supportRequests.length}
                         </span>
                     )}
                 </button>
@@ -826,77 +757,63 @@ export default function MallOrderingPage() {
                     <div className={styles.supportOverlay} onClick={handleCloseSupportMenu}>
                         <div className={styles.supportMenu} onClick={e => e.stopPropagation()}>
                             <div className={styles.supportHeader}>
-                                {supportView === 'INPUT_OTHER' && (
-                                    <button className={styles.backBtn} onClick={() => setSupportView('OPTIONS')}>
-                                        <ArrowLeft size={20} />
-                                    </button>
-                                )}
                                 <h3 className={styles.supportTitle}>
-                                    {supportView === 'OPTIONS' ? 'Bạn cần hỗ trợ gì?' : 'Yêu cầu khác'}
+                                    Bạn cần hỗ trợ gì?
                                 </h3>
                                 <button className={styles.supportCloseBtn} onClick={handleCloseSupportMenu}>
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            {supportView === 'OPTIONS' ? (
-                                <div className={styles.supportGrid}>
-                                    {SUPPORT_OPTIONS.map((option) => {
-                                        const status = supportStatuses[option.id] || 'IDLE';
-                                        const isIdle = status === 'IDLE';
-
-                                        // Determine class based on status
-                                        let statusClass = '';
-                                        if (status === 'SENDING') statusClass = styles.sending;
-                                        if (status === 'PENDING') statusClass = styles.pending;
-                                        if (status === 'IN_PROGRESS') statusClass = styles.inProgress;
-
-                                        // Special label for "Khác" when has custom text
-                                        const displayLabel = option.id === 'other' && lastOtherText
-                                            ? `Khác: "${lastOtherText}"`
-                                            : option.label;
-
-                                        return (
-                                            <button
-                                                key={option.id}
-                                                className={`${styles.supportOption} ${statusClass}`}
-                                                onClick={() => handleSupportRequest(option.id)}
-                                                disabled={!isIdle}
-                                            >
-                                                <span className={styles.optionLabel}>{displayLabel}</span>
-                                                {!isIdle && (
-                                                    <span className={styles.optionStatus}>
-                                                        {getStatusText(status)}
-                                                    </span>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className={styles.otherInputContent}>
-                                    <p className={styles.otherInputNote}>Nhập nội dung yêu cầu (tối đa 20 ký tự)</p>
-                                    <input
-                                        type="text"
-                                        className={styles.otherInput}
-                                        value={otherRequestText}
-                                        onChange={(e) => setOtherRequestText(e.target.value.slice(0, 20))}
-                                        placeholder="VD: Thêm nước mắm..."
-                                        maxLength={20}
-                                        autoFocus
-                                    />
-                                    <div className={styles.otherInputFooter}>
-                                        <span className={styles.charCount}>{otherRequestText.length}/20</span>
+                            <div className={styles.supportGrid}>
+                                {SUPPORT_OPTIONS.map((option) => {
+                                    const isSelected = selectedSupportOptions.includes(option.id);
+                                    return (
                                         <button
-                                            className={styles.otherSubmitBtn}
-                                            onClick={handleSubmitOtherRequest}
-                                            disabled={!otherRequestText.trim()}
+                                            key={option.id}
+                                            className={`${styles.supportOption} ${isSelected ? styles.selected : ''}`}
+                                            onClick={() => toggleSupportOption(option.id)}
+                                            style={isSelected ? { borderColor: '#DF1B41', backgroundColor: '#FFF0F2', color: '#DF1B41' } : {}}
                                         >
-                                            Gửi yêu cầu
+                                            <span className={styles.optionLabel}>{option.label}</span>
+                                            {isSelected && <CheckCircle2 size={16} className={styles.checkIcon} color="#DF1B41" />}
                                         </button>
-                                    </div>
-                                </div>
-                            )}
+                                    );
+                                })}
+                            </div>
+
+                            <div className={styles.otherInputContent} style={{ padding: '0 1rem', marginTop: '1rem' }}>
+                                <p className={styles.otherInputNote} style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '0.5rem' }}>Yêu cầu khác (tuỳ chọn)</p>
+                                <input
+                                    type="text"
+                                    className={styles.otherInput}
+                                    value={otherRequestText}
+                                    onChange={(e) => setOtherRequestText(e.target.value.slice(0, 50))}
+                                    placeholder="VD: Thêm chanh, ớt..."
+                                    maxLength={50}
+                                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                />
+                            </div>
+
+                            <div className={styles.supportFooter} style={{ padding: '1rem', marginTop: '1rem' }}>
+                                <button 
+                                    className={styles.submitSupportBtn} 
+                                    onClick={submitSupportRequest}
+                                    disabled={selectedSupportOptions.length === 0 && !otherRequestText.trim()}
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '12px', 
+                                        background: (selectedSupportOptions.length === 0 && !otherRequestText.trim()) ? '#CBD5E1' : '#DF1B41', 
+                                        color: '#fff', 
+                                        borderRadius: '12px', 
+                                        fontWeight: 'bold',
+                                        transition: 'background 0.2s',
+                                        cursor: (selectedSupportOptions.length === 0 && !otherRequestText.trim()) ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    Gửi yêu cầu {(selectedSupportOptions.length > 0 || otherRequestText.trim()) ? `(${(selectedSupportOptions.length + (otherRequestText.trim() ? 1 : 0))})` : ''}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )

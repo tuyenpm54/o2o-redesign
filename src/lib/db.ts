@@ -2,9 +2,6 @@ import { Pool } from 'pg';
 import path from 'path';
 import fs from 'fs';
 
-let pool: Pool | null = null;
-let initialized = false;
-
 function convertQuery(sql: string) {
   let idx = 1;
   return sql.replace(/\?/g, () => `$${idx++}`);
@@ -86,41 +83,57 @@ class DBWrapper {
 
 let dbWrapperInstance: DBWrapper | null = null;
 
-export async function getDb() {
-  if (dbWrapperInstance) return dbWrapperInstance;
+let initializationPromise: Promise<DBWrapper> | null = null;
 
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    console.warn("DATABASE_URL is not set. Using fallback for local dev. This will fail on Netlify if not set.");
+export async function getDb() {
+  if (initializationPromise) {
+    return initializationPromise.catch(err => {
+      initializationPromise = null;
+      throw err;
+    });
   }
 
-  pool = new Pool({
-    connectionString,
-    // Add SSL for providers like Supabase/Neon/Render in production
-    ssl: process.env.NODE_ENV === 'production' && connectionString && !connectionString.includes('localhost') ? { rejectUnauthorized: false } : undefined
-  });
+  initializationPromise = (async () => {
+    let connectionString = process.env.DATABASE_URL;
+    if (connectionString && connectionString.includes('sslmode=require') && !connectionString.includes('uselibpqcompat')) {
+      connectionString += '&uselibpqcompat=true';
+    }
+    console.log("[DB] Connecting to database:", connectionString ? connectionString.split('@')[1] : "MISSING");
 
-  dbWrapperInstance = new DBWrapper(pool);
+    const pool = new Pool({
+      connectionString,
+      ssl: connectionString && !connectionString.includes('localhost') ? { rejectUnauthorized: false } : undefined,
+      connectionTimeoutMillis: 10000,
+    });
 
-  if (!initialized) {
-    // Only init if we actually have a connection and it works
+    const wrapper = new DBWrapper(pool);
+
     try {
       if (connectionString) {
-        await initDb(dbWrapperInstance);
-        initialized = true;
+        console.log("[DB] Running initialization...");
+        await initDb(wrapper);
+        console.log("[DB] Initialization complete.");
       }
     } catch (e) {
-      console.warn("Could not auto-initialize DB tables on startup. Proceeding anyway...", e);
+      console.warn("[DB] Initialization error:", e);
+      initializationPromise = null; // Allow retry
+      throw e;
     }
-  }
 
-  return dbWrapperInstance;
+    dbWrapperInstance = wrapper;
+    return wrapper;
+  })();
+
+  return initializationPromise;
 }
 
 async function initDb(database: DBWrapper) {
-  // Create Users table
-  // Use INTEGER for isGuest to perfectly match the 0/1 SQLite logic in API routes
+  const startTime = Date.now();
+
+  // ── DDL: Batch ALL table creation + migrations into a SINGLE round-trip ──
+  // This reduces cold-start from ~42 sequential network calls to just 1.
   await database.exec(`
+    -- Users
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       phone TEXT,
@@ -129,33 +142,36 @@ async function initDb(database: DBWrapper) {
       tier TEXT DEFAULT 'Guest',
       avatar TEXT,
       preferences TEXT DEFAULT '[]',
-      isGuest INTEGER DEFAULT 0, 
+      isGuest INTEGER DEFAULT 0,
+      visit_count INTEGER DEFAULT 1,
+      last_visit_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS visit_count INTEGER DEFAULT 1;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS last_visit_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
-  // Create Tables table
-  await database.exec(`
+    -- User VAT Profiles
+    CREATE TABLE IF NOT EXISTS user_vat_profiles (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      company_name TEXT NOT NULL,
+      tax_code TEXT NOT NULL,
+      address TEXT NOT NULL,
+      email TEXT,
+      is_default INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    -- Tables
     CREATE TABLE IF NOT EXISTS tables (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       qr_code TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    );
 
-  // Seed default tables if not exists
-  await database.run(
-    `INSERT INTO tables (id, name) VALUES (?, ?) ON CONFLICT (id) DO NOTHING`,
-    ['A-12', 'Bàn A-12']
-  );
-  await database.run(
-    `INSERT INTO tables (id, name) VALUES (?, ?) ON CONFLICT (id) DO NOTHING`,
-    ['T-1', 'Bàn 1']
-  );
-
-  // Create Orders table
-  await database.exec(`
+    -- Orders
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
       user_id TEXT,
@@ -166,11 +182,9 @@ async function initDb(database: DBWrapper) {
       total INTEGER,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `);
+    );
 
-  // Create Sessions table
-  await database.exec(`
+    -- Sessions
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       user_id TEXT,
@@ -178,13 +192,46 @@ async function initDb(database: DBWrapper) {
       tableid TEXT,
       lastActive BIGINT,
       expires BIGINT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at BIGINT,
       FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `);
+    );
+    ALTER TABLE sessions ADD COLUMN IF NOT EXISTS created_at BIGINT;
 
-  // Create Relational Tables for Carts, Orders, Messages
-  await database.exec(`
+    -- Session Presences
+    CREATE TABLE IF NOT EXISTS session_presences (
+      session_id TEXT,
+      resid TEXT,
+      tableid TEXT,
+      last_active BIGINT,
+      PRIMARY KEY (session_id, resid, tableid),
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+    );
+
+    -- Table Sessions (lifecycle tracking)
+    CREATE TABLE IF NOT EXISTS table_sessions (
+      id TEXT PRIMARY KEY,
+      resid TEXT,
+      tableid TEXT,
+      status TEXT,
+      started_at BIGINT,
+      ended_at BIGINT,
+      total INTEGER DEFAULT 0
+    );
+
+    -- Order Rounds
+    CREATE TABLE IF NOT EXISTS order_rounds (
+      id TEXT PRIMARY KEY,
+      table_session_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      resid TEXT NOT NULL,
+      tableid TEXT NOT NULL,
+      status TEXT DEFAULT 'Chờ xác nhận',
+      created_at BIGINT NOT NULL,
+      confirmed_at BIGINT,
+      FOREIGN KEY (table_session_id) REFERENCES table_sessions(id)
+    );
+
+    -- Cart Items
     CREATE TABLE IF NOT EXISTS cart_items (
       id SERIAL PRIMARY KEY,
       user_id TEXT,
@@ -194,18 +241,15 @@ async function initDb(database: DBWrapper) {
       price INTEGER,
       qty INTEGER,
       selections TEXT,
+      tableid TEXT,
       added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    );
+    ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS selections TEXT;
+    ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS img TEXT;
+    ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS tableid TEXT;
+    ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS table_session_id TEXT;
 
-  // Ensure selections column exists (for migrating existing local DBs)
-  try {
-    await database.exec(`ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS selections TEXT`);
-  } catch (e) {
-    // Column might already exist or table might not exist yet (though we just created it IF NOT EXISTS)
-  }
-
-  await database.exec(`
+    -- Order Items
     CREATE TABLE IF NOT EXISTS order_items (
       id TEXT PRIMARY KEY,
       user_id TEXT,
@@ -217,15 +261,56 @@ async function initDb(database: DBWrapper) {
       qty INTEGER,
       status TEXT,
       selections TEXT,
+      img TEXT,
       timestamp BIGINT
-    )
-  `);
+    );
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS selections TEXT;
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS img TEXT;
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS status_updated_at BIGINT;
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS table_session_id TEXT;
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS order_round_id TEXT;
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS invoice_id TEXT;
 
-  try {
-    await database.exec(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS selections TEXT`);
-  } catch (e) { }
+    -- Invoices
+    CREATE TABLE IF NOT EXISTS invoices (
+      id TEXT PRIMARY KEY,
+      table_session_id TEXT NOT NULL,
+      resid TEXT NOT NULL,
+      tableid TEXT NOT NULL,
+      subtotal INTEGER DEFAULT 0,
+      vat_amount INTEGER DEFAULT 0,
+      total INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'PAID',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (table_session_id) REFERENCES table_sessions(id)
+    );
 
-  await database.exec(`
+    -- Invoice VATs
+    CREATE TABLE IF NOT EXISTS invoice_vats (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT UNIQUE,
+      user_id TEXT,
+      company_name TEXT,
+      tax_code TEXT,
+      company_address TEXT,
+      email TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+    );
+
+    -- Reviews
+    CREATE TABLE IF NOT EXISTS reviews (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT,
+      user_id TEXT,
+      rating INTEGER,
+      comment TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(invoice_id, user_id),
+      FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+    );
+
+    -- Chat Messages
     CREATE TABLE IF NOT EXISTS chat_messages (
       id TEXT PRIMARY KEY,
       user_id TEXT,
@@ -236,49 +321,109 @@ async function initDb(database: DBWrapper) {
       typeId TEXT,
       content TEXT,
       time TEXT,
-      timestamp BIGINT
-    )
-  `);
+      timestamp BIGINT,
+      status TEXT,
+      status_updated_at BIGINT
+    );
+    ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Đã gửi';
+    ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS status_updated_at BIGINT;
 
-  // Create KV Store table for migrating carts, orders, messages
-  await database.exec(`
+    -- KV Store
     CREATE TABLE IF NOT EXISTS kv_store (
       key TEXT PRIMARY KEY,
       value TEXT
-    )
-  `);
+    );
 
-  // Create Restaurant Menus table
-  await database.exec(`
+    -- Restaurant Menus
     CREATE TABLE IF NOT EXISTS restaurant_menus (
       resid TEXT PRIMARY KEY,
-      menu_data TEXT
-    )
+      menu_data TEXT,
+      item_overrides TEXT DEFAULT '{}',
+      pos_sync_config TEXT DEFAULT '{}'
+    );
+    ALTER TABLE restaurant_menus ADD COLUMN IF NOT EXISTS item_overrides TEXT DEFAULT '{}';
+    ALTER TABLE restaurant_menus ADD COLUMN IF NOT EXISTS pos_sync_config TEXT DEFAULT '{}';
+
+    -- Restaurant Scenarios
+    CREATE TABLE IF NOT EXISTS restaurant_scenarios (
+      id TEXT PRIMARY KEY,
+      res_id TEXT,
+      scenario_key TEXT,
+      is_enabled INTEGER DEFAULT 1,
+      time_threshold INTEGER,
+      config TEXT DEFAULT '{}',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(res_id, scenario_key)
+    );
+
+    -- Restaurant Display Configs
+    CREATE TABLE IF NOT EXISTS restaurant_display_configs (
+      id TEXT PRIMARY KEY,
+      res_id TEXT,
+      draft_blocks TEXT DEFAULT '[]',
+      published_blocks TEXT DEFAULT '[]',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(res_id)
+    );
+
+    -- Feedback
+    CREATE TABLE IF NOT EXISTS feedback (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT,
+      table_session_id TEXT,
+      user_id TEXT NOT NULL,
+      resid TEXT NOT NULL,
+      tableid TEXT NOT NULL,
+      rating TEXT NOT NULL,
+      tags TEXT DEFAULT '[]',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (table_session_id) REFERENCES table_sessions(id)
+    );
+
+    -- Vouchers
+    CREATE TABLE IF NOT EXISTS vouchers (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      code TEXT NOT NULL,
+      title TEXT NOT NULL,
+      discount_type TEXT NOT NULL,
+      discount_value INTEGER NOT NULL,
+      min_order INTEGER DEFAULT 0,
+      expiry TEXT,
+      status TEXT DEFAULT 'active',
+      qr_value TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
   `);
 
-  // Migrate initial data from users.json if it exists (run on first start)
+  // ── Index (separate — partial unique index) ──
+  try {
+    await database.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_active_table_session ON table_sessions (resid, tableid) WHERE status = 'ACTIVE'`);
+  } catch (e) { }
+
+  // ── Seed data: batch into minimal calls ──
+  await database.exec(`
+    INSERT INTO tables (id, name) VALUES ('A-12', 'Bàn A-12') ON CONFLICT (id) DO NOTHING;
+    INSERT INTO tables (id, name) VALUES ('T-1', 'Bàn 1') ON CONFLICT (id) DO NOTHING;
+  `);
+
+  // Seed users from JSON (if exists)
   const usersJsonPath = path.join(process.cwd(), 'src/data/users.json');
   if (fs.existsSync(usersJsonPath)) {
     try {
       const users = JSON.parse(fs.readFileSync(usersJsonPath, 'utf8'));
       for (const user of users) {
         await database.run(
-          `INSERT INTO users (id, phone, name, points, tier, avatar, preferences, isGuest) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING`,
-          [
-            user.id,
-            user.phone,
-            user.name,
-            user.points || 0,
-            user.tier || 'Guest',
-            user.avatar,
-            JSON.stringify(user.preferences || []),
-            user.isGuest ? 1 : 0
-          ]
+          `INSERT INTO users (id, phone, name, points, tier, avatar, preferences, isGuest) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING`,
+          [user.id, user.phone, user.name, user.points || 0, user.tier || 'Guest', user.avatar, JSON.stringify(user.preferences || []), user.isGuest ? 1 : 0]
         );
       }
     } catch (e) { }
   }
+
+
+  console.log(`[DB] initDb completed in ${Date.now() - startTime}ms`);
 }
 
 export async function getKV(key: string) {

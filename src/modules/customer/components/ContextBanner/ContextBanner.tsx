@@ -18,7 +18,14 @@ export interface Order {
     timestamp: number;
 }
 
-export type SupportStatus = 'IDLE' | 'SENDING' | 'PENDING' | 'IN_PROGRESS';
+export interface SupportRequest {
+    id: string;
+    items: string[];
+    otherText?: string;
+    status: 'PENDING' | 'CONFIRMED';
+    createdAt: number;
+    confirmedAt?: number;
+}
 
 const SUPPORT_LABELS: Record<string, string> = {
     'cutlery': 'Lấy thêm bát đũa',
@@ -85,16 +92,25 @@ interface ContextBannerProps {
     tableId?: string;
     model: ShopModel;
     activeOrders?: Order[];
-    supportStatuses?: Record<string, SupportStatus>;
+    supportRequests?: SupportRequest[];
 }
 
 export const ContextBanner: React.FC<ContextBannerProps> = ({
     tableId = 'A-01',
     model,
     activeOrders = [],
-    supportStatuses = {}
+    supportRequests = []
 }) => {
     const [cycleIndex, setCycleIndex] = useState(0);
+    const [tick, setTick] = useState(0);
+
+    // Countdown effect for confirmed support requests
+    useEffect(() => {
+        const hasConfirmedRequest = supportRequests.some(req => req.status === 'CONFIRMED');
+        if (!hasConfirmedRequest) return;
+        const interval = setInterval(() => setTick(t => t + 1), 1000);
+        return () => clearInterval(interval);
+    }, [supportRequests]);
 
     // 1. Extract and prioritize active statuses
     const activeDisplayItems = useMemo(() => {
@@ -150,32 +166,28 @@ export const ContextBanner: React.FC<ContextBannerProps> = ({
         }
 
         // Support mapping
-        Object.entries(supportStatuses).forEach(([id, status]) => {
-            if (status !== 'IDLE') {
-                const label = SUPPORT_LABELS[id] || 'Yêu cầu hỗ trợ';
-                const Icon = SUPPORT_ICONS[id] || MessageSquare;
-                let text = '';
-                let color = '#F97316'; // Default orange
-                let priority = 10; // Lower priority than orders generally
+        supportRequests.forEach((req) => {
+            let text = '';
+            let color = '#F97316'; // Default orange
+            let priority = 10;
 
-                if (status === 'SENDING') {
-                    text = `Đang gửi yêu cầu "${label}"...`;
-                } else if (status === 'PENDING') {
-                    text = `"${label}" đang chờ xác nhận`;
-                    priority = 2.5; // High priority, similar to order PENDING
-                } else if (status === 'IN_PROGRESS') {
-                    text = `Nhân viên đang xử lý: "${label}"`;
-                    color = '#3B82F6';
-                    priority = 3.5;
-                }
-
-                items.push({ text, icon: Icon, color, status, priority });
+            if (req.status === 'PENDING') {
+                text = `Có 1 yêu cầu đang chờ xác nhận`;
+                priority = 2.5; // High priority, similar to order PENDING
+            } else if (req.status === 'CONFIRMED') {
+                const elapsedSeconds = req.confirmedAt ? Math.floor((Date.now() - req.confirmedAt) / 1000) : 0;
+                const remaining = Math.max(0, 30 - elapsedSeconds);
+                text = `Nhân viên đã xác nhận và đang ra hỗ trợ (${remaining}s)`;
+                color = '#3B82F6';
+                priority = 3.5;
             }
+
+            items.push({ text, icon: MessageSquare, color, status: req.status, priority });
         });
 
         // Final sort of display items by priority
         return items.sort((a, b) => a.priority - b.priority);
-    }, [activeOrders, supportStatuses]);
+    }, [activeOrders, supportRequests, tick]);
 
     // 2. Auto-Cycling Effect
     useEffect(() => {

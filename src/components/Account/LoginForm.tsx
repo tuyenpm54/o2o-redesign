@@ -21,10 +21,20 @@ export const LoginForm = ({ from = '/' }: { from?: string }) => {
 
     const handleVerifyParams = async () => {
         if (otp === '123456') {
-            await login(phone);
-            // Go to profile setup page first, then back to origin
-            const setupUrl = `/account?from=${encodeURIComponent(from)}&setup=1`;
-            window.location.href = setupUrl;
+            const user = await login(phone);
+            
+            // Check if user is NEW or their name is still default
+            if (!user || user.name === 'Khách hàng mới' || !user.name) {
+                const setupUrl = `/account?from=${encodeURIComponent(from)}&setup=1`;
+                router.replace(setupUrl);
+            } else {
+                // Return to previous screen or account overview
+                if (from && from !== '/') {
+                    router.replace(from);
+                } else {
+                    router.replace('/account');
+                }
+            }
         } else {
             alert('OTP không đúng (thử 123456)');
         }

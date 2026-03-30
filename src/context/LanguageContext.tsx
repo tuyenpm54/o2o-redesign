@@ -23,7 +23,9 @@ export const translations: Translations = {
     'COOKING': { vi: 'Đang chế biến', en: 'Now Cooking' },
     'READY': { vi: 'Chờ phục vụ', en: 'Ready to Serve' },
     'SERVED': { vi: 'Đã phục vụ', en: 'Served' },
-    'CONFIRMED': { vi: 'Chờ xác nhận', en: 'Awaiting Confirmation' },
+    'CONFIRMED': { vi: 'Đã xác nhận', en: 'Confirmed' },
+    'PENDING': { vi: 'Chờ xác nhận', en: 'Awaiting Confirmation' },
+    'Đang chọn món': { vi: 'Đang chọn món', en: 'Ordering' },
 
     // UI Elements
     'Gợi ý thông minh': { vi: 'Gợi ý thông minh', en: 'Smart Choices' },
@@ -75,7 +77,7 @@ export const translations: Translations = {
     'Tổng cộng': { vi: 'Tổng cộng', en: 'Total' },
     'Quay lại': { vi: 'Quay lại', en: 'Back' },
     'Tới giỏ hàng': { vi: 'Tới giỏ hàng', en: 'To Cart' },
-    'Gửi gọi món': { vi: 'Gửi gọi món', en: 'Send Order' },
+    'Gửi gọi món': { vi: 'Gửi yêu cầu', en: 'Send Order' },
     'Hẹn hò': { vi: 'Hẹn hò', en: 'Dating' },
     'Gia đình': { vi: 'Gia đình', en: 'Family' },
     'Tiệc tùng': { vi: 'Tiệc tùng', en: 'Party' },
@@ -159,6 +161,9 @@ export const translations: Translations = {
     'Mã OTP đã được gửi đến': { vi: 'Mã OTP đã được gửi đến', en: 'OTP code has been sent to' },
     'Gửi lại mã': { vi: 'Gửi lại mã', en: 'Resend code' },
     'OTP không đúng (thử 123456)': { vi: 'OTP không đúng (thử 123456)', en: 'Incorrect OTP (try 123456)' },
+    'Ngồi': { vi: 'Ngồi', en: 'Seated' },
+    'phút': { vi: 'phút', en: 'mins' },
+    'Vừa tới': { vi: 'Vừa tới', en: 'Just arrived' },
 };
 
 

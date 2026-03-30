@@ -927,7 +927,6 @@ export default function StorefrontPreview() {
                     model="A"
                     tableId="A-12"
                     activeOrders={activeOrders}
-                    supportStatuses={supportStatuses}
                 />
             </section>
 
@@ -1000,14 +999,7 @@ export default function StorefrontPreview() {
                     className={`${styles.staffFab} ${hasActiveRequest ? styles.active : ''}`}
                     onClick={() => setShowSupportMenu(true)}
                 >
-                    <div className={styles.staffIconWrapper}>
-                        <img
-                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff"
-                            alt="Staff"
-                            className={styles.staffAvatar}
-                        />
-                        <div className={styles.onlineBadge} />
-                    </div>
+                    <BellRing size={22} className={styles.staffIcon} />
                     <span className={styles.staffLabel}>Hỗ trợ</span>
                     {hasActiveRequest && (
                         <span className={styles.activeCount}>

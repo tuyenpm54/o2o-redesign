@@ -1,12 +1,20 @@
 "use client";
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { LayoutDashboard, MonitorSmartphone, Settings, LogOut, LayoutGrid, Terminal } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { LayoutDashboard, MonitorSmartphone, Settings, LogOut, LayoutGrid, Terminal, UtensilsCrossed } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export function AdminSidebar() {
     const router = useRouter();
+    const pathname = usePathname();
+
+    const navLink = (href: string) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-semibold ${
+            pathname?.startsWith(href)
+                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                : 'text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white bg-transparent hover:bg-slate-100/50 dark:hover:bg-white/5'
+        }`;
 
     const handleLogout = () => {
         localStorage.removeItem('isLoggedIn');
@@ -25,21 +33,29 @@ export function AdminSidebar() {
             </div>
 
             <nav className="flex-1 p-4 space-y-2">
-                <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white bg-transparent hover:bg-slate-100/50 dark:hover:bg-white/5 rounded-xl transition-all font-semibold">
+                <Link href="/admin/dashboard" className={navLink('/admin/dashboard')}>
                     <LayoutDashboard size={20} />
                     <span>Dashboard</span>
                 </Link>
-                <Link href="/admin/tables" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white bg-transparent hover:bg-slate-100/50 dark:hover:bg-white/5 rounded-xl transition-all font-semibold">
+                <Link href="/admin/tables" className={navLink('/admin/tables')}>
                     <LayoutGrid size={20} />
                     <span>Quản lý Bàn</span>
                 </Link>
-                <Link href="/admin/pos" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white bg-transparent hover:bg-slate-100/50 dark:hover:bg-white/5 rounded-xl transition-all font-semibold">
+                <Link href="/admin/pos" className={navLink('/admin/pos')}>
                     <Terminal size={20} />
                     <span>KDS (Nhận bếp)</span>
                 </Link>
-                <Link href="/admin/display" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white bg-transparent hover:bg-slate-100/50 dark:hover:bg-white/5 rounded-xl transition-all font-semibold">
+                <Link href="/admin/menu" className={navLink('/admin/menu')}>
+                    <UtensilsCrossed size={20} />
+                    <span>Thực đơn nhà hàng</span>
+                </Link>
+                <Link href="/admin/display" className={navLink('/admin/display')}>
                     <MonitorSmartphone size={20} />
                     <span>Cấu hình hiển thị</span>
+                </Link>
+                <Link href="/admin/scenarios" className={navLink('/admin/scenarios')}>
+                    <Settings size={20} />
+                    <span>Cấu hình kịch bản</span>
                 </Link>
             </nav>
 

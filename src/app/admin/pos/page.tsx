@@ -28,7 +28,7 @@ export default function PosPage() {
 
     const fetchOrders = async () => {
         try {
-            const res = await fetch('/api/admin/orders');
+            const res = await fetch(`/api/admin/orders?_t=${Date.now()}`);
             if (res.ok) {
                 const data = await res.json();
                 setTables(data.tables || []);

@@ -2,48 +2,44 @@
 
 import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-    ChevronLeft,
-} from 'lucide-react';
-import { MOCK_ROUNDS } from '@/data/mock-order-history';
+import { ChevronLeft } from 'lucide-react';
 import styles from './page.module.css';
 import { PersonalInfoSection, UserData } from '@/components/Account/PersonalInfoSection';
+import { VATInfoSection } from '@/components/Account/VATInfoSection';
 import { AccountOverview } from '@/components/Account/AccountOverview';
+import { InvoiceListSection } from '@/components/Account/InvoiceListSection';
 import { useAuth } from '@/context/AuthContext';
 import { LoginForm } from '@/components/Account/LoginForm';
+import { OnboardingForm } from '@/components/Account/OnboardingForm';
 
-// Helper for date
-const formatDate = (isoString: string) => {
-    const date = new Date(isoString);
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} ${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+type ViewState = 'OVERVIEW' | 'PERSONAL_INFO' | 'VAT_INFO' | 'INVOICE_LIST' | 'ONBOARDING';
+
+const VIEW_TITLES: Record<ViewState, string> = {
+    OVERVIEW: 'Tài khoản',
+    PERSONAL_INFO: 'Thông tin cá nhân',
+    VAT_INFO: 'Thông tin VAT',
+    INVOICE_LIST: 'Hoá đơn',
+    ONBOARDING: 'Cập nhật thông tin',
 };
-
-// Recent Orders Transformation
-const recentOrders = MOCK_ROUNDS.slice(0, 2).map(round => ({
-    id: round.id,
-    items: round.items.map(i => i.name).slice(0, 2),
-    totalItems: round.items.length,
-    status: round.status === 'PENDING' ? 'Đang chọn' : 'Hoàn thành', // Simple Mapping
-    time: formatDate(round.orderedAt)
-}));
 
 const UserAccountContent = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const from = searchParams.get('from') || '/';
     const isSetup = searchParams.get('setup') === '1';
-    const { isLoggedIn, isGuest, user, logout, updateUser } = useAuth();
-    const [view, setView] = useState<'OVERVIEW' | 'PERSONAL_INFO'>(isSetup ? 'PERSONAL_INFO' : 'OVERVIEW');
+    const { isLoggedIn, isGuest, user, logout, updateUser, isLoadingAuth } = useAuth();
+    const [view, setView] = useState<ViewState>('OVERVIEW');
 
     // Mapped Data from Context
-    const [userData, setUserData] = useState<UserData & { points: number, tier: string }>({
+    const [userData, setUserData] = useState<UserData & { points: number; tier: string; preferences: string[] }>({
         name: "",
         phone: "",
         email: "",
         gender: "",
         dob: "",
         points: 0,
-        tier: ""
+        tier: "",
+        preferences: [],
     });
 
     useEffect(() => {
@@ -52,26 +48,30 @@ const UserAccountContent = () => {
                 name: user.name,
                 phone: user.phone,
                 email: user.email || "",
-                gender: "Nam", // Mock
-                dob: "01/01/2000", // Mock
+                gender: "Nam", // From profile API when available
+                dob: "01/01/2000",
                 points: user.points || 0,
-                tier: user.tier || "Khách"
+                tier: user.tier || "Khách",
+                preferences: user.preferences || [],
             });
+            
+            // Check if we ACTUALLY need onboarding
+            if (isSetup && (user.name === 'Khách hàng mới' || !user.name)) {
+                setView('ONBOARDING');
+            } else {
+                setView('OVERVIEW');
+            }
         }
-    }, [user]);
+    }, [user, isSetup]);
 
     const [membershipData] = useState({
-        nextTierPoints: 1000,
+        nextTierPoints: 2000,
         rewards: [
-            { id: '1', name: 'Voucher giảm 50k', pointsRequired: 500, image: 'https://images.unsplash.com/photo-1549488344-c70595af8dce?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80' },
-            { id: '2', name: 'Free Tiramisu', pointsRequired: 800, image: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80' },
-            { id: '3', name: 'Giảm 10% Bill', pointsRequired: 1500, image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80' }
+            { id: '1', name: 'Voucher giảm 50k', pointsRequired: 500, image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=300&h=200&fit=crop' },
+            { id: '2', name: 'Free Tiramisu', pointsRequired: 800, image: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=300&h=200&fit=crop' },
+            { id: '3', name: 'Giảm 10% Bill', pointsRequired: 1500, image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&h=200&fit=crop' }
         ]
     });
-
-    const handleNavigateToHistory = () => {
-        router.push('/order-history/rounds');
-    };
 
     const handleUpdateProfile = async (newData: UserData) => {
         setUserData(prev => ({ ...prev, ...newData }));
@@ -79,17 +79,8 @@ const UserAccountContent = () => {
     };
 
     const handleBack = () => {
-        if (view === 'PERSONAL_INFO') {
-            if (isSetup) {
-                // After setting up profile, go back to origin page
-                if (from && from !== '/') {
-                    router.push(from);
-                } else {
-                    router.push('/customer');
-                }
-            } else {
-                setView('OVERVIEW');
-            }
+        if (view !== 'OVERVIEW') {
+            setView('OVERVIEW');
         } else {
             if (from && from !== '/') {
                 router.push(from);
@@ -99,13 +90,74 @@ const UserAccountContent = () => {
         }
     };
 
+    if (isLoadingAuth) {
+        return (
+            <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <div style={{ width: 32, height: 32, border: '3px solid #f3f3f3', borderTop: '3px solid #DF1B41', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            </div>
+        );
+    }
+
     // If not logged in or is still a guest, show login form
     if (!isLoggedIn || isGuest) {
         return <LoginForm from={from} />;
     }
 
-    // Define TOP_REWARDS_MOCK based on existing membershipData for consistency
-    const TOP_REWARDS_MOCK = membershipData.rewards.slice(0, 2);
+    const TOP_REWARDS_MOCK = membershipData.rewards.slice(0, 3);
+
+    const renderView = () => {
+        switch (view) {
+            case 'ONBOARDING':
+                return (
+                    <div className={styles.personalInfoView}>
+                        <OnboardingForm
+                            userData={userData}
+                            onComplete={async (data) => {
+                                await handleUpdateProfile(data as UserData);
+                                setView('OVERVIEW');
+                            }}
+                        />
+                    </div>
+                );
+            case 'PERSONAL_INFO':
+                return (
+                    <div className={styles.personalInfoView}>
+                        <PersonalInfoSection
+                            userData={userData}
+                            onUpdate={handleUpdateProfile}
+                        />
+                    </div>
+                );
+            case 'VAT_INFO':
+                return (
+                    <div className={styles.personalInfoView}>
+                        <VATInfoSection />
+                    </div>
+                );
+            case 'INVOICE_LIST':
+                return (
+                    <div className={styles.personalInfoView}>
+                        <InvoiceListSection />
+                    </div>
+                );
+            default:
+                return (
+                    <AccountOverview
+                        userData={userData}
+                        nextTierPoints={membershipData.nextTierPoints}
+                        topRewards={TOP_REWARDS_MOCK}
+                        onNavigateToVouchers={() => router.push('/account/vouchers')}
+                        onNavigateToSettings={() => router.push(`/account/settings?from=${encodeURIComponent(from)}`)}
+                        onNavigateToHistory={() => router.push('/table-orders')}
+                        onNavigateToPersonalInfo={() => setView('PERSONAL_INFO')}
+                        onNavigateToVATInfo={() => setView('VAT_INFO')}
+                        onNavigateToInvoices={() => setView('INVOICE_LIST')}
+                        onLogout={logout}
+                    />
+                );
+        }
+    };
 
     return (
         <div className={styles.container}>
@@ -116,31 +168,13 @@ const UserAccountContent = () => {
                         <ChevronLeft size={24} />
                     </button>
                     <h1 className={styles.pageTitle}>
-                        {view === 'PERSONAL_INFO' ? 'Thông tin cá nhân' : 'Tài khoản'}
+                        {VIEW_TITLES[view]}
                     </h1>
                 </div>
             </header>
 
             <main className={styles.main}>
-                {view === 'PERSONAL_INFO' ? (
-                    <div className={styles.personalInfoView}>
-                        <PersonalInfoSection
-                            userData={userData}
-                            onUpdate={handleUpdateProfile}
-                        />
-                    </div>
-                ) : (
-                    <AccountOverview
-                        userData={userData}
-                        nextTierPoints={2000} // Mock
-                        topRewards={TOP_REWARDS_MOCK}
-                        recentOrders={recentOrders}
-                        onNavigateToVouchers={() => router.push('/account/vouchers')}
-                        onNavigateToSettings={() => router.push(`/account/settings?from=${encodeURIComponent(from)}`)}
-                        onNavigateToHistory={handleNavigateToHistory}
-                        onNavigateToPersonalInfo={() => setView('PERSONAL_INFO')}
-                    />
-                )}
+                {renderView()}
             </main>
         </div>
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { BellRing } from 'lucide-react';
 import styles from './OnboardingGuide.module.css';
 
 interface OnboardingGuideProps {
@@ -43,13 +44,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ visible, onDis
                 {/* 2. The Cloned Button (Spotlight Target) */}
                 <div className={styles.fakeFab}>
                     <div className={styles.pulseRing}></div>
-                    <div className={styles.staffIconWrapper}>
-                        <img
-                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff"
-                            className={styles.fakeAvatar}
-                            alt="Staff"
-                        />
-                    </div>
+                    <BellRing size={22} className={styles.staffIcon} />
                     <span className={styles.fakeLabel}>Hỗ trợ</span>
                 </div>
             </div>

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LayoutTemplate, Plus, Save, ChevronUp, ChevronDown, Trash2, Settings2, Eye, X, Copy, Palette, ExternalLink, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { LayoutTemplate, Plus, Save, ChevronUp, ChevronDown, Trash2, Settings2, Eye, X, Copy, Palette, ExternalLink, CheckCircle2, AlertTriangle, Clock, UsersRound } from 'lucide-react';
+import { SurveyEditorModal, DEFAULT_SURVEY_CONFIG } from './SurveyEditorModal';
 
-type ModuleType = 'menu-grid' | 'hero-banner' | 'collection-grid' | 'guided-discovery' | 'smart-suggestions' | 'group-ordering' | 'flash-sales' | 'bill-discount-progress';
+type ModuleType = 'menu-grid' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'custom';
 
 interface StorefrontBlock {
     id: string;
@@ -20,14 +21,12 @@ interface StorefrontTemplate {
 }
 
 const MODULE_DEFINITIONS: Record<ModuleType, { name: string; description: string; category: 'layout' | 'action' }> = {
-    'menu-grid': { name: 'Thực Đơn Mặc Định', description: 'Hiển thị danh sách món ăn cốt lõi', category: 'layout' },
-    'hero-banner': { name: 'Banner Trượt', description: 'Slider ảnh nổi bật đầu trang', category: 'layout' },
-    'collection-grid': { name: 'Bộ sưu tập & Nhóm món', description: 'Hiển thị danh sách món theo chủ đề (Món mới, Món bán chạy, Combo ưu đãi...)', category: 'layout' },
-    'guided-discovery': { name: 'Trợ Lý Đặt Món', description: 'Hỏi đáp AI chọn món', category: 'layout' },
-    'smart-suggestions': { name: 'Gợi Ý Mua Kèm', description: 'Upsell & Cross-sell tự động (Hiện khi chọn món hoặc thanh toán)', category: 'action' },
-    'group-ordering': { name: 'Gọi Món Nhóm', description: 'Quét QR cùng chọn món', category: 'action' },
-    'flash-sales': { name: 'Flash Sale (Giờ Vàng)', description: 'Module giảm giá', category: 'layout' },
-    'bill-discount-progress': { name: 'Giảm Giá Tại Nhà Hàng', description: 'Thanh tiến trình gợi ý bill', category: 'action' },
+    'for-you': { name: 'Dành Cho Bạn', description: 'Gợi ý cá nhân hóa theo lịch sử khách (Chỉ On/Off)', category: 'layout' },
+    'combo': { name: 'Combo Tiết Kiệm', description: 'Hiển thị các gói combo giá tốt', category: 'layout' },
+    'best-sale': { name: 'Siêu Phẩm Bán Chạy', description: 'Danh sách món bán chạy nhất', category: 'layout' },
+    'custom': { name: 'Danh Mục Tuỳ Chỉnh', description: 'Tự cấu hình danh mục riêng', category: 'layout' },
+    'menu-grid': { name: 'Thực Đơn Của Quán', description: 'Hiển thị mục thực đơn cốt lõi (Ghim dưới đáy menu)', category: 'layout' },
+    'onboarding-wizard': { name: 'Khám Phá Menu (Giới thiệu)', description: 'Bật/Tắt và thiết lập Khảo sát đầu vào (V2)', category: 'action' },
 };
 
 const SYSTEM_TEMPLATES: StorefrontTemplate[] = [
@@ -36,40 +35,21 @@ const SYSTEM_TEMPLATES: StorefrontTemplate[] = [
         name: 'Mẫu Ăn Tại Bàn (Dining)',
         isSystem: true,
         blocks: [
-            { id: 'b1', type: 'hero-banner', title: 'Banner Khuyến Mãi', config: {} },
-            { id: 'b2', type: 'guided-discovery', title: 'Trợ Lý Ảo', config: {} },
-            { id: 'b3', type: 'group-ordering', title: 'Mời bạn bè cùng chọn', config: {} },
-            { id: 'b4', type: 'menu-grid', title: 'Thực Đơn Của Chúng Tôi', config: { viewType: 'list' } }
-        ]
-    },
-    {
-        id: 'sys-buffet',
-        name: 'Mẫu Buffet / Tiệc',
-        isSystem: true,
-        blocks: [
-            { id: 'b1', type: 'collection-grid', title: 'Quầy Line Hôm Nay', config: { groupName: 'Món ngon mỗi ngày' } },
-            { id: 'b2', type: 'collection-grid', title: 'Các Gói Buffet Nâng Cấp', config: { groupName: 'Gói Buffet' } },
-            { id: 'b3', type: 'menu-grid', title: 'Chi Tiết Các Món', config: { viewType: 'grid' } }
+            { id: 'b1', type: 'for-you', title: 'Dành Cho Bạn', config: { isEnabled: true } },
+            { id: 'b2', type: 'combo', title: 'Combo Tiết Kiệm', config: { isEnabled: true } },
+            { id: 'b3', type: 'best-sale', title: 'Siêu Phẩm Bán Chạy', config: { isEnabled: true } },
+            { id: 'b4', type: 'custom', title: 'Danh Mục Tuỳ Chỉnh', config: { isEnabled: true, groupName: '' } },
+            { id: 'b5', type: 'menu-grid', title: 'Thực Đơn Mặc Định', config: {} }
         ]
     }
 ];
 
 const isBlockValid = (block: StorefrontBlock): boolean => {
     const { type, config } = block;
-    switch (type) {
-        case 'smart-suggestions':
-            return !!config.triggerItemId;
-        case 'collection-grid':
-            return !!config.groupName;
-        case 'flash-sales':
-            return !!config.startTime && !!config.endTime;
-        case 'guided-discovery':
-            return !!config.questions && config.questions.length > 0 && config.questions.every((q: any) => q.text && q.options && q.options.length > 0);
-        case 'bill-discount-progress':
-            return !!config.targetBillLimit && !!config.discountAmount;
-        default:
-            return true;
+    if (type === 'custom') {
+        return !!config.groupName && config.groupName.trim() !== '';
     }
+    return true;
 };
 
 function CheckIcon(props: any) {
@@ -94,367 +74,246 @@ function CheckIcon(props: any) {
 function ModuleConfigForm({ block, onChange }: { block: StorefrontBlock, onChange: (newConfig: any) => void }) {
     const { type, config } = block;
     const isValid = isBlockValid(block);
+    const [previewStyle, setPreviewStyle] = useState<'v1' | 'v2' | null>(null);
+    const [isEditSurveyOpen, setIsEditSurveyOpen] = useState(false);
 
-    const renderSmartSuggestions = () => (
-        <div className="space-y-4">
-            {!isValid && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-lg text-xs font-bold border border-red-200 dark:border-red-500/20 mb-2">
-                    <AlertTriangle size={14} />
-                    Mục "Món kích hoạt" là bắt buộc.
-                </div>
-            )}
-            <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
-                <div className="flex items-center gap-3 mb-4">
-                    <span className="shrink-0 w-6 h-6 rounded bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">1</span>
-                    <h5 className="font-semibold text-sm text-slate-900 dark:text-white">Quy Tắc: NẾU khách chọn món này</h5>
-                </div>
-                <select className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-white" value={config?.triggerItemId || ''} onChange={(e) => onChange({ triggerItemId: e.target.value })}>
-                    <option value="">-- Chọn món kích hoạt --</option>
-                    <option value="201">Sườn Nướng Tảng BBQ</option>
-                    <option value="204">Mì Ý Sốt Kem Nấm</option>
-                    <option value="205">Bò Beefsteak Sốt Tiêu</option>
-                </select>
-                <p className="text-xs text-slate-500 mt-2">Khi khách thêm món này vào giỏ, hệ thống sẽ bật popup gợi ý.</p>
-            </div>
-
-            <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
-                <div className="flex items-center gap-3 mb-4">
-                    <span className="shrink-0 w-6 h-6 rounded bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs">2</span>
-                    <h5 className="font-semibold text-sm text-slate-900 dark:text-white">THÌ gợi ý các món mua kèm sau:</h5>
-                </div>
-                <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm p-2 bg-white dark:bg-black/20 rounded border border-slate-100 dark:border-white/5 hover:border-blue-500 transition-colors cursor-pointer">
-                        <input type="checkbox" defaultChecked className="rounded text-blue-600 border-slate-300" /> Trà Đào Cam Sả (+45.000đ)
-                    </label>
-                    <label className="flex items-center gap-2 text-sm p-2 bg-white dark:bg-black/20 rounded border border-slate-100 dark:border-white/5 hover:border-blue-500 transition-colors cursor-pointer">
-                        <input type="checkbox" defaultChecked className="rounded text-blue-600 border-slate-300" /> Coca Cola Tươi (+15.000đ)
-                    </label>
-                    <label className="flex items-center gap-2 text-sm p-2 bg-white dark:bg-black/20 rounded border border-slate-100 dark:border-white/5 hover:border-blue-500 transition-colors cursor-pointer">
-                        <input type="checkbox" className="rounded text-blue-600 border-slate-300" /> Trứng chần (+10.000đ)
-                    </label>
-                    <button className="w-full py-2 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-500/10 rounded hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors mt-2">+ Thêm món gợi ý</button>
-                </div>
-            </div>
-
-            <div className="pt-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                    <input type="checkbox" checked={config.autoAdd || false} onChange={(e) => onChange({ autoAdd: e.target.checked })} className="rounded text-blue-600 w-4 h-4 border-slate-300 border" />
-                    Tự động thêm vào giỏ nếu khách đồng ý (1-click upsell)
-                </label>
-            </div>
-        </div>
-    );
-
-    const renderFlashSales = () => (
-        <div className="space-y-5">
-            {!isValid && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-lg text-xs font-bold border border-red-200 dark:border-red-500/20 mb-2">
-                    <AlertTriangle size={14} />
-                    Vui lòng chọn Giờ bắt đầu và Giờ kết thúc.
-                </div>
-            )}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Giờ bắt đầu</label>
-                    <input type="datetime-local" className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" value={config.startTime || ''} onChange={(e) => onChange({ startTime: e.target.value })} />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Giờ kết thúc</label>
-                    <input type="datetime-local" className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" value={config.endTime || ''} onChange={(e) => onChange({ endTime: e.target.value })} />
-                </div>
-            </div>
-
-            <div>
-                <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Danh sách món giảm giá</label>
-                    <button className="text-xs font-semibold text-blue-600 hover:text-blue-700">+ Thêm món</button>
-                </div>
-                <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden text-sm">
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-50 dark:bg-white/5 text-slate-500 border-b border-slate-200 dark:border-white/10">
-                            <tr>
-                                <th className="p-3 font-medium">Tên Món</th>
-                                <th className="p-3 font-medium w-28">Giá gốc</th>
-                                <th className="p-3 font-medium w-28">Giá khuyến mãi</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                            <tr className="bg-white dark:bg-black/20">
-                                <td className="p-3 font-medium text-slate-900 dark:text-white">Trà Đào Cam Sả</td>
-                                <td className="p-3">
-                                    <input type="number" className="w-full bg-transparent outline-none text-slate-500 line-through" defaultValue="50000" />
-                                </td>
-                                <td className="p-3">
-                                    <input type="number" className="w-full px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 font-bold rounded border-none outline-none" defaultValue="35000" />
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-
-    const renderProductCollection = () => (
-        <div className="space-y-4">
-            <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 text-xs">
-                <strong>💡 Lưu ý:</strong> Module này dùng chung cho cả <strong>Món hot/bán chạy</strong> và <strong>Các gói Combo</strong>. Hệ thống sẽ tự động tối ưu hiển thị dựa trên nội dung bạn chọn.
-            </div>
-            {!isValid && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-lg text-xs font-bold border border-red-200 dark:border-red-500/20 mb-2">
-                    <AlertTriangle size={14} />
-                    Vui lòng nhập Tên Nhóm / Combo.
-                </div>
-            )}
-            <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tên Nhóm / Combo</label>
-                <input type="text" className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" placeholder="VD: Combo Ưu Đãi Trưa" value={config.groupName || ''} onChange={(e) => onChange({ groupName: e.target.value })} />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bố cục hiển thị (Layout)</label>
-                <select className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-white" value={config.layout || 'horizontal-slider'} onChange={(e) => onChange({ layout: e.target.value })}>
-                    <option value="horizontal-slider">Băng Chuyền Ngang (Horizontal Slider)</option>
-                    <option value="grid">Lưới (Grid View)</option>
-                </select>
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Chọn Món Ẩm Thực ưu tiên hiển thị</label>
-                <div className="p-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-white/10 text-xs font-medium text-slate-700 dark:text-slate-300">
-                            Cơm Gà Hải Nam <button className="hover:text-red-500"><X size={12} /></button>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-white/10 text-xs font-medium text-slate-700 dark:text-slate-300">
-                            Canh Rong Biển <button className="hover:text-red-500"><X size={12} /></button>
-                        </span>
-                    </div>
-                    <input type="text" className="w-full px-3 py-2 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg text-sm" placeholder="Tìm kiếm món ăn để thêm..." />
-                </div>
-            </div>
-        </div>
-    );
-
-    const renderGuidedDiscovery = () => {
-        const questions = config.questions || [];
-
-        const updateQuestion = (qIndex: number, field: string, value: any) => {
-            const newQuestions = [...questions];
-            newQuestions[qIndex] = { ...newQuestions[qIndex], [field]: value };
-            onChange({ questions: newQuestions });
-        };
-
-        const updateOption = (qIndex: number, oIndex: number, field: string, value: any) => {
-            const newQuestions = [...questions];
-            newQuestions[qIndex].options[oIndex] = { ...newQuestions[qIndex].options[oIndex], [field]: value };
-            onChange({ questions: newQuestions });
-        };
-
-        const addQuestion = () => {
-            onChange({ questions: [...questions, { id: 'q' + Date.now(), text: 'Câu Hỏi Mới', options: [] }] });
-        };
-
-        const addOption = (qIndex: number) => {
-            const newQuestions = [...questions];
-            newQuestions[qIndex].options.push({ id: 'o' + Date.now(), label: 'Lựa chọn mới', tags: '' });
-            onChange({ questions: newQuestions });
-        };
-
-        const removeQuestion = (qIndex: number) => {
-            onChange({ questions: questions.filter((_: any, i: number) => i !== qIndex) });
-        };
-
-        const removeOption = (qIndex: number, oIndex: number) => {
-            const newQuestions = [...questions];
-            newQuestions[qIndex].options = newQuestions[qIndex].options.filter((_: any, i: number) => i !== oIndex);
-            onChange({ questions: newQuestions });
-        };
-
+    if (type === 'for-you' || type === 'best-sale' || type === 'combo') {
         return (
-            <div className="space-y-5">
+            <div className="space-y-4">
+                <div className="text-sm text-slate-500 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 flex items-start gap-3">
+                    <div className="mt-0.5 text-blue-500"><Settings2 size={16} /></div>
+                    <div>
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Module Tự Động</p>
+                        Khối nội dung này được hệ thống tự động tính toán dựa trên dữ liệu gọi món thực tế và trí tuệ nhân tạo. Bạn chỉ cần điều khiển Bật/Tắt hiển thị.
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (type === 'custom') {
+        return (
+            <div className="space-y-4">
                 {!isValid && (
                     <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-lg text-xs font-bold border border-red-200 dark:border-red-500/20 mb-2">
                         <AlertTriangle size={14} />
-                        Vui lòng thêm ít nhất một câu hỏi hoàn chỉnh.
+                        Vui lòng nhập Tên Danh Mục để hệ thống nhận diện trên Menu.
                     </div>
                 )}
-                <div className="p-4 rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-sm mb-4">
-                    <strong>Trợ Lý AI (Hỏi Đáp Chọn Món):</strong> Hệ thống sẽ hỏi khách hàng 1 chuỗi câu hỏi. Bạn cần gán <code>Tag</code> cho từng câu trả lời. Hệ thống tự map Tag với món ăn trên Menu.
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tên Danh Mục Tuỳ Chỉnh</label>
+                    <input 
+                        type="text" 
+                        className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" 
+                        placeholder="VD: Món Tráng Miệng Mới" 
+                        value={config.groupName || ''} 
+                        onChange={(e) => onChange({ groupName: e.target.value })} 
+                    />
+                    <p className="text-xs text-slate-500 mt-2">Hệ thống sẽ lấy danh sách các món ăn thuộc danh mục này từ Menu Gốc để ghim lên đầu trang.</p>
                 </div>
-
-                {questions.map((q: any, qIndex: number) => (
-                    <div key={q.id} className="p-4 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl shadow-sm">
-                        <div className="flex justify-between items-start mb-3">
-                            <input
-                                type="text"
-                                className="font-bold text-sm text-slate-900 dark:text-white bg-transparent border-none outline-none flex-1 placeholder-slate-400"
-                                value={q.text}
-                                onChange={(e) => updateQuestion(qIndex, 'text', e.target.value)}
-                                placeholder="Nhập câu hỏi..."
-                            />
-                            <button onClick={() => removeQuestion(qIndex)} className="text-red-500 hover:text-red-600 p-1"><Trash2 size={14} /></button>
-                        </div>
-                        <div className="space-y-3 pl-4 border-l-2 border-slate-100 dark:border-white/10">
-                            {q.options.map((opt: any, oIndex: number) => (
-                                <div key={opt.id} className="flex items-start gap-3">
-                                    <div className="flex-1">
-                                        <input type="text" className="w-full px-3 py-1.5 mb-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded text-sm font-semibold" value={opt.label} onChange={(e) => updateOption(qIndex, oIndex, 'label', e.target.value)} placeholder="Tên lựa chọn" />
-                                        <input type="text" className="w-full px-3 py-1.5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded text-xs font-mono text-slate-500 placeholder-slate-400" value={opt.tags} onChange={(e) => updateOption(qIndex, oIndex, 'tags', e.target.value)} placeholder="Nhập tags, cách nhau bởi dấu phẩy" />
-                                    </div>
-                                    <button onClick={() => removeOption(qIndex, oIndex)} className="text-slate-400 hover:text-red-500 mt-2"><X size={16} /></button>
-                                </div>
-                            ))}
-                            <button onClick={() => addOption(qIndex)} className="text-xs font-semibold text-blue-600 hover:text-blue-700 py-1">+ Thêm lựa chọn</button>
-                        </div>
-                    </div>
-                ))}
-
-                <button onClick={addQuestion} className="w-full py-3 border border-dashed border-slate-300 dark:border-white/20 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:border-blue-500 transition-colors">
-                    + Thêm Câu Hỏi Mới
-                </button>
             </div>
         );
-    };
+    }
 
-    const renderGroupOrdering = () => (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl">
-                <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">Kích hoạt Chọn Món Nhóm (Group Ordering)</div>
-                    <div className="text-xs text-slate-500">Cho phép quét mã QR chia sẻ bàn để nhiều người cùng đặt món vào chung 1 giỏ hàng hóa đơn.</div>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                    <input type="checkbox" checked={config.isEnabled !== false} onChange={(e) => onChange({ isEnabled: e.target.checked })} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
-                </label>
-            </div>
-            {config.isEnabled !== false && (
-                <div className="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl text-orange-800 dark:text-orange-300 text-xs">
-                    <strong>Lưu ý:</strong> Tính năng này yêu cầu Bàn phải được đồng bộ hóa hệ thống POS để tách/ghép bill.
-                </div>
-            )}
-        </div>
-    );
+    if (type === 'onboarding-wizard') {
+        const wizardStyle = config.wizardStyle || 'v2'; // 'v1' or 'v2'
 
-    const renderBillDiscountProgress = () => (
-        <div className="space-y-5">
-            {!isValid && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-lg text-xs font-bold border border-red-200 dark:border-red-500/20 mb-2">
-                    <AlertTriangle size={14} />
-                    Mốc hóa đơn và Số tiền giảm là bắt buộc.
-                </div>
-            )}
-            <div className="grid grid-cols-2 gap-4">
+        return (
+            <div className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mốc hóa đơn yêu cầu (VNĐ)</label>
-                    <input type="number" className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-mono text-slate-900 dark:text-white" placeholder="Ví dụ: 500000" value={config.targetBillLimit || ''} onChange={(e) => onChange({ targetBillLimit: parseInt(e.target.value) })} />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Số tiền giảm giá (VNĐ)</label>
-                    <input type="number" className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-mono text-slate-900 dark:text-white" placeholder="Ví dụ: 50000" value={config.discountAmount || ''} onChange={(e) => onChange({ discountAmount: parseInt(e.target.value) })} />
-                </div>
-            </div>
+                    <h5 className="font-bold text-slate-800 dark:text-slate-100 mb-3">Giao diện Hiển thị Khảo sát</h5>
+                    <div className="flex flex-col gap-3">
+                        {/* V1 Card */}
+                        <div 
+                            onClick={() => onChange({ ...config, wizardStyle: 'v1' })}
+                            className={`cursor-pointer rounded-xl border flex items-center p-3 gap-4 transition-all ${wizardStyle === 'v1' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-sm' : 'border-slate-200 dark:border-white/10 hover:border-blue-300 opacity-70 hover:opacity-100'}`}
+                        >
+                            <div className="w-10 h-10 rounded-lg bg-white dark:bg-white/10 flex items-center justify-center text-xl shadow-sm shrink-0">📋</div>
+                            <div className="flex-1 text-left">
+                                <h6 className={`font-bold text-sm leading-tight mb-0.5 ${wizardStyle === 'v1' ? 'text-blue-700 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>Dạng Danh Sách (V1)</h6>
+                                <p className="text-[11px] text-slate-500 leading-tight">Khảo sát cuộn dọc cơ bản</p>
+                            </div>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setPreviewStyle('v1'); }}
+                                className="px-3 py-1.5 rounded-md text-[10px] font-bold bg-white dark:bg-white/10 text-blue-600 border border-slate-200 dark:border-white/10 shadow-sm hover:bg-slate-50 flex items-center gap-1 uppercase tracking-wider shrink-0"
+                            >
+                                <Eye size={12} /> Xem
+                            </button>
+                        </div>
 
-            <div className="p-4 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Bản xem trước lời nhắn (Preview)</span>
-                {config.targetBillLimit && config.discountAmount ? (
-                    <div className="bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 dark:from-orange-500/20 dark:to-amber-500/20 dark:text-orange-300 px-4 py-3 rounded-lg text-sm font-medium shadow-sm max-w-sm w-full">
-                        🔥 Gợi ý: Gọi thêm <strong className="font-black text-rose-600 dark:text-rose-400">120.000đ</strong> để nhận ưu đãi giảm ngay <strong>{config.discountAmount.toLocaleString('vi-VN')}đ</strong> vào hóa đơn.
+                        {/* V2 Card */}
+                        <div 
+                            onClick={() => onChange({ ...config, wizardStyle: 'v2' })}
+                            className={`cursor-pointer rounded-xl border flex items-center p-3 gap-4 transition-all ${wizardStyle === 'v2' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-sm' : 'border-slate-200 dark:border-white/10 hover:border-blue-300 opacity-70 hover:opacity-100'}`}
+                        >
+                            <div className="w-10 h-10 rounded-lg bg-white dark:bg-white/10 flex items-center justify-center text-xl shadow-sm shrink-0">✨</div>
+                            <div className="flex-1 text-left">
+                                <h6 className={`font-bold text-sm leading-tight mb-0.5 ${wizardStyle === 'v2' ? 'text-blue-700 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>Dạng Lookbook (V2)</h6>
+                                <p className="text-[11px] text-slate-500 leading-tight">Vuốt ngang cao cấp (Concierge UI)</p>
+                            </div>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setPreviewStyle('v2'); }}
+                                className="px-3 py-1.5 rounded-md text-[10px] font-bold bg-white dark:bg-white/10 text-blue-600 border border-slate-200 dark:border-white/10 shadow-sm hover:bg-slate-50 flex items-center gap-1 uppercase tracking-wider shrink-0"
+                            >
+                                <Eye size={12} /> Xem
+                            </button>
+                        </div>
                     </div>
-                ) : (
-                    <div className="text-slate-400 italic text-sm">Vui lòng nhập Mốc hóa đơn và Số tiền giảm để xem trước.</div>
+                </div>
+
+                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/10 flex flex-col items-start">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dữ liệu Khảo sát</p>
+                    <p className="text-xs text-slate-500 mb-4 leading-relaxed max-w-[400px]">Cấu hình các bộ câu hỏi "Đi cùng ai", "Hôm nay thèm gì" và liên kết chúng với các món ăn trong Storefront.</p>
+                    <button 
+                        onClick={() => setIsEditSurveyOpen(true)} 
+                        className="px-4 py-2 bg-slate-800 dark:bg-white text-white dark:text-black hover:bg-slate-700 dark:hover:bg-slate-200 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                    >
+                        Chỉnh sửa bộ câu hỏi
+                    </button>
+                    <SurveyEditorModal 
+                        isOpen={isEditSurveyOpen} 
+                        onClose={() => setIsEditSurveyOpen(false)} 
+                        initialData={config.survey || DEFAULT_SURVEY_CONFIG} 
+                        onSave={(surveyData) => onChange({ ...config, survey: surveyData })}
+                    />
+                </div>
+
+                {/* Preview Modal - Skeletons for V1 vs V2 */}
+                {previewStyle && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in" onClick={() => setPreviewStyle(null)}>
+                        <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col scale-100 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                            <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-white/5">
+                                <div>
+                                    <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                                        <Eye size={18} className="text-blue-500" /> Bản xem trước: {previewStyle === 'v1' ? 'Dạng Danh Sách (V1)' : 'Dạng Lookbook (V2)'}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-1">Sơ đồ Mô phỏng: Màn hình Khảo sát \u2192 Màn hình Thực đơn.</p>
+                                </div>
+                                <button onClick={() => setPreviewStyle(null)} className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-full transition-colors"><X size={20}/></button>
+                            </div>
+                            <div className="p-8 bg-slate-100/50 dark:bg-black/20 flex gap-8 overflow-x-auto justify-center">
+                                
+                                {/* Screen 1: KHẢO SÁT */}
+                                <div className="min-w-[280px] w-full max-w-[320px] bg-slate-50 dark:bg-zinc-950 rounded-[2.5rem] border-[8px] border-slate-800 dark:border-slate-700 h-[600px] shadow-2xl overflow-hidden flex flex-col relative shrink-0 ring-1 ring-white/10">
+                                    <div className="absolute top-0 w-full h-6 flex justify-center pt-2 z-20"><div className="w-16 h-1.5 bg-slate-800 dark:bg-slate-700 rounded-full"></div></div>
+                                    
+                                    {previewStyle === 'v1' ? (
+                                        // V1 Survey
+                                        <div className="flex-1 p-5 pt-12 flex flex-col gap-5 bg-white dark:bg-black">
+                                            <div className="space-y-2 mb-2">
+                                                <div className="w-1/2 h-6 bg-slate-200 dark:bg-white/10 rounded animate-pulse"></div>
+                                                <div className="w-3/4 h-4 bg-slate-100 dark:bg-white/5 rounded animate-pulse"></div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl border-2 border-slate-100 dark:border-white/10 flex flex-col items-center justify-center gap-2"><div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10"></div><div className="w-12 h-2 bg-slate-200 dark:bg-white/20 rounded"></div></div>)}
+                                            </div>
+                                            <div className="mt-4">
+                                                <div className="w-1/3 h-5 bg-slate-200 dark:bg-white/10 rounded animate-pulse mb-3"></div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {[1,2,3,4,5].map(i => <div key={i} className="w-20 h-8 rounded-full bg-slate-100 dark:bg-white/10"></div>)}
+                                                </div>
+                                            </div>
+                                            <div className="mt-auto h-12 rounded-xl bg-orange-500 w-full mb-4"></div>
+                                        </div>
+                                    ) : (
+                                        // V2 Lookbook Survey
+                                        <div className="flex-1 flex flex-col relative bg-black">
+                                            <div className="h-[55%] w-full bg-slate-800 relative">
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                                                <div className="absolute bottom-6 left-5 right-5">
+                                                    <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-2xl mb-4"></div>
+                                                    <div className="w-2/3 h-8 bg-white/90 rounded mb-2"></div>
+                                                    <div className="w-full h-4 bg-white/60 rounded"></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 bg-black p-5 flex flex-col justify-end pb-8 relative z-10">
+                                                <div className="w-1/2 h-5 bg-white/20 rounded mb-4"></div>
+                                                <div className="flex flex-wrap gap-2 mb-8">
+                                                    {[1,2,3,4].map(i => <div key={i} className="w-24 h-10 rounded-[1.5rem] bg-white/10 border border-white/20 backdrop-blur-md"></div>)}
+                                                </div>
+                                                <div className="h-14 rounded-2xl bg-gradient-to-r from-red-600 to-orange-500 shadow-[0_0_20px_rgba(239,68,68,0.3)] w-full relative overflow-hidden">
+                                                    <div className="absolute inset-0 bg-white/20 blur-xl translate-x-12"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Screen 2: MENU DISPLAY */}
+                                <div className="min-w-[280px] w-full max-w-[320px] bg-slate-50 dark:bg-zinc-950 rounded-[2.5rem] border-[8px] border-slate-800 dark:border-slate-700 h-[600px] shadow-2xl overflow-hidden flex flex-col relative shrink-0 ring-1 ring-white/10">
+                                    <div className="absolute top-0 w-full h-6 flex justify-center pt-2 z-20"><div className="w-16 h-1.5 bg-slate-800 dark:bg-slate-700 rounded-full"></div></div>
+                                    
+                                    {previewStyle === 'v1' ? (
+                                        // V1 Menu Wait
+                                        <div className="flex-1 pt-10 flex flex-col bg-slate-50 dark:bg-black">
+                                            <div className="px-4 py-2 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-zinc-900 flex gap-3 overflow-hidden">
+                                                {[1,2,3].map(i => <div key={i} className={`h-8 rounded-full ${i===1?'w-16 bg-blue-100 dark:bg-blue-900':'w-20 bg-slate-100 dark:bg-white/10'}`}></div>)}
+                                            </div>
+                                            <div className="flex-1 p-4 grid grid-cols-2 gap-3 overflow-hidden">
+                                                {[1,2,3,4,5,6].map(i => (
+                                                    <div key={i} className="bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-sm h-48 border border-slate-100 dark:border-white/5 flex flex-col">
+                                                        <div className="h-24 bg-slate-200 dark:bg-white/10"></div>
+                                                        <div className="p-2 flex-1 flex flex-col justify-between">
+                                                            <div className="w-full h-3 bg-slate-200 dark:bg-white/10 rounded"></div>
+                                                            <div className="w-3/4 h-3 bg-slate-100 dark:bg-white/5 rounded"></div>
+                                                            <div className="w-1/2 h-4 bg-orange-100 dark:bg-orange-500/20 rounded mt-auto"></div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // V2 Lookbook Menu
+                                        <div className="flex-1 flex flex-col bg-[#050510] relative overflow-hidden pt-10">
+                                            <div className="px-5 mb-4 mt-2">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center text-[10px] font-bold">1</div>
+                                                    <div className="w-24 h-5 bg-white/20 rounded"></div>
+                                                </div>
+                                            </div>
+                                            <div className="px-5 mb-6">
+                                                <div className="w-full h-72 bg-slate-800 rounded-3xl relative overflow-hidden border border-white/10 shadow-2xl">
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                                                    <div className="absolute top-4 left-4 w-16 h-6 bg-red-500 rounded-full font-bold text-[8px] text-white flex items-center justify-center">BEST SELLER</div>
+                                                    <div className="absolute bottom-5 left-5 right-5">
+                                                        <div className="w-3/4 h-6 bg-white/90 rounded mb-2"></div>
+                                                        <div className="w-1/2 h-5 bg-orange-400/90 rounded mb-3"></div>
+                                                        <div className="w-full h-10 bg-white/10 backdrop-blur-md rounded-xl border border-white/20"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="px-5 flex gap-3 overflow-hidden">
+                                                {[1,2,3].map(i => (
+                                                    <div key={i} className="w-28 h-32 rounded-2xl bg-white/5 border border-white/10 shrink-0 p-2 flex flex-col justify-end">
+                                                        <div className="w-full h-3 bg-white/20 rounded mb-1.5"></div>
+                                                        <div className="w-1/2 h-2 bg-white/10 rounded"></div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
-        </div>
-    );
-
-    const renderMenuGrid = () => (
-        <div className="space-y-4">
-            <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Kiểu bố cục (Layout View)</label>
-                <div className="flex gap-4">
-                    <label className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-colors ${config.viewType === 'grid' || !config.viewType ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 hover:border-slate-300'}`}>
-                        <input type="radio" name={`viewType-${block.id}`} value="grid" checked={config.viewType === 'grid' || !config.viewType} onChange={() => onChange({ viewType: 'grid' })} className="hidden" />
-                        <div className="w-12 h-12 flex flex-wrap gap-1 p-1 items-center justify-center bg-slate-100 dark:bg-black/40 rounded-lg">
-                            <div className="w-4 h-4 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
-                            <div className="w-4 h-4 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
-                            <div className="w-4 h-4 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
-                            <div className="w-4 h-4 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
-                        </div>
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Dạng Lưới (2 Cột)</span>
-                        <span className="text-[10px] text-slate-500 text-center leading-tight">2 món/hàng, tập trung hình ảnh<br />Trải nghiệm giống e-Commerce</span>
-                    </label>
-                    <label className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-colors ${config.viewType === 'list' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 hover:border-slate-300'}`}>
-                        <input type="radio" name={`viewType-${block.id}`} value="list" checked={config.viewType === 'list'} onChange={() => onChange({ viewType: 'list' })} className="hidden" />
-                        <div className="w-12 h-12 flex flex-col gap-1 p-1 items-center justify-center bg-slate-100 dark:bg-black/40 rounded-lg">
-                            <div className="w-full h-2.5 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
-                            <div className="w-full h-2.5 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
-                            <div className="w-full h-2.5 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
-                        </div>
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Dạng Danh Sách (1 Cột)</span>
-                        <span className="text-[10px] text-slate-500 text-center leading-tight">1 món/hàng, ảnh nằm ngang<br />Tập trung mô tả và nút "Thêm"</span>
-                    </label>
-                </div>
-            </div>
-            <div className="pt-4 border-t border-slate-200 dark:border-white/10">
-                <label className="flex items-center justify-between">
-                    <div>
-                        <div className="text-sm font-bold text-slate-900 dark:text-white">Hiện thanh lọc danh mục ngang (Tab Bar)</div>
-                        <div className="text-xs text-slate-500 mt-0.5">Giúp khách hàng lọc món dễ hơn ở màn hình chính</div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked={config.showTabs !== false} onChange={(e) => onChange({ showTabs: e.target.checked })} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
-                    </label>
-                </label>
-            </div>
-        </div>
-    );
-
-    const renderBanner = () => (
-        <div className="space-y-4">
-            <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Thời gian chuyển ảnh tự động (Auto-slide)</label>
-                <select className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-white" value={config.autoSlideInterval || '3000'} onChange={(e) => onChange({ autoSlideInterval: parseInt(e.target.value) })}>
-                    <option value="0">Tắt tự động chuyển</option>
-                    <option value="2000">Nhanh (2 giây / ảnh)</option>
-                    <option value="3000">Bình thường (3 giây / ảnh)</option>
-                    <option value="5000">Chậm (5 giây / ảnh)</option>
-                </select>
-            </div>
-            <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-white/20 text-center">
-                <div className="w-10 h-10 mx-auto bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-2">
-                    <span className="text-slate-400 font-bold text-xl">🖼️</span>
-                </div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Tính năng upload & quản lý thư viện ảnh đang được xây dựng</p>
-                <p className="text-xs text-slate-500 mt-1">Sẽ hỗ trợ tỷ lệ chuẩn 16:9 hoặc 21:9.</p>
-            </div>
-        </div>
-    );
-
-    switch (type) {
-        case 'smart-suggestions':
-            return renderSmartSuggestions();
-        case 'collection-grid':
-            return renderProductCollection();
-        case 'flash-sales':
-            return renderFlashSales();
-        case 'guided-discovery':
-            return renderGuidedDiscovery();
-        case 'group-ordering':
-            return renderGroupOrdering();
-        case 'bill-discount-progress':
-            return renderBillDiscountProgress();
-        case 'menu-grid':
-            return renderMenuGrid();
-        case 'hero-banner':
-            return renderBanner();
-        default:
-            return (
-                <div className="p-8 bg-white dark:bg-black/20 rounded-xl border border-dashed border-slate-300 dark:border-white/10 text-slate-400 italic text-center font-medium">
-                    Module "{MODULE_DEFINITIONS[block.type as ModuleType].name}" dùng các thiết lập mặc định của hệ thống.
-                </div>
-            );
+        );
     }
+
+    if (type === 'menu-grid') {
+        return (
+            <div className="text-sm text-slate-500 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 flex items-start gap-3">
+                <div className="mt-0.5 text-blue-500"><AlertTriangle size={16} /></div>
+                <div>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Danh Mục Cố Định</p>
+                    Thực đơn này là trái tim của hệ thống. Luôn được ghim cố định ở đáy trang và hiển thị tất cả món ăn của quán. Bạn không thể tắt block này.
+                </div>
+            </div>
+        );
+    }
+
+    return null;
 }
 
 export default function DisplayConfigPage() {
@@ -466,6 +325,88 @@ export default function DisplayConfigPage() {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [isAddBlockModalOpen, setIsAddBlockModalOpen] = useState(false);
+    const [liveTableScenario, setLiveTableScenario] = useState<any>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState<'layout' | 'action'>('layout');
+
+    // Unified Fetch for Config & Scenarios
+    useEffect(() => {
+        const fetchAllConfig = async () => {
+            try {
+                // Fetch Scenarios
+                const resScenarios = await fetch('/api/admin/scenarios?resid=100');
+                const dataScenarios = await resScenarios.json();
+                if (dataScenarios.success) {
+                    const avatarScenario = dataScenarios.data.find((s: any) => s.scenario_key === 'DETAILED_ORDER_AVATAR_LIST');
+                    setLiveTableScenario(avatarScenario);
+                }
+
+                const resDisplay = await fetch('/api/admin/display?resid=100');
+                const dataDisplay = await resDisplay.json();
+                if (dataDisplay.success) {
+                    const draftBlocks = dataDisplay.data.draft;
+                    const validBlocks = (draftBlocks || []).filter((b: any) => MODULE_DEFINITIONS[b.type as ModuleType]);
+                    // Require the presence of 'for-you' or at least 5 blocks to consider it a valid new layout.
+                    // Otherwise it's a legacy layout that just happened to have 'menu-grid'.
+                    if (!validBlocks || validBlocks.length === 0 || !validBlocks.some((b: any) => b.type === 'for-you')) {
+                        // Áp dụng giao diện Default Fallback nếu DB rỗng hoặc toàn bộ block cũ đã bị deprecate
+                        setBlocks(SYSTEM_TEMPLATES[0].blocks);
+                        setActiveTemplateId(SYSTEM_TEMPLATES[0].id);
+                    } else {
+                        setBlocks(validBlocks);
+                        setActiveTemplateId('custom-db'); // Đánh dấu là đã lấy từ DB
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch configurations:', error);
+            }
+        };
+        fetchAllConfig();
+    }, []);
+
+    const saveLiveTableScenario = async (updated: any) => {
+        try {
+            await fetch('/api/admin/scenarios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updated)
+            });
+            setLiveTableScenario(updated);
+            alert('Đã cập nhật cấu hình Live Table!');
+        } catch (error) {
+            alert('Lỗi khi cập nhật cấu hình');
+        }
+    };
+
+    const handleSaveAndPublish = async () => {
+        setIsSaving(true);
+        try {
+            // Bước 1: Lưu cấu hình hiện tại vào nháp
+            const postRes = await fetch('/api/admin/display', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ res_id: '100', blocks })
+            });
+            
+            if (!postRes.ok) throw new Error('Lỗi khi lưu thiết kế');
+
+            // Bước 2: Công bố thẳng ra khách hàng
+            const res = await fetch('/api/admin/display', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ res_id: '100' })
+            });
+            if (res.ok) {
+                alert('Đã lưu và áp dụng thành công!');
+            } else {
+                alert('Lỗi khi áp dụng thiết kế');
+            }
+        } catch (error) {
+            alert('Lỗi khi lưu và áp dụng thiết kế');
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     // Sync blocks to localStorage for Live Preview
     useEffect(() => {
@@ -648,15 +589,33 @@ export default function DisplayConfigPage() {
                         </div>
                     ) : (
                         <div className="max-w-4xl mx-auto">
-                            <div className="flex items-end justify-between mb-8">
-                                <div>
-                                    <h2 className="font-bold text-xl text-slate-800 dark:text-slate-100 tracking-tight">Cấu trúc hiển thị</h2>
-                                    <p className="text-sm text-slate-500 mt-1">Thêm, xóa và sắp xếp thứ tự các khối chức năng sẽ xuất hiện trên Ứng dụng khách.</p>
-                                </div>
-                                <span className="text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-500/10 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-100/50">{blocks.filter(b => MODULE_DEFINITIONS[b.type].category === 'layout').length} khối đang bật</span>
+                            {/* Tabs Navigation */}
+                            <div className="flex bg-slate-100 dark:bg-black/40 p-1.5 rounded-xl mb-8 w-max mx-auto border border-slate-200 dark:border-white/5">
+                                <button 
+                                    onClick={() => setActiveTab('layout')}
+                                    className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'layout' ? 'bg-white dark:bg-zinc-800 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+                                >
+                                    <LayoutTemplate size={16} /> Thứ Tự Menu
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('action')}
+                                    className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'action' ? 'bg-white dark:bg-zinc-800 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+                                >
+                                    <Settings2 size={16} /> Tính Năng Nền & Tương Tác
+                                </button>
                             </div>
 
-                            <div className="space-y-5">
+                            {activeTab === 'layout' && (
+                                <>
+                                    <div className="flex items-end justify-between mb-8">
+                                        <div>
+                                            <h2 className="font-bold text-xl text-slate-800 dark:text-slate-100 tracking-tight">Cấu trúc hiển thị</h2>
+                                            <p className="text-sm text-slate-500 mt-1">Thêm, xóa và sắp xếp thứ tự các khối chức năng sẽ xuất hiện trên Ứng dụng khách.</p>
+                                        </div>
+                                        <span className="text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-500/10 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-100/50">{blocks.filter(b => MODULE_DEFINITIONS[b.type].category === 'layout').length} khối đang bật</span>
+                                    </div>
+
+                                    <div className="space-y-5">
                                 {blocks.map((block, index) => {
                                     const def = MODULE_DEFINITIONS[block.type];
                                     if (def.category !== 'layout' || block.type === 'menu-grid') return null;
@@ -726,13 +685,11 @@ export default function DisplayConfigPage() {
                                 <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:scale-110 transition-transform"><Plus size={20} /></div>
                                 <span className="font-medium text-sm">Chèn khối bổ sung mới</span>
                             </button>
-
-                            {/* Permanent Menu Grid Block at the bottom */}
                             {(() => {
                                 const menuBlock = blocks.find(b => b.type === 'menu-grid') || { id: 'core-menu', type: 'menu-grid', title: 'Thực Đơn Của Chúng Tôi', config: {} };
                                 const def = MODULE_DEFINITIONS['menu-grid'];
                                 return (
-                                    <div className="bg-white dark:bg-black/20 border-2 border-slate-200 dark:border-white/20 rounded-2xl shadow-sm flex flex-col overflow-hidden opacity-90 relative">
+                                    <div className="bg-white dark:bg-black/20 border-2 border-slate-200 dark:border-white/20 rounded-2xl shadow-sm flex flex-col overflow-hidden opacity-90 relative mb-12">
                                         <div className="absolute top-0 right-0 py-1.5 px-3 bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300 font-bold text-[10px] rounded-bl-xl uppercase tracking-wider flex items-center gap-1"><CheckCircle2 size={12} /> Vị trí cố định</div>
                                         <div className="flex items-center p-4 gap-5">
                                             {/* Info */}
@@ -767,12 +724,15 @@ export default function DisplayConfigPage() {
                                     </div>
                                 )
                             })()}
+                            </>
+                            )}
 
                             {/* Action-based Features Section */}
-                            <div className="mt-12 pt-8 border-t border-slate-200 dark:border-white/5">
+                            {activeTab === 'action' && (
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="mb-6">
-                                    <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Tính năng nền & Tương tác</h3>
-                                    <p className="text-sm text-slate-500 font-medium">Các tính năng này hoạt động dựa trên hành vi của khách hàng, không can thiệp trực tiếp vào bố cục trang chủ.</p>
+                                    <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Cấu hình chức năng</h3>
+                                    <p className="text-sm text-slate-500 font-medium">Bật/Tắt các chức năng chạy ngầm hoặc trải nghiệm phụ trợ trên toàn ứng dụng.</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -839,8 +799,42 @@ export default function DisplayConfigPage() {
                                                 </div>
                                             );
                                         })}
+
+                                    {/* Live Table Configuration (Injected into Action Features) */}
+                                    {liveTableScenario && (
+                                        <div className={`bg-white dark:bg-black/20 border rounded-2xl p-5 transition-all ${liveTableScenario.is_enabled ? 'border-blue-500/30' : 'border-slate-200 dark:border-white/10 opacity-75'}`}>
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${liveTableScenario.is_enabled ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600' : 'bg-slate-100 dark:bg-white/5 text-slate-400'}`}>
+                                                        <UsersRound size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Hiển thị Avatar thành viên tại bàn</h4>
+                                                        <p className="text-[10px] text-slate-500 leading-tight pr-4">Cho phép khách hàng thấy ai đang cùng ngồi tại bàn trong trang chi tiết đơn hàng.</p>
+                                                    </div>
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer shrink-0 scale-75">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={liveTableScenario.is_enabled}
+                                                        onChange={(e) => {
+                                                            const updated = { ...liveTableScenario, is_enabled: e.target.checked };
+                                                            setLiveTableScenario(updated);
+                                                            saveLiveTableScenario(updated);
+                                                        }}
+                                                        className="sr-only peer"
+                                                    />
+                                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 italic font-medium">
+                                                Tính năng này giúp tăng tính tương tác và minh bạch khi gọi món nhóm.
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -851,9 +845,13 @@ export default function DisplayConfigPage() {
                         <button onClick={handleSaveAsTemplate} className="flex-1 py-2.5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 rounded-lg font-medium text-sm transition-all border border-slate-200 dark:border-white/10 flex items-center justify-center gap-2">
                             <Save size={16} /> Lưu thiết kế làm mẫu
                         </button>
-                        <button className="flex-[2] flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-all shadow-sm active:scale-95">
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span>Lưu thay đổi</span>
+                        <button 
+                            disabled={isSaving}
+                            onClick={handleSaveAndPublish}
+                            className="flex-[2] flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                        >
+                            <ExternalLink className="w-4 h-4" />
+                            <span>Lưu cấu hình & Áp dụng ngay</span>
                         </button>
                     </div>
                 </div>

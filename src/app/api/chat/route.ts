@@ -14,15 +14,19 @@ async function getAuthenticatedUser() {
     return { userId: session.user_id, tableid: session.tableid, resid: session.resid };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
     const auth = await getAuthenticatedUser();
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { searchParams } = new URL(request.url);
+    const resid = searchParams.get('resid') || auth.resid;
+    const tableid = searchParams.get('tableid') || auth.tableid;
 
     try {
         const db = await getDb();
         const messages = await db.all(
             'SELECT * FROM chat_messages WHERE resid = ? AND tableid = ? ORDER BY timestamp DESC LIMIT 5',
-            [auth.resid, auth.tableid]
+            [resid, tableid]
         );
 
         return NextResponse.json(messages.reverse().map(m => ({
@@ -43,7 +47,7 @@ export async function GET() {
 }
 
 
-async function addMessageToFile(auth: { userId: string; tableid: string; resid: string }, msg: any) {
+async function addMessageToFile(userId: string, resid: string, tableid: string, msg: any) {
     try {
         const db = await getDb();
         const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -51,14 +55,19 @@ async function addMessageToFile(auth: { userId: string; tableid: string; resid: 
 
         await db.run(
             'INSERT INTO chat_messages (id, user_id, resid, tableid, sender, type, typeId, content, time, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [msgId, auth.userId, auth.resid, auth.tableid, 'restaurant', msg.type, msg.typeId || null, msg.content, timeStr, Date.now()]
+            [msgId, userId, resid, tableid, 'restaurant', msg.type, msg.typeId || null, msg.content, timeStr, Date.now()]
+        );
+
+        await db.run(
+            'INSERT INTO kv_store (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+            [`table_version_${resid}_${tableid}`, Date.now().toString()]
         );
     } catch (e) {
         console.error('[Chat] Failed to add message:', e);
     }
 }
 
-function scheduleStaffResponse(auth: { userId: string; tableid: string; resid: string }, content: string, lang: string = 'vi', typeId?: string) {
+function scheduleStaffResponse(userId: string, resid: string, tableid: string, content: string, lang: string = 'vi', typeId?: string) {
     const isEn = lang === 'en';
 
     const sentText = isEn
@@ -66,7 +75,7 @@ function scheduleStaffResponse(auth: { userId: string; tableid: string; resid: s
         : "Yêu cầu của bạn đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận";
 
     setTimeout(() => {
-        addMessageToFile(auth, {
+        addMessageToFile(userId, resid, tableid, {
             type: 'WAITING',
             content: sentText
         });
@@ -78,7 +87,7 @@ function scheduleStaffResponse(auth: { userId: string; tableid: string; resid: s
 
     const confirmDelay = 6000 + Math.floor(Math.random() * 3000);
     setTimeout(() => {
-        addMessageToFile(auth, {
+        addMessageToFile(userId, resid, tableid, {
             type: 'CONFIRMATION',
             content: receivedText
         });
@@ -91,34 +100,44 @@ export async function POST(request: Request) {
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     try {
-        const { content, categoryId, typeId, lang } = await request.json();
+        const { content, categoryId, typeId, type, lang, resid: bodyResid, tableid: bodyTableid } = await request.json();
+        const resid = bodyResid || auth.resid;
+        const tableid = bodyTableid || auth.tableid;
 
         const db = await getDb();
         const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
         const timestamp = Date.now();
         const msgId = `msg-${timestamp}`;
+        const msgType = type || categoryId || 'OTHER';
 
         const newMsg = {
             id: msgId,
             userId: auth.userId,
-            resid: auth.resid,
-            tableid: auth.tableid,
+            resid,
+            tableid,
             sender: 'user',
             time: timeStr,
             timestamp: timestamp,
-            type: categoryId || 'OTHER', // Tech ID for category
+            type: msgType, // Tech ID for category
             typeId,
             content
         };
 
         await db.run(
-            'INSERT INTO chat_messages (id, user_id, resid, tableid, sender, type, typeId, content, time, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [newMsg.id, newMsg.userId, newMsg.resid, newMsg.tableid, newMsg.sender, newMsg.type, newMsg.typeId, newMsg.content, newMsg.time, newMsg.timestamp]
+            'INSERT INTO chat_messages (id, user_id, resid, tableid, sender, type, typeId, content, time, timestamp, status, status_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [newMsg.id, newMsg.userId, newMsg.resid, newMsg.tableid, newMsg.sender, newMsg.type, newMsg.typeId, newMsg.content, newMsg.time, newMsg.timestamp, 'Đã gửi', timestamp]
         );
 
-        if (categoryId === 'SUPPORT' || categoryId === 'OTHER') {
-            scheduleStaffResponse(auth, content, lang || 'vi', typeId);
+        if (msgType === 'SUPPORT' || msgType === 'OTHER') {
+            // Disabled automatic mock staffing responses temporarily to allow true history tracking
+            // scheduleStaffResponse(auth.userId, resid, tableid, content, lang || 'vi', typeId);
         }
+
+        // Bump table sync version
+        await db.run(
+            'INSERT INTO kv_store (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+            [`table_version_${resid}_${tableid}`, timestamp.toString()]
+        );
 
         return NextResponse.json(newMsg);
     } catch (e) {

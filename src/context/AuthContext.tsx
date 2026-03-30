@@ -19,8 +19,8 @@ interface AuthContextType {
     isGuest: boolean;
     user: UserProfile | null;
     isLoadingAuth: boolean;
-    login: (phone: string, email?: string) => void;
-    loginAsGuest: () => void;
+    login: (phone: string, email?: string) => Promise<UserProfile | null>;
+    loginAsGuest: () => Promise<UserProfile | null>;
     logout: (redirectTo?: string) => void;
     updateUser: (newData: Partial<UserProfile>) => Promise<void>;
 }
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         checkAuth();
     }, []);
 
-    const login = async (phone: string) => {
+    const login = React.useCallback(async (phone: string) => {
         try {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -70,15 +70,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     setIsLoggedIn(true);
                     setUser(userData);
                     setIsGuest(!!userData.isGuest);
-                    // No reload needed — same session_id, live polling auto-updates
+                    return userData;
                 }
             }
         } catch (err) {
             console.error("Login failed:", err);
         }
-    };
+        return null;
+    }, []);
 
-    const loginAsGuest = async () => {
+    const loginAsGuest = React.useCallback(async () => {
         try {
             const res = await fetch('/api/auth/guest', {
                 method: 'POST',
@@ -91,18 +92,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     setIsLoggedIn(true);
                     setIsGuest(true);
                     setUser(userData);
+                    return userData;
                 }
             }
         } catch (err) {
             console.error("Guest login failed:", err);
         }
-    };
+        return null;
+    }, []);
 
-    const logout = async (redirectTo?: string) => {
+    const logout = React.useCallback(async (redirectTo?: string) => {
         const destination = redirectTo || '/customer';
         try {
-            // POST to /api/auth/logout — creates a new guest user
-            // and UPDATEs the existing session (same session_id, same seat at table)
             const res = await fetch('/api/auth/logout', { method: 'POST' });
             if (res.ok) {
                 const data = await res.json();
@@ -120,12 +121,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
             console.error("Logout failed:", err);
         } finally {
-            // Navigate back to origin page (e.g. discovery with resid/tableid)
             window.location.href = destination;
         }
-    };
+    }, []);
 
-    const updateUser = async (newData: Partial<UserProfile>) => {
+    const updateUser = React.useCallback(async (newData: Partial<UserProfile>) => {
         try {
             const res = await fetch('/api/auth/update', {
                 method: 'POST',
@@ -142,10 +142,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
             console.error("Update profile failed:", err);
         }
-    };
+    }, []);
+
+    const authValue = React.useMemo(() => ({
+        isLoggedIn, isGuest, user, isLoadingAuth, login, loginAsGuest, logout, updateUser
+    }), [isLoggedIn, isGuest, user, isLoadingAuth, login, loginAsGuest, logout, updateUser]);
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, isGuest, user, isLoadingAuth, login, loginAsGuest, logout, updateUser }}>
+        <AuthContext.Provider value={authValue}>
             {children}
         </AuthContext.Provider>
     );

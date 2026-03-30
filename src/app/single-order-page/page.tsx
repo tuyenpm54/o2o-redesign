@@ -897,14 +897,7 @@ function StorefrontPreviewContent() {
                     className={`${styles.staffFab}`}
                     onClick={() => router.push('/chat?from=/single-order-page')}
                 >
-                    <div className={styles.staffIconWrapper}>
-                        <img
-                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Staff"
-                            alt="Staff"
-                            className={styles.staffAvatar}
-                        />
-                        <div className={styles.onlineBadge} />
-                    </div>
+                    <BellRing size={22} className={styles.staffIcon} />
                     <span className={styles.staffLabel}>Hỗ trợ</span>
                 </button>
             </div >

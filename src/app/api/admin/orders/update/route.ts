@@ -28,12 +28,21 @@ export async function POST(request: Request) {
 
         const db = await getDb();
 
+        // Get active session for this table
+        const activeSession = await db.get(
+            `SELECT id FROM table_sessions WHERE resid = ? AND LOWER(tableid) = LOWER(?) AND status = 'ACTIVE'`,
+            [resid, tableid]
+        );
+        if (!activeSession) {
+            return NextResponse.json({ error: 'No active session' }, { status: 404 });
+        }
+
         const placeholders = targets.map(() => '?').join(',');
         const query = `
             SELECT id, name FROM order_items 
-            WHERE user_id = ? AND resid = ? AND id IN (${placeholders})
+            WHERE table_session_id = ? AND id IN (${placeholders})
         `;
-        const itemsToUpdate = await db.all(query, [userId, resid, ...targets]);
+        const itemsToUpdate = await db.all(query, [activeSession.id, ...targets]);
 
         if (!itemsToUpdate || itemsToUpdate.length === 0) {
             return NextResponse.json({ error: 'Order items not found' }, { status: 404 });
@@ -41,10 +50,18 @@ export async function POST(request: Request) {
 
         const updateQuery = `
             UPDATE order_items 
-            SET status = ? 
-            WHERE user_id = ? AND resid = ? AND id IN (${placeholders})
+            SET status = ?, status_updated_at = ?
+            WHERE table_session_id = ? AND id IN (${placeholders})
         `;
-        await db.run(updateQuery, [newStatus, userId, resid, ...targets]);
+        await db.run(updateQuery, [newStatus, Date.now(), activeSession.id, ...targets]);
+        
+        // --- 🆕 Sync Version Bump: Critical fix for delayed UI updates ---
+        // Increment the sync version so that the client's sync API (which runs <5ms) 
+        // detects a change and triggers the heavy fetch for the new order statuses.
+        await db.run(
+            'INSERT INTO kv_store (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+            [`table_version_${resid}_${tableid}`, Date.now().toString()]
+        );
 
         const itemNames = itemsToUpdate.map((i: any) => i.name);
 

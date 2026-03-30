@@ -1,0 +1,336 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.sheet {
+    width: 100%;
+    max-width: 480px;
+    background: white;
+    border-radius: 24px 24px 0 0;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.dragHandle {
+    width: 40px;
+    height: 4px;
+    background: #CBD5E1;
+    border-radius: 99px;
+    margin: 12px auto 8px;
+}
+
+.sheetContent {
+    padding: 0 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Feedback Section */
+.feedbackSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.feedbackLabel {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1E293B;
+    text-align: center;
+}
+
+.feedbackOptions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.feedbackBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    border-radius: 16px;
+    border: 2px solid #E2E8F0;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 80px;
+    justify-content: center;
+}
+
+.feedbackBtn:active {
+    transform: scale(0.97);
+}
+
+.feedbackBtnPositive.selected {
+    border-color: #10B981;
+    background: #ECFDF5;
+}
+
+.feedbackBtnPositive.selected .feedbackIcon {
+    color: #10B981;
+}
+
+.feedbackBtnNegative.selected {
+    border-color: #EF4444;
+    background: #FEF2F2;
+}
+
+.feedbackBtnNegative.selected .feedbackIcon {
+    color: #EF4444;
+}
+
+.feedbackIcon {
+    color: #94A3B8;
+    transition: color 0.2s ease;
+}
+
+.feedbackBtnLabel {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* Negative Tags */
+.negativeTags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    animation: expandIn 0.25s ease;
+}
+
+@keyframes expandIn {
+    from { opacity: 0; max-height: 0; transform: translateY(-8px); }
+    to { opacity: 1; max-height: 200px; transform: translateY(0); }
+}
+
+.negativeTag {
+    padding: 8px 14px;
+    border-radius: 99px;
+    border: 1.5px solid #E2E8F0;
+    background: white;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.negativeTag:active {
+    transform: scale(0.96);
+}
+
+.negativeTag.selected {
+    border-color: #EF4444;
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+/* Divider */
+.divider {
+    height: 1px;
+    background: #F1F5F9;
+    margin: 0 -20px;
+}
+
+/* Voucher Section */
+.voucherSection {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.voucherLabel {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1E293B;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.voucherCard {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1.5px solid #FDE68A;
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.voucherCard:active {
+    transform: scale(0.98);
+}
+
+.voucherCardIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #F59E0B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: white;
+}
+
+.voucherCardInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.voucherCardTitle {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #92400E;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voucherCardCode {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #B45309;
+    margin-top: 2px;
+}
+
+.voucherViewAll {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #D97706;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    align-self: flex-end;
+}
+
+.voucherViewAll:active {
+    opacity: 0.7;
+}
+
+.noVoucher {
+    font-size: 0.82rem;
+    color: #94A3B8;
+    font-weight: 500;
+    text-align: center;
+    padding: 8px;
+}
+
+/* Total Row */
+.totalRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.totalLabel {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.totalValue {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #DF1B41;
+}
+
+/* CTA Button */
+.submitBtn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: none;
+    background: #10B981;
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    min-height: 52px;
+}
+
+.submitBtn:active {
+    transform: scale(0.98);
+    background: #059669;
+}
+
+.submitBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.submitBtnLoading {
+    background: #6EE7B7;
+}
+
+/* Success State */
+.successState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 32px 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.successIcon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #ECFDF5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #10B981;
+}
+
+.successTitle {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1E293B;
+    text-align: center;
+}
+
+.successSub {
+    font-size: 0.9rem;
+    color: #64748B;
+    text-align: center;
+    line-height: 1.5;
+}

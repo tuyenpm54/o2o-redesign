@@ -67,26 +67,26 @@ export async function POST(request: Request) {
 
         user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
 
-        const expires = Date.now() + (7 * 24 * 60 * 60 * 1000);
+        const expires = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year
 
         if (existingSessionId) {
             // ✅ Keep same session — just update user_id and extend expiry
             await db.run(
-                'UPDATE sessions SET user_id = ?, expires = ? WHERE id = ?',
-                [userId, expires, existingSessionId]
+                'UPDATE sessions SET user_id = ?, expires = ?, lastActive = ? WHERE id = ?',
+                [userId, expires, Date.now(), existingSessionId]
             );
         } else {
             // No existing session — create a new one
             const sessionId = crypto.randomUUID();
             await db.run(
-                'INSERT INTO sessions (id, user_id, expires) VALUES (?, ?, ?)',
-                [sessionId, userId, expires]
+                'INSERT INTO sessions (id, user_id, expires, lastActive) VALUES (?, ?, ?, ?)',
+                [sessionId, userId, expires, Date.now()]
             );
             cookieStore.set('session_id', sessionId, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
-                maxAge: 7 * 24 * 60 * 60,
+                maxAge: 365 * 24 * 60 * 60,
                 path: '/',
             });
         }

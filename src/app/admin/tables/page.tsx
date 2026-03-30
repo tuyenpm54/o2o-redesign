@@ -12,7 +12,8 @@ interface Table {
     peopleCount?: number;
     status?: string;
     activeOrderCount?: number;
-    items?: any[];
+    items?: { name: string; qty: number; status: string }[];
+    supportRequests?: { id: string; content: string; status: string; timestamp: number; status_updated_at: number }[];
 }
 
 export default function TablesPage() {
@@ -28,7 +29,7 @@ export default function TablesPage() {
 
     const fetchTables = async () => {
         try {
-            const res = await fetch('/api/admin/tables');
+            const res = await fetch(`/api/admin/tables?_t=${Date.now()}`);
             if (res.ok) {
                 const data = await res.json();
                 setTables(data.tables || []);
@@ -95,13 +96,13 @@ export default function TablesPage() {
         }
     };
 
-    const handleAction = async (id: string, action: string) => {
+    const handleAction = async (id: string, action: string, payload?: any) => {
         // Temporarily bypassed window.confirm because it might be blocked in PWA webviews.
         try {
             const res = await fetch(`/api/admin/tables?id=${encodeURIComponent(id)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action })
+                body: JSON.stringify({ action, ...payload })
             });
             if (res.ok) fetchTables();
             else alert("Có lỗi xảy ra, không thể gửi yêu cầu.");
@@ -172,6 +173,44 @@ export default function TablesPage() {
                                         </div>
                                     </div>
 
+                                    {table.supportRequests && table.supportRequests.length > 0 && (
+                                        <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
+                                            <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: '#ef4444' }}>Yêu cầu hỗ trợ:</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                {table.supportRequests.map((req: any) => {
+                                                    const reqTs = Number(req.status_updated_at) || Number(req.timestamp);
+                                                    const elapsedMin = Math.floor((Date.now() - reqTs) / 60000);
+                                                    const isReceived = req.status === 'Đã nhận';
+                                                    let warningColor = '#ef4444';
+                                                    if (elapsedMin >= 5) warningColor = '#b91c1c';
+                                                    else if (elapsedMin >= 3) warningColor = '#c2410c';
+
+                                                    return (
+                                                        <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: isReceived ? '#eff6ff' : '#fef2f2', padding: '0.5rem', borderRadius: '0.375rem', fontSize: '0.8rem', border: `1px solid ${isReceived ? '#bfdbfe' : '#fecaca'}` }}>
+                                                            <div>
+                                                                <div style={{ fontWeight: 600, color: isReceived ? '#1e40af' : warningColor }}>{req.content}</div>
+                                                                <div style={{ fontSize: '0.7rem', color: isReceived ? '#3b82f6' : '#dc2626', marginTop: '2px' }}>
+                                                                    {!isReceived && <span style={{fontWeight: 'bold'}}>Trễ {elapsedMin} phút</span>}
+                                                                    {isReceived && <span>Đã nhận {elapsedMin} phút trước</span>}
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                                                {!isReceived && (
+                                                                    <button style={{ padding: '6px 12px', fontSize: '0.75rem', backgroundColor: '#3b82f6', color: 'white', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 600 }} onClick={() => handleAction(table.id, 'support_receive', { messageId: req.id })}>
+                                                                        Nhận
+                                                                    </button>
+                                                                )}
+                                                                <button style={{ padding: '6px 12px', fontSize: '0.75rem', backgroundColor: '#10b981', color: 'white', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 600 }} onClick={() => handleAction(table.id, 'support_complete', { messageId: req.id })}>
+                                                                    Xong
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {hasItems && (
                                         <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
                                             <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Danh sách món:</div>
@@ -190,22 +229,21 @@ export default function TablesPage() {
 
                                     {(hasUnconfirmed || hasItems) && (
                                         <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                                            {hasUnconfirmed && (
+                                            {hasUnconfirmed ? (
                                                 <button
                                                     style={{ flex: 1, padding: '6px 0', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
                                                     onClick={() => handleAction(table.id, 'confirm_all')}
                                                 >
                                                     Xác nhận
                                                 </button>
-                                            )}
-                                            {hasItems && (
+                                            ) : hasItems ? (
                                                 <button
                                                     style={{ flex: 1, padding: '6px 0', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
                                                     onClick={() => handleAction(table.id, 'payment')}
                                                 >
                                                     Thanh toán
                                                 </button>
-                                            )}
+                                            ) : null}
                                         </div>
                                     )}
                                 </div>

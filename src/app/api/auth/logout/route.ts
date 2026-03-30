@@ -13,19 +13,28 @@ export async function POST() {
 
         const db = await getDb();
         const COLORS = ['Pink', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Teal'];
+        const GUEST_AVATARS = [
+            '/avatars/guest/pho.png',
+            '/avatars/guest/banh-mi.png',
+            '/avatars/guest/tra-da.png',
+            '/avatars/guest/rice-ball.png',
+            '/avatars/guest/dumpling.png',
+            '/avatars/guest/matcha.png',
+        ];
         const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+        const randomAvatar = GUEST_AVATARS[Math.floor(Math.random() * GUEST_AVATARS.length)];
         const guestId = `g_${Date.now()}`;
 
         // Create a new guest user
         await db.run(
             'INSERT INTO users (id, phone, name, points, tier, avatar, preferences, isGuest) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [guestId, 'Guest', `${randomColor} Guest`, 0, 'Guest', `https://api.dicebear.com/7.x/bottts/svg?seed=${guestId}`, '[]', 1]
+            [guestId, 'Guest', `${randomColor} Guest`, 0, 'Guest', randomAvatar, '[]', 1]
         );
 
-        // ✅ Keep same session — just switch the user_id to the new guest
+        // ✅ Keep same session — just switch the user_id to the new guest and reset created_at
         await db.run(
-            'UPDATE sessions SET user_id = ?, expires = ? WHERE id = ?',
-            [guestId, Date.now() + (24 * 60 * 60 * 1000), sessionId]
+            'UPDATE sessions SET user_id = ?, expires = ?, lastActive = ?, created_at = ? WHERE id = ?',
+            [guestId, Date.now() + (24 * 60 * 60 * 1000), Date.now(), Date.now(), sessionId]
         );
 
         const responseUser = {
@@ -34,7 +43,7 @@ export async function POST() {
             phone: 'Guest',
             points: 0,
             tier: 'Guest',
-            avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${guestId}`,
+            avatar: randomAvatar,
             preferences: [],
             isGuest: true
         };

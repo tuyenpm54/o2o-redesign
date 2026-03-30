@@ -18,6 +18,7 @@ export interface OrderItem {
     roundId: string;
     note?: string;
     imageUrl?: string;
+    prepTimeMinutes?: number;
 }
 
 export interface OrderRound {
@@ -46,7 +47,7 @@ export const MOCK_ROUNDS: OrderRound[] = [
             {
                 id: 'i5', name: 'Ba chỉ bò Mỹ', quantity: 2, fulfilledQuantity: 0, status: 'PLACED',
                 orderedBy: MOCK_USERS['u1'], orderedAt: new Date(Date.now() - 1000 * 60 * 2).toISOString(), roundId: 'r3',
-                imageUrl: 'https://images.unsplash.com/photo-1555126634-323283e090fa'
+                imageUrl: 'https://images.unsplash.com/photo-1555126634-323283e090fa', prepTimeMinutes: 15
             }
         ]
     },
@@ -60,7 +61,7 @@ export const MOCK_ROUNDS: OrderRound[] = [
             {
                 id: 'i3', name: 'Sườn nướng tảng', quantity: 1, fulfilledQuantity: 0, status: 'COOKING',
                 orderedBy: MOCK_USERS['u2'], orderedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(), roundId: 'r2',
-                imageUrl: 'https://images.unsplash.com/photo-1544025162-d76690b68011'
+                imageUrl: 'https://images.unsplash.com/photo-1544025162-d76690b68011', prepTimeMinutes: 10
             },
             {
                 id: 'i4', name: 'Salad rong nho', quantity: 1, fulfilledQuantity: 1, status: 'SERVED',

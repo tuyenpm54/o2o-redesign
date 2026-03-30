@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
     ChevronLeft, Clock, CircleDashed, CheckCircle2, ChefHat, Utensils,
-    History, Receipt
+    History, Receipt, Bell
 } from 'lucide-react';
 import styles from './page.module.css';
 import { ALL_ITEMS, MOCK_USERS, OrderItem } from '@/data/mock-order-history';
@@ -19,7 +19,16 @@ const STATUS_CONFIG = {
 
 export default function OrderHistoryPage() {
     const [filterMode, setFilterMode] = useState<'ME' | 'ALL'>('ALL');
+    const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const currentUser = MOCK_USERS['u1'];
+
+    useEffect(() => {
+        setCurrentTime(new Date());
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 10000); // update every 10 seconds
+        return () => clearInterval(timer);
+    }, []);
 
     // Filter Items Logic (same as before)
     const displayedItems = ALL_ITEMS.filter(item => {
@@ -102,6 +111,29 @@ export default function OrderHistoryPage() {
                                             <span>{formatTime(item.orderedAt)}</span>
                                         </div>
                                     </div>
+                                    {/* Timer Logic */}
+                                    {currentTime && item.prepTimeMinutes && ['PLACED', 'CONFIRMED', 'COOKING'].includes(item.status) && (() => {
+                                        const orderedTime = new Date(item.orderedAt).getTime();
+                                        const expectedTime = orderedTime + item.prepTimeMinutes * 60000;
+                                        const diffMins = Math.round((expectedTime - currentTime.getTime()) / 60000);
+                                        const isLate = diffMins < 0;
+
+                                        return (
+                                            <div className={styles.timerWrapper}>
+                                                <div className={`${styles.timerBadge} ${isLate ? styles.timerLate : ''}`}>
+                                                    <Clock size={12} />
+                                                    <span>{isLate ? `Trễ ${Math.abs(diffMins)} phút` : `Còn ${diffMins} phút`}</span>
+                                                </div>
+                                                <button 
+                                                    className={styles.remindBtn}
+                                                    onClick={() => alert(`Đã gửi nhắc nhở nhân viên cho món: ${item.name}`)}
+                                                >
+                                                    <Bell size={12} />
+                                                    <span>Nhắc nhân viên</span>
+                                                </button>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* Status Pill */}

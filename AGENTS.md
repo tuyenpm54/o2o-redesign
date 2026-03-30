@@ -20,7 +20,7 @@ There is no test framework configured in this project.
 - **Next.js 16** with App Router, **React 19**, **TypeScript**
 - **React Compiler** enabled (`reactCompiler: true` in `next.config.ts`)
 - **Tailwind CSS 3** + **CSS Modules** (`.module.css` files per component)
-- **SQLite** (`sqlite3`/`sqlite`) for user sessions, orders, and user data — database file at `src/data/database.sqlite`
+- **PostgreSQL** (`pg` pool) for user sessions, orders, carts, and user data via `DATABASE_URL`.
 - **next-themes** for dark mode (class-based, `darkMode: 'class'` in Tailwind config)
 - **lucide-react** for all icons — never use emoji as UI icons
 - Deployed on **Netlify** (see `netlify.toml`)
@@ -55,19 +55,27 @@ Configured in `src/config/shopConfig.ts`, with UI copy in `src/constants/copy.ts
 
 ### API Routes (`src/app/api/`)
 
-All API routes use Next.js Route Handlers. Auth routes use SQLite via `src/lib/db.ts`; other data routes read/write JSON files directly from `src/data/`.
+All API routes use Next.js Route Handlers. Data access is handled through PostgreSQL via `src/lib/db.ts`.
 
-- `/api/auth/login`, `/api/auth/guest`, `/api/auth/logout`, `/api/auth/me`, `/api/auth/preferences` — Session-based auth using cookies (`session_id`).
+- `/api/auth/login`, `/api/auth/guest`, `/api/auth/logout`, `/api/auth/me`, `/api/auth/preferences` — Session-based auth using cookies (`session_id`). Guest and registered users share the same `users` table via the `isGuest` boolean.
+- `/api/restaurants`, `/api/restaurants/[resid]`, `/api/restaurants/[resid]/live` — Restaurant data.
+- `/api/cart` — Cart operations (GET/POST), keyed by `{userId}_{resId}`.
+- `/api/orders` — Place orders from cart. Includes simulated order status progression (Pending → Confirmed → Cooking → Ready → Served).
+
+### User Data & Billing Architecture
+- **Table Sessions vs Invoices**: A physical table's lifecycle is tracked in `table_sessions` (`status = 'ACTIVE'`). When customers pay via the dashboard, the `table_sessions` row is marked `'PAID'`, and an immutable `invoices` object is automatically created.
+- **History & Progression**: `visit_count` and `points` are never randomly incremented. They are rigidly calculated during Invoice generation. Meaningful customer insights (like spicy preferences or popular ordered items) are accurately aggregated EXCLUSIVELY from the exact `order_items` that the specific `user_id` ordered, ensuring high-fidelity AI recommendations.
+- **VAT & Reviews**: 1 Invoice strictly equals 1 VAT document (First-come, first-served based on the user requesting billing checkout). However, the Invoice permits multi-tenant reviews, wherein ANY registered presence (`user_id`) at the table boundary gets an individual permission to submit a 1-5 star review.
 - `/api/restaurants`, `/api/restaurants/[resid]`, `/api/restaurants/[resid]/live` — Restaurant data.
 - `/api/cart` — Cart operations (GET/POST), keyed by `{userId}_{resId}`.
 - `/api/orders` — Place orders from cart. Includes simulated order status progression (Pending → Confirmed → Cooking → Ready → Served) using `setTimeout` chains.
 - `/api/chat` — Messaging between customer and restaurant.
 - `/api/payment/request` — Payment request.
 
-### Data Layer (`src/data/`)
+### Data Layer (`src/lib/db.ts`)
 
-- `database.sqlite` — SQLite database for users, sessions, orders. Initialized from `users.json` on first run.
-- JSON files (`carts.json`, `orders.json`, `menus.json`, `restaurants.json`, `sessions.json`, `users.json`, `messages.json`, `pairings.json`) — Flat-file storage read/written by API routes.
+- Uses **PostgreSQL** (`pg` pool) for all persisting data (users, sessions, orders, carts, messages).
+- The previously used `src/data/*.json` files and SQLite database are deprecated and should not be used as the source of truth.
 - `mock-*.ts` files — Client-side mock data for UI development (menu, table members, order history, profile).
 
 ### Context Providers (wrap the entire app in `src/app/layout.tsx`)
@@ -111,4 +119,4 @@ There is a UI/UX Pro Max workflow at `.agent/workflows/ui-ux-pro-max.md` with a 
 - The root URL `/` redirects to `/customer`, and `/customer` redirects via `next.config.ts` from `/` to `/home` for the landing page. The primary ordering flow starts at `/customer` or `/discovery?resid=...&tableid=...`.
 - Vietnamese is the default language (`vi`). All UI copy and translations are in `src/context/LanguageContext.tsx`.
 - Order status simulation in `/api/orders` uses `setTimeout` to mimic real-time kitchen progression — this is intentional mock behavior.
-- The `src/data/` directory contains both the SQLite database and JSON files that are written to at runtime by API routes. These are not purely static fixtures.
+- The system connects to a PostgreSQL database via `DATABASE_URL`. Do not write new features relying on local JSON files or SQLite.

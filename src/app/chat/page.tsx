@@ -37,7 +37,7 @@ function ChatContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { t, language } = useLanguage();
-    const fromUrl = searchParams.get('from') || '/menu?style=single-order-page';
+    const fromUrl = searchParams.get('from');
     const resid = searchParams.get('resid') || '100';
     const tableid = searchParams.get('tableid') || 'A-12';
     const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -47,10 +47,24 @@ function ChatContent() {
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const fetchChat = async () => {
+    const localVersionRef = useRef<number>(0);
+
+    const fetchChat = async (force=false) => {
         try {
+            if (!force) {
+                const syncRes = await fetch(`/api/restaurants/${resid}/sync?tableid=${tableid}`);
+                if (syncRes.ok) {
+                    const { version } = await syncRes.json();
+                    if (typeof version === 'number' && version <= localVersionRef.current) return;
+                    if (typeof version === 'number') localVersionRef.current = version;
+                }
+            }
+
             const res = await fetch('/api/chat');
+            if (!res.ok) return;
             const data = await res.json();
+            if (!localVersionRef.current) localVersionRef.current = Date.now();
+            
             if (Array.isArray(data)) {
                 setChatHistory(data);
             }
@@ -62,8 +76,8 @@ function ChatContent() {
     };
 
     useEffect(() => {
-        fetchChat();
-        const interval = setInterval(fetchChat, 5000); // Fast polling for chat
+        fetchChat(true);
+        const interval = setInterval(() => fetchChat(false), 3000); // 3s sync version check
         return () => clearInterval(interval);
     }, []);
 
@@ -104,7 +118,15 @@ function ChatContent() {
                 <div className={styles.chatHeaderTitleGroup}>
                     <h3 className={styles.chatTitle}>{t('Phản hồi từ nhà hàng')}</h3>
                 </div>
-                <button className={styles.chatCloseBtn} onClick={() => router.push(fromUrl)}>
+                <button className={styles.chatCloseBtn} onClick={() => {
+                    if (window.history.length > 2) {
+                        router.back();
+                    } else if (fromUrl) {
+                        router.push(fromUrl);
+                    } else {
+                        router.push(`/menu?resid=${resid}&tableid=${tableid}`);
+                    }
+                }}>
                     <X size={24} />
                 </button>
             </div>
@@ -136,7 +158,7 @@ function ChatContent() {
                 {/* View cart shortcut */}
                 <button
                     onClick={() => {
-                        const backToChat = `/chat?from=${encodeURIComponent(fromUrl)}`;
+                        const backToChat = `/chat?from=${encodeURIComponent(fromUrl || '')}`;
                         router.push(`/table-orders?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(backToChat)}`);
                     }}
                     style={{

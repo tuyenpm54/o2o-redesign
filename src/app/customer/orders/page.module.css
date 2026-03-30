@@ -2938,10 +2938,7 @@
     /* Ensure clean overlap with header border if needed */
 }
 
-/* Fallback top is managed by JS now, but keep cleaner CSS */
-.categoryStickyBar {
-    /* transition: top 0.1s; Optional */
-}
+
 
 /* Ensure container has padding-top to prevent content from hiding behind fixed header */
 .container {
@@ -3027,4 +3024,55 @@
     background: #FFE4E6;
     /* Light Orange/Pink tint */
     border: 3px solid #F97316;
+}
+
+/* Timer and Reminder Styles */
+.timerWrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.timerBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #F1F5F9;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.timerLate {
+    background: #FEF2F2;
+    color: #EF4444;
+    animation: flashLate 1.5s infinite;
+}
+
+@keyframes flashLate {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.remindBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #FFF7ED;
+    color: #F97316;
+    border: 1px solid #FFEDD5;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.remindBtn:active {
+    transform: scale(0.95);
+    background: #FFEDD5;
 }
