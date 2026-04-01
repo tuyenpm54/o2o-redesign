@@ -4,14 +4,6 @@ import { getDb } from '@/lib/db';
 import { ApiSuccess, ApiError } from '@/lib/api-response';
 
 const COLORS = ['Pink', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Teal'];
-const GUEST_AVATARS = [
-    '/avatars/guest/pho.png',
-    '/avatars/guest/banh-mi.png',
-    '/avatars/guest/tra-da.png',
-    '/avatars/guest/rice-ball.png',
-    '/avatars/guest/dumpling.png',
-    '/avatars/guest/matcha.png',
-];
 
 export async function POST() {
     try {
@@ -20,8 +12,8 @@ export async function POST() {
         const existingSessionId = cookieStore.get('session_id')?.value;
 
         const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
-        const randomAvatar = GUEST_AVATARS[Math.floor(Math.random() * GUEST_AVATARS.length)];
         const guestId = `g_${Date.now()}`;
+        const randomAvatar = `https://api.dicebear.com/7.x/miniavs/svg?seed=${guestId}`;
 
         const guestUser = {
             id: guestId,

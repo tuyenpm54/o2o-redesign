@@ -122,7 +122,8 @@ export async function POST(request: Request) {
                 price: item.price,
                 quantity: item.qty,
                 selections: item.selections,
-                img: item.img
+                img: item.img,
+                suggestion_source: item.suggestion_source || 'organic'
             }));
 
             await db.run('DELETE FROM cart_items WHERE user_id = ? AND table_session_id = ?', [userId, activeTableSessionId]);
@@ -145,11 +146,12 @@ export async function POST(request: Request) {
 
             for (const item of itemsToOrder) {
                 const orderId = `o_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-                valuesPlaceholder.push('(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                valuesPlaceholder.push('(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
                 flatValues.push(
                     orderId, userId, resId, activeTableId, item.id || 0,
                     item.name, item.price, item.quantity, 'Chờ xác nhận',
-                    item.selections, item.img, timestamp, timestamp, activeTableSessionId, roundId
+                    item.selections, item.img, timestamp, timestamp, activeTableSessionId, roundId,
+                    item.suggestion_source || 'organic'
                 );
                 newOrders.push({
                     id: orderId,
@@ -164,7 +166,7 @@ export async function POST(request: Request) {
             }
 
             await db.run(
-                `INSERT INTO order_items (id, user_id, resid, tableid, item_id, name, price, qty, status, selections, img, timestamp, status_updated_at, table_session_id, order_round_id) VALUES ${valuesPlaceholder.join(', ')}`,
+                `INSERT INTO order_items (id, user_id, resid, tableid, item_id, name, price, qty, status, selections, img, timestamp, status_updated_at, table_session_id, order_round_id, suggestion_source) VALUES ${valuesPlaceholder.join(', ')}`,
                 flatValues
             );
         }

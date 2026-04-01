@@ -198,6 +198,7 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
     cartItems, setCartItems, total, setTotal, cartPulse, setCartPulse,
     isCheckoutRequested, setIsCheckoutRequested, collisionData, setCollisionData,
     crossSellData, setCrossSellData, isCartDrawerOpen, setIsCartDrawerOpen,
+    isTotalUpdating,
     proceedAddToCart, addToTotal, removeFromTotal, handlePlaceOrder,
     getItemQuantity, handleEditCartItem, acknowledgedCollisions
   } = cart;
@@ -949,6 +950,7 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
         onCartOpen={() => setIsCartDrawerOpen(true)}
         cartCount={cartItems.reduce((acc: number, item: any) => acc + item.quantity, 0)}
         total={total}
+        isTotalUpdating={isTotalUpdating}
         latestStatus={latestStatus}
         suggestions={suggestions}
         onAddSuggestion={(item) => proceedAddToCart(item, 1, {})}

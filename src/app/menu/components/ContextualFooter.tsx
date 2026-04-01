@@ -13,6 +13,7 @@ interface SmartContextDockProps {
     onCartOpen: () => void;
     cartCount: number;
     total: number;
+    isTotalUpdating?: boolean;
     latestStatus: string | null;
     suggestions: any[];
     onAddSuggestion: (item: any) => void;
@@ -30,6 +31,7 @@ export function SmartContextDock({
     onCartOpen,
     cartCount,
     total,
+    isTotalUpdating,
     latestStatus,
     suggestions,
     onAddSuggestion,
@@ -52,9 +54,9 @@ export function SmartContextDock({
                 <div className={styles.dockSimpleCart} onClick={onCartOpen}>
                     <div className={styles.dockCartPromo}>
                         {total < 200000 ? (
-                            <span>{t('Thêm')} <b className={styles.promoHighlight}>{(200000 - total).toLocaleString()}đ</b> {t('để được')} <span className={styles.promoHighlight}>{t('giảm 10%')}</span></span>
+                            <span>{t('Thêm')} <b className={styles.promoHighlight}>{(200000 - total).toLocaleString()}đ</b> {t('nữa để nhận ưu đãi')} <span className={styles.promoHighlight}>{t('giảm 10%')}</span></span>
                         ) : (
-                            <span className={styles.promoHighlight}>{t('Sếp đã được giảm giá 10% cho đơn hàng này!')}</span>
+                            <span className={styles.promoHighlight}>{t('Quý khách đã được giảm 10% cho đơn hàng này')}</span>
                         )}
                     </div>
                     <div className={styles.dockSimpleCartBar}>
@@ -62,7 +64,7 @@ export function SmartContextDock({
                             <ShoppingBag size={20} />
                             <span>{t('Giỏ hàng')} • {cartCount} {t('món')}</span>
                         </div>
-                        <div className={styles.dockCartPrice}>
+                        <div className={styles.dockCartPrice} style={{ opacity: isTotalUpdating ? 0.6 : 1, transition: 'opacity 0.2s' }}>
                             {total.toLocaleString()}đ
                             <ChevronRight size={18} />
                         </div>

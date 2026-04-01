@@ -66,6 +66,18 @@ function BillContent() {
                         }
                     });
                     setBillItems(grouped);
+
+                    // Sync payment status from support requests
+                    if (data.supportRequests) {
+                        const hasActivePaymentReq = data.supportRequests.some((req: any) => 
+                            (req.text === "Thanh toán" || req.text === "Yêu cầu thanh toán") && 
+                            req.status !== 'Xong' && req.status !== 'Hoàn thành'
+                        );
+                        if (hasActivePaymentReq) {
+                            setPaymentStatus('SUCCESS');
+                            setIsBillCollapsed(true);
+                        }
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch bill data:", err);

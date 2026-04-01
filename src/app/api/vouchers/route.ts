@@ -24,7 +24,16 @@ export async function GET(request: Request) {
 
         const db = await getDb();
         const vouchers = await db.all(
-            `SELECT * FROM vouchers WHERE user_id = ? AND status = 'active' ORDER BY discount_value DESC`,
+            `SELECT * FROM vouchers WHERE user_id = ?
+             ORDER BY
+               CASE status
+                 WHEN 'active'   THEN 1
+                 WHEN 'upcoming' THEN 2
+                 WHEN 'expired'  THEN 3
+                 WHEN 'used'     THEN 4
+                 ELSE 5
+               END,
+               expiry ASC`,
             [userId]
         );
 

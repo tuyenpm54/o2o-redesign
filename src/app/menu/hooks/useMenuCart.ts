@@ -54,6 +54,7 @@ export function useMenuCart({
   const [total, setTotal] = useState(0);
   const [cartPulse, setCartPulse] = useState(false);
   const [isCheckoutRequested, setIsCheckoutRequested] = useState(false);
+  const [isTotalUpdating, setIsTotalUpdating] = useState(false);
   const [collisionData, setCollisionData] = useState<{ item: MenuItem; quantity: number; selections?: CartSelection; message: string } | null>(null);
   const [crossSellData, setCrossSellData] = useState<{ mainItem: MenuItem; quantity: number; selections?: CartSelection; suggestions: MenuItem[] } | null>(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
@@ -106,7 +107,8 @@ export function useMenuCart({
         }
         return newCart;
       });
-      setTotal((prev: number) => Math.max(0, prev + quantity));
+      setTotal((prev: number) => Math.max(0, prev + (item.price * (Number(quantity) || 0))));
+      setIsTotalUpdating(true);
 
       fetch('/api/cart', {
         method: 'POST',
@@ -122,11 +124,13 @@ export function useMenuCart({
           setTimeout(() => setToast(null), 4000);
         }
         tableAPI.current?.fetchMainData();
+        setIsTotalUpdating(false);
       }).catch(e => {
         console.error("Cart update failed", e);
         setToast({ message: "Lỗi kết nối", submessage: "Không thể thêm món vào giỏ hàng" });
         setTimeout(() => setToast(null), 4000);
         tableAPI.current?.fetchMainData();
+        setIsTotalUpdating(false);
       });
 
     } catch (e) {
@@ -253,6 +257,7 @@ export function useMenuCart({
     collisionData, setCollisionData,
     crossSellData, setCrossSellData,
     isCartDrawerOpen, setIsCartDrawerOpen,
+    isTotalUpdating,
     proceedAddToCart,
     addToTotal,
     removeFromTotal,

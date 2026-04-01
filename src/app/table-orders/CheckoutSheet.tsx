@@ -213,7 +213,7 @@ export default function CheckoutSheet({
                             <div className={styles.voucherSection}>
                                 <span className={styles.voucherLabel}>
                                     <Ticket size={16} color="#D97706" />
-                                    {t("Voucher dành cho bạn")}
+                                    {t("Voucher có thể áp dụng")}
                                 </span>
 
                                 {bestVoucher ? (
@@ -257,23 +257,25 @@ export default function CheckoutSheet({
                         </>
                     )}
                     
-                    {/* Replaced submit button with simple close button as requested */}
+                    {/* Submit / Close Button */}
                     <button
                         style={{
                             width: '100%',
                             padding: '16px',
                             borderRadius: '16px',
                             border: 'none',
-                            background: '#F1F5F9',
-                            color: '#475569',
-                            fontSize: '1rem',
-                            fontWeight: 700,
+                            background: rating ? '#DF1B41' : '#F1F5F9',
+                            color: rating ? '#ffffff' : '#475569',
+                            fontSize: '1.05rem',
+                            fontWeight: 800,
                             cursor: 'pointer',
-                            marginTop: '8px'
+                            marginTop: '12px',
+                            transition: 'all 0.2s ease',
+                            boxShadow: rating ? '0 4px 12px rgba(223, 27, 65, 0.25)' : 'none'
                         }}
                         onClick={handleClose}
                     >
-                        {t("Đóng")}
+                        {rating ? t("Gửi đánh giá") : t("Đóng (Không đánh giá)")}
                     </button>
                 </div>
             </div>

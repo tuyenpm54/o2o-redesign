@@ -22,39 +22,34 @@ export async function GET() {
 
         const userId = session.user_id;
 
-        // Get all PAID table_sessions where this user has order_items
+        // Simplify query for PostgreSQL - find sessions first, then map them
         const invoices = await db.all(`
             SELECT 
-                COALESCE(i.id, ts.id) as id,
+                ts.id,
                 ts.resid,
                 ts.tableid,
-                COALESCE(i.status, ts.status) as status,
+                ts.status,
                 ts.started_at,
-                COALESCE(i.created_at, ts.ended_at) as ended_at,
-                COALESCE(i.total, ts.total) as stored_total,
-                COUNT(DISTINCT o.id) as item_count,
-                SUM(o.price * o.qty) as computed_total
+                ts.ended_at,
+                ts.total as stored_total,
+                (SELECT COUNT(*) FROM order_items WHERE table_session_id = ts.id AND user_id = ?) as item_count,
+                (SELECT SUM(price * qty) FROM order_items WHERE table_session_id = ts.id AND user_id = ?) as computed_total
             FROM table_sessions ts
-            LEFT JOIN invoices i ON i.table_session_id = ts.id
-            INNER JOIN order_items o 
-              ON o.resid = ts.resid 
-             AND o.tableid = ts.tableid 
-             AND o.timestamp >= ts.started_at
-             AND (ts.ended_at IS NULL OR o.timestamp <= ts.ended_at)
-            WHERE o.user_id = ?
-              AND ts.status = 'PAID'
-            GROUP BY i.id, ts.id, ts.resid, ts.tableid, i.status, ts.status, ts.started_at, i.created_at, ts.ended_at, i.total, ts.total
+            WHERE ts.id IN (
+                SELECT DISTINCT table_session_id FROM order_items WHERE user_id = ?
+            )
+            AND ts.status = 'PAID'
             ORDER BY ended_at DESC
             LIMIT 50
-        `, [userId]);
+        `, [userId, userId, userId]);
 
         // Use stored_total if available, otherwise computed_total
         const formattedInvoices = invoices.map((inv: any) => ({
             id: inv.id,
             resid: inv.resid,
             tableid: inv.tableid,
-            startedAt: inv.started_at,
-            endedAt: inv.ended_at,
+            startedAt: Number(inv.started_at) || 0,
+            endedAt: Number(inv.ended_at) || 0,
             total: inv.stored_total || inv.computed_total || 0,
             itemCount: inv.item_count || 0,
         }));

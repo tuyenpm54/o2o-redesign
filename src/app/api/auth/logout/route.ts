@@ -13,17 +13,9 @@ export async function POST() {
 
         const db = await getDb();
         const COLORS = ['Pink', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Teal'];
-        const GUEST_AVATARS = [
-            '/avatars/guest/pho.png',
-            '/avatars/guest/banh-mi.png',
-            '/avatars/guest/tra-da.png',
-            '/avatars/guest/rice-ball.png',
-            '/avatars/guest/dumpling.png',
-            '/avatars/guest/matcha.png',
-        ];
         const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
-        const randomAvatar = GUEST_AVATARS[Math.floor(Math.random() * GUEST_AVATARS.length)];
         const guestId = `g_${Date.now()}`;
+        const randomAvatar = `https://api.dicebear.com/7.x/miniavs/svg?seed=${guestId}`;
 
         // Create a new guest user
         await db.run(

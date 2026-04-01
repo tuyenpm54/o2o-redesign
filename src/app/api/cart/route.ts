@@ -63,8 +63,9 @@ export async function POST(request: Request) {
     if (!user) return ApiError('Unauthorized', 401);
     const userId = user.id;
 
-    const { resId, item, quantity, selections, tableid } = await request.json();
+    const { resId, item, quantity, selections, tableid, suggestion_source } = await request.json();
     const selectionsStr = selections ? JSON.stringify(selections) : null;
+    const source = suggestion_source || 'organic';
 
     try {
         const db = await getDb();
@@ -116,8 +117,8 @@ export async function POST(request: Request) {
             }
         } else if (quantity > 0) {
             await db.run(
-                'INSERT INTO cart_items (user_id, resid, tableid, item_id, name, price, qty, selections, img, table_session_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [userId, resId, activeTableId, item.id, item.name, item.price, quantity, selectionsStr, item.img || null, activeTableSessionId]
+                'INSERT INTO cart_items (user_id, resid, tableid, item_id, name, price, qty, selections, img, table_session_id, suggestion_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [userId, resId, activeTableId, item.id, item.name, item.price, quantity, selectionsStr, item.img || null, activeTableSessionId, source]
             );
         }
 

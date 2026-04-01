@@ -65,6 +65,24 @@ export async function POST(request: Request) {
             }
         }
 
+        // ── Data Stitching: Migrate guest data to the real user ──
+        // When the session was pointing to a different guest_id, all orders/cart/chat
+        // placed by that guest must be transferred to the real userId.
+        if (existingSessionId) {
+            const currentSession = await db.get('SELECT user_id FROM sessions WHERE id = ?', [existingSessionId]);
+            const oldGuestId = currentSession?.user_id;
+
+            if (oldGuestId && oldGuestId !== userId) {
+                console.log(`[Login] Data Stitching: migrating data from ${oldGuestId} → ${userId}`);
+                await Promise.all([
+                    db.run('UPDATE order_items SET user_id = ? WHERE user_id = ?', [userId, oldGuestId]),
+                    db.run('UPDATE order_rounds SET user_id = ? WHERE user_id = ?', [userId, oldGuestId]),
+                    db.run('UPDATE cart_items SET user_id = ? WHERE user_id = ?', [userId, oldGuestId]),
+                    db.run("UPDATE chat_messages SET user_id = ? WHERE user_id = ? AND sender = 'user'", [userId, oldGuestId]),
+                ]);
+            }
+        }
+
         user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
 
         const expires = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year

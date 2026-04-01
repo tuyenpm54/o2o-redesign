@@ -17,7 +17,7 @@ export async function GET() {
             allCartItems,
             allSupportRequests
         ] = await Promise.all([
-            db.all('SELECT * FROM tables ORDER BY id ASC'),
+            db.all('SELECT * FROM "tables" ORDER BY id ASC'),
             db.all(
                 `SELECT p.tableid, s.user_id 
                  FROM session_presences p
@@ -100,14 +100,16 @@ export async function POST(request: Request) {
 
         const db = await getDb();
 
-        const existing = await db.get('SELECT id FROM tables WHERE id = ?', [id]);
+        console.log(`[Admin Tables API] Checking existing table: ${id}`);
+        const existing = await db.get('SELECT id FROM "tables" WHERE id = ?', [id]);
         if (existing) {
             return NextResponse.json({ error: 'Table ID already exists' }, { status: 409 });
         }
 
-        await db.run('INSERT INTO tables (id, name) VALUES (?, ?)', [id, name]);
+        console.log(`[Admin Tables API] Inserting table: ${id}, ${name}`);
+        await db.run('INSERT INTO "tables" (id, name) VALUES (?, ?)', [id, name]);
 
-        const newTable = await db.get('SELECT * FROM tables WHERE id = ?', [id]);
+        const newTable = await db.get('SELECT * FROM "tables" WHERE id = ?', [id]);
 
         return NextResponse.json({ success: true, table: newTable });
     } catch (e) {
@@ -127,7 +129,8 @@ export async function DELETE(request: Request) {
 
         const db = await getDb();
 
-        await db.run('DELETE FROM tables WHERE id = ?', [id]);
+        console.log(`[Admin Tables API] Deleting table: ${id}`);
+        await db.run('DELETE FROM "tables" WHERE id = ?', [id]);
 
         return NextResponse.json({ success: true });
     } catch (e) {

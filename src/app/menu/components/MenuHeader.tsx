@@ -118,7 +118,7 @@ export function MenuHeader({
                                 )}
                             </div>
 
-                            {user.name && user.name !== 'Khách hàng mới' && !isGuest ? (
+                            {user.name && user.name !== 'Khách hàng mới' ? (
                                 <span className={styles.profileBadgeName}>
                                     {user.name}
                                 </span>

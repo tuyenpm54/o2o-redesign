@@ -248,6 +248,7 @@ async function initDb(database: DBWrapper) {
     ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS img TEXT;
     ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS tableid TEXT;
     ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS table_session_id TEXT;
+    ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS suggestion_source TEXT DEFAULT 'organic';
 
     -- Order Items
     CREATE TABLE IF NOT EXISTS order_items (
@@ -270,6 +271,24 @@ async function initDb(database: DBWrapper) {
     ALTER TABLE order_items ADD COLUMN IF NOT EXISTS table_session_id TEXT;
     ALTER TABLE order_items ADD COLUMN IF NOT EXISTS order_round_id TEXT;
     ALTER TABLE order_items ADD COLUMN IF NOT EXISTS invoice_id TEXT;
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS suggestion_source TEXT DEFAULT 'organic';
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS confirmed_at BIGINT;
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS cooking_at BIGINT;
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS ready_at BIGINT;
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS served_at BIGINT;
+
+    -- Suggestion Events (full funnel tracking: impression → click → add_to_cart → ordered)
+    CREATE TABLE IF NOT EXISTS suggestion_events (
+      id TEXT PRIMARY KEY,
+      resid TEXT NOT NULL,
+      user_id TEXT,
+      table_session_id TEXT,
+      suggestion_type TEXT NOT NULL,
+      item_id INTEGER,
+      item_name TEXT,
+      event_type TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
     -- Invoices
     CREATE TABLE IF NOT EXISTS invoices (
@@ -389,6 +408,9 @@ async function initDb(database: DBWrapper) {
   // ── Index (separate — partial unique index) ──
   try {
     await database.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_active_table_session ON table_sessions (resid, tableid) WHERE status = 'ACTIVE'`);
+  } catch (e) { }
+  try {
+    await database.exec(`CREATE INDEX IF NOT EXISTS idx_suggestion_events_lookup ON suggestion_events (resid, suggestion_type, event_type, created_at)`);
   } catch (e) { }
 
   // ── Seed data: batch into minimal calls ──

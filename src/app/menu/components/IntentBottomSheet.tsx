@@ -14,6 +14,7 @@ interface IntentBottomSheetProps {
     latestStatus: string | null;
     suggestions: any[];
     onQuickAdd: (item: any) => void;
+    isPaymentRequested?: boolean;
 }
 
 export function IntentBottomSheet({
@@ -24,7 +25,8 @@ export function IntentBottomSheet({
     activeOrders,
     latestStatus,
     suggestions,
-    onQuickAdd
+    onQuickAdd,
+    isPaymentRequested = false
 }: IntentBottomSheetProps) {
     const { t } = useLanguage();
 
@@ -147,19 +149,26 @@ export function IntentBottomSheet({
                     )}
 
                     <div className={styles.actionList}>
-                        {config.actions.map(action => (
-                            <button
-                                key={action.id}
-                                className={action.primary ? styles.primaryBtn : styles.secondaryBtn}
-                                onClick={() => {
-                                    onAction(action.id);
-                                    onClose();
-                                }}
-                            >
-                                {action.label}
-                                <ChevronRight size={18} />
-                            </button>
-                        ))}
+                        {config.actions.map(action => {
+                            const isPayAction = action.id === 'pay';
+                            const isDisabled = isPayAction && isPaymentRequested;
+                            
+                            return (
+                                <button
+                                    key={action.id}
+                                    className={action.primary ? styles.primaryBtn : styles.secondaryBtn}
+                                    disabled={isDisabled}
+                                    style={isDisabled ? { backgroundColor: '#F1F5F9', color: '#94A3B8', cursor: 'not-allowed', borderColor: '#E2E8F0' } : {}}
+                                    onClick={() => {
+                                        onAction(action.id);
+                                        onClose();
+                                    }}
+                                >
+                                    {isDisabled ? t('Đã gửi yêu cầu thanh toán..') : action.label}
+                                    {!isDisabled && <ChevronRight size={18} />}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     <button className={styles.dismissBtn} onClick={onClose}>

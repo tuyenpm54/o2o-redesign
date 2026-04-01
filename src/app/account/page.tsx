@@ -138,7 +138,7 @@ const UserAccountContent = () => {
             case 'INVOICE_LIST':
                 return (
                     <div className={styles.personalInfoView}>
-                        <InvoiceListSection />
+                        <InvoiceListSection showTitle={false} />
                     </div>
                 );
             default:
@@ -148,11 +148,11 @@ const UserAccountContent = () => {
                         nextTierPoints={membershipData.nextTierPoints}
                         topRewards={TOP_REWARDS_MOCK}
                         onNavigateToVouchers={() => router.push('/account/vouchers')}
-                        onNavigateToSettings={() => router.push(`/account/settings?from=${encodeURIComponent(from)}`)}
+                        onNavigateToRedeem={() => router.push('/account/vouchers?tab=redeem')}
                         onNavigateToHistory={() => router.push('/table-orders')}
                         onNavigateToPersonalInfo={() => setView('PERSONAL_INFO')}
-                        onNavigateToVATInfo={() => setView('VAT_INFO')}
                         onNavigateToInvoices={() => setView('INVOICE_LIST')}
+                        onNavigateToVatInfo={() => setView('VAT_INFO')}
                         onLogout={logout}
                     />
                 );

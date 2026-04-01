@@ -29,13 +29,19 @@ export default function TablesPage() {
 
     const fetchTables = async () => {
         try {
-            const res = await fetch(`/api/admin/tables?_t=${Date.now()}`);
+            const url = new URL('/api/admin/tables', window.location.origin);
+            url.searchParams.set('_t', Date.now().toString());
+            
+            const res = await fetch(url.toString());
             if (res.ok) {
                 const data = await res.json();
                 setTables(data.tables || []);
+            } else {
+                console.error("API Error:", res.status);
             }
         } catch (e) {
             console.error("Failed to fetch admin tables", e);
+            // Don't set isLoading(false) on first fail to allow retry silent
         } finally {
             setIsLoading(false);
         }

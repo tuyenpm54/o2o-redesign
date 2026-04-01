@@ -1,0 +1,213 @@
+.container {
+    min-height: 100vh;
+    background: #f8fafc;
+    padding: 1rem 1.25rem 4rem;
+}
+
+.backButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 1.5rem;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+/* 📜 THE RECEIPT */
+.receipt {
+    background: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    position: relative;
+    padding: 2.5rem 1.5rem;
+    max-width: 480px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.receipt::before, .receipt::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background-size: 16px 8px;
+    background-repeat: repeat-x;
+}
+
+.receipt::before {
+    top: 0;
+    background-image: radial-gradient(circle at 8px -4px, transparent 8px, white 8px);
+}
+
+.receipt::after {
+    bottom: 0;
+    background-image: radial-gradient(circle at 8px 12px, transparent 8px, white 8px);
+}
+
+.receiptHeader {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.restaurantName {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #111827;
+    text-transform: uppercase;
+}
+
+.restaurantMeta {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.receiptInfo {
+    border-top: 1px dashed #e2e8f0;
+    border-bottom: 1px dashed #e2e8f0;
+    padding: 1.25rem 0;
+    margin-bottom: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.infoItem { display: flex; flex-direction: column; }
+.infoLabel { font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
+.infoValue { font-size: 0.85rem; font-weight: 700; color: #111827; }
+
+/* ITEMS */
+.itemRow { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; }
+.itemName { font-weight: 700; color: #111827; }
+.itemMeta { font-size: 0.75rem; color: #94a3b8; }
+.itemPriceCol { text-align: right; font-weight: 600; color: #111827; }
+
+/* TOTALS */
+.totalsSection { border-top: 2px solid #111827; padding-top: 1rem; margin-bottom: 1.5rem; }
+.totalRow { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.totalLabel { font-size: 0.9rem; font-weight: 600; color: #64748b; }
+.totalValue { font-size: 0.9rem; font-weight: 700; color: #111827; }
+
+.grandTotalRow { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
+.grandTotalLabel { font-size: 1.1rem; font-weight: 900; color: #111827; }
+.grandTotalValue { font-size: 1.1rem; font-weight: 900; color: #DF1B41; }
+
+/* 🧠 NEW ACTIONS SECTION (Inside Receipt or Below?) */
+.receiptActions {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 1.5rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.actionHeading {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+}
+
+.feedbackRow {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 1.5rem;
+}
+
+.feedbackBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+    color: #94a3b8;
+}
+
+.feedbackBtn:active { transform: scale(0.9); }
+
+.feedbackBtn.activeSmile { color: #10b981; }
+.feedbackBtn.activeFrown { color: #ef4444; }
+
+.feedbackLabel { font-size: 0.7rem; font-weight: 700; }
+
+/* VAT SECTION */
+.vatSection {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 1rem;
+    text-align: left;
+}
+
+.vatTrigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+.vatIcon {
+    width: 32px;
+    height: 32px;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.vatInfo { flex: 1; min-width: 0; }
+.vatTitle { font-size: 0.75rem; font-weight: 800; color: #111827; display: block; }
+.vatDesc { font-size: 0.65rem; color: #64748b; }
+
+.vatBadge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #10b981;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* FOOTER */
+.receiptFooter { margin-top: 2rem; text-align: center; }
+.thankYou { font-size: 0.85rem; font-weight: 800; color: #111827; margin-bottom: 1.5rem; }
+.footerNote { font-size: 0.7rem; color: #94a3b8; line-height: 1.4; }
+
+/* VAT MODAL Overlay */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+}
+
+.bottomSheet {
+    background: white;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: 24px 24px 0 0;
+    padding: 24px;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+}

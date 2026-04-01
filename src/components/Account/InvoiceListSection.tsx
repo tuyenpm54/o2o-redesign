@@ -1,8 +1,6 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, ChevronRight, Calendar, MapPin, ShoppingBag, X } from 'lucide-react';
+import { FileText, Smile, Frown, CheckCircle2, Receipt, Search as SearchIcon } from 'lucide-react';
 import styles from './InvoiceListSection.module.css';
 
 interface Invoice {
@@ -13,191 +11,259 @@ interface Invoice {
     endedAt: number;
     total: number;
     itemCount: number;
+    rating?: number;
+    hasVAT?: boolean;
+}
+
+interface VATProfile {
+    id: string;
+    companyName: string;
+    taxCode: string;
 }
 
 interface InvoiceListSectionProps {
     limit?: number;
-    showViewAll?: boolean;
-    onViewAll?: () => void;
+    showTitle?: boolean;
 }
-
-const formatDateTime = (timestamp: number) => {
-    const d = new Date(timestamp);
-    const time = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-    const date = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-    return { time, date };
-};
-
-const formatDuration = (start: number, end: number) => {
-    const mins = Math.round((end - start) / 60000);
-    if (mins < 60) return `${mins} phút`;
-    const hrs = Math.floor(mins / 60);
-    const remainMins = mins % 60;
-    return `${hrs}h${remainMins > 0 ? remainMins : ''}`;
-};
 
 export const InvoiceListSection: React.FC<InvoiceListSectionProps> = ({
     limit,
-    showViewAll = false,
-    onViewAll,
+    showTitle = true,
 }) => {
     const router = useRouter();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [vatProfiles, setVatProfiles] = useState<VATProfile[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [activeInvoiceForVAT, setActiveInvoiceForVAT] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [dateFilter, setDateFilter] = useState('');
 
     useEffect(() => {
-        const fetchInvoices = async () => {
+        const fetchData = async () => {
             try {
-                const res = await fetch('/api/account/invoices');
-                if (!res.ok) throw new Error('Failed to fetch');
-                const data = await res.json();
-                setInvoices(data.data?.invoices || []);
+                const invRes = await fetch('/api/account/invoices');
+                const invData = await invRes.json();
+                
+                const vatRes = await fetch('/api/account/vat');
+                const vatData = await vatRes.json();
+                
+                // Mocking item names for search demo (in real app this comes from order_items join)
+                const itemNamesMock = ['Phở bò', 'Bún chả', 'Nem rán', 'Cà phê sữa', 'Bánh mì', 'Gà kfc', 'Pizza'];
+                
+                const mockedInvoices = (invData.data?.invoices || []).map((inv: any, idx: number) => ({
+                    ...inv,
+                    rating: idx % 3 === 0 ? 5 : undefined,
+                    hasVAT: idx === 1,
+                    // Attaching a random dish for filtering demo
+                    items: [itemNamesMock[idx % itemNamesMock.length]]
+                }));
+
+                setInvoices(mockedInvoices);
+                setVatProfiles(vatData.data?.profiles || []);
             } catch (err) {
-                setError('Không thể tải hoá đơn');
+                console.error('Fetch error:', err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchInvoices();
+        fetchData();
     }, []);
 
-    const displayInvoices = limit ? invoices.slice(0, limit) : invoices;
+    const handleSelectVAT = (invoiceId: string, profileId: string) => {
+        setInvoices(prev => prev.map(inv => 
+            inv.id === invoiceId ? { ...inv, hasVAT: true } : inv
+        ));
+        setActiveInvoiceForVAT(null);
+    };
+
+    const handleRate = (invoiceId: string) => {
+        setInvoices(prev => prev.map(inv => 
+            inv.id === invoiceId ? { ...inv, rating: 5 } : inv
+        ));
+    };
 
     if (loading) {
         return (
-            <section className={styles.section}>
-                <div className={styles.header}>
-                    <h3 className={styles.title}>Hoá đơn</h3>
-                </div>
-                <div className={styles.skeletonList}>
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className={styles.skeletonRow}>
-                            <div className={styles.skeletonIcon} />
-                            <div className={styles.skeletonContent}>
-                                <div className={styles.skeletonLine} />
-                                <div className={styles.skeletonLineShort} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
-        );
-    }
-
-    if (error) {
-        return (
-            <section className={styles.section}>
-                <div className={styles.header}>
-                    <h3 className={styles.title}>Hoá đơn</h3>
-                </div>
-                <div className={styles.errorState}>
-                    <p>{error}</p>
-                    <button onClick={() => window.location.reload()}>Thử lại</button>
-                </div>
-            </section>
+            <div className={styles.skeletonList}>
+                {[1, 2, 3].map(i => <div key={i} className={styles.skeletonRow} />)}
+            </div>
         );
     }
 
     if (invoices.length === 0) {
         return (
-            <section className={styles.section}>
-                <div className={styles.header}>
-                    <h3 className={styles.title}>Hoá đơn</h3>
-                </div>
-                <div className={styles.emptyState}>
-                    <FileText size={40} strokeWidth={1.5} />
-                    <p>Chưa có hoá đơn nào</p>
-                    <span>Hoá đơn sẽ xuất hiện sau khi bạn thanh toán bữa ăn</span>
-                    <button className={styles.orderNowBtn} onClick={() => router.push('/customer')}>
-                        Gọi món ngay
-                    </button>
-                </div>
-            </section>
+            <div className={styles.emptyState}>
+                <Receipt size={48} color="#cbd5e1" strokeWidth={1} />
+                <p>Chưa có hoá đơn nào</p>
+            </div>
         );
     }
+
+    const filteredInvoices = invoices.filter(inv => {
+        const matchesSearch = inv.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                             (inv as any).items?.some((item: string) => item.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        const invDate = new Date(inv.endedAt || inv.startedAt || Date.now()).toISOString().split('T')[0];
+        const matchesDate = !dateFilter || invDate === dateFilter;
+
+        return matchesSearch && matchesDate;
+    });
+
+    const displayInvoices = limit ? filteredInvoices.slice(0, limit) : filteredInvoices;
+
+    // Helper to group invoices by date
+    const groupInvoices = (list: Invoice[]) => {
+        const groups: { [key: string]: Invoice[] } = {};
+        list.forEach(inv => {
+            const dateStr = new Date(inv.endedAt || inv.startedAt || Date.now()).toLocaleDateString('vi-VN', {
+                day: '2-digit', month: '2-digit', year: 'numeric'
+            });
+            if (!groups[dateStr]) groups[dateStr] = [];
+            groups[dateStr].push(inv);
+        });
+        return groups;
+    };
+
+    const grouped = groupInvoices(displayInvoices);
+    const sortedDates = Object.keys(grouped).sort((a, b) => {
+        const dateA = new Date(a.split('/').reverse().join('-')).getTime();
+        const dateB = new Date(b.split('/').reverse().join('-')).getTime();
+        return dateB - dateA;
+    });
 
     return (
         <section className={styles.section}>
             <div className={styles.header}>
-                <h3 className={styles.title}>Hoá đơn</h3>
-                {showViewAll && invoices.length > (limit || 0) && (
-                    <button className={styles.viewAllBtn} onClick={onViewAll}>
-                        Xem tất cả <ChevronRight size={14} />
-                    </button>
-                )}
+                {showTitle && <h2 className={styles.title}>Lịch sử hoá đơn</h2>}
+                
+                {/* 🔍 FILTER BAR */}
+                <div className={styles.filterBar}>
+                    <div className={styles.searchWrapper}>
+                        <div className={styles.searchIcon}><FileText size={16} /></div>
+                        <input 
+                            type="text" 
+                            placeholder="Tìm món ăn, mã hoá đơn..." 
+                            className={styles.searchInput}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <div className={styles.dateWrapper}>
+                        <input 
+                            type="date" 
+                            className={styles.dateInput}
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value)}
+                        />
+                    </div>
+                </div>
             </div>
 
-            <div className={styles.list}>
-                {displayInvoices.map((inv) => {
-                    const end = formatDateTime(inv.endedAt);
-                    const duration = formatDuration(inv.startedAt, inv.endedAt);
-                    return (
-                        <button
-                            key={inv.id}
-                            className={styles.invoiceRow}
-                            onClick={() => setSelectedInvoice(inv)}
-                        >
-                            <div className={styles.invoiceIcon}>
-                                <FileText size={18} />
-                            </div>
-                            <div className={styles.invoiceContent}>
-                                <div className={styles.invoiceMain}>
-                                    <span className={styles.invoiceDate}>{end.date}</span>
-                                    <span className={styles.invoiceTotal}>
-                                        {inv.total.toLocaleString('vi-VN')}đ
-                                    </span>
-                                </div>
-                                <div className={styles.invoiceMeta}>
-                                    <span><MapPin size={12} /> Bàn {inv.tableid}</span>
-                                    <span><ShoppingBag size={12} /> {inv.itemCount} món</span>
-                                    <span><Calendar size={12} /> {duration}</span>
-                                </div>
-                            </div>
-                            <ChevronRight size={16} className={styles.chevron} />
-                        </button>
-                    );
-                })}
-            </div>
+            {sortedDates.map(date => (
+                <div key={date}>
+                    <div className={styles.dateGroupHeader}>
+                        {date === new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) ? 'Hôm nay' : date}
+                    </div>
+                    <div className={styles.list}>
+                        {grouped[date].map(inv => {
+                            const time = new Date(inv.endedAt || inv.startedAt || Date.now()).toLocaleTimeString('vi-VN', {
+                                hour: '2-digit', minute: '2-digit'
+                            });
 
-            {/* Invoice Detail Bottom Sheet */}
-            {selectedInvoice && (
-                <div className={styles.sheetOverlay} onClick={() => setSelectedInvoice(null)}>
-                    <div className={styles.sheet} onClick={e => e.stopPropagation()}>
-                        <div className={styles.sheetHeader}>
-                            <h3>Chi tiết hoá đơn</h3>
-                            <button className={styles.sheetClose} onClick={() => setSelectedInvoice(null)}>
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className={styles.sheetBody}>
-                            <div className={styles.sheetInfo}>
-                                <div className={styles.sheetInfoRow}>
-                                    <span>Ngày</span>
-                                    <strong>{formatDateTime(selectedInvoice.endedAt).date}</strong>
+                            return (
+                                <div 
+                                    key={inv.id} 
+                                    className={styles.invoiceCard}
+                                    onClick={() => router.push(`/account/invoices/${inv.id}`)}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <div className={styles.iconWrapper}>
+                                        <FileText size={18} />
+                                    </div>
+
+                                    <div className={styles.mainInfo}>
+                                        <div className={styles.idRow}>#{inv.id.substring(0, 8).toUpperCase()}</div>
+                                        <div className={styles.subRow}>
+                                            <span>{time}</span>
+                                            <span>· Bàn {inv.tableid}</span>
+                                            <span>· {inv.itemCount} món</span>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.priceArea}>
+                                        <div className={styles.invoiceTotal}>
+                                            {Number(inv.total).toLocaleString('vi-VN')}đ
+                                        </div>
+                                        <div className={styles.statusRow}>
+                                            {inv.rating ? (
+                                                <div className={styles.starRating}>
+                                                    {inv.rating >= 4 ? (
+                                                        <Smile size={12} color="#10b981" fill="#ecfdf5" />
+                                                    ) : (
+                                                        <Frown size={12} color="#ef4444" fill="#fef2f2" />
+                                                    )}
+                                                    <span style={{ color: inv.rating >= 4 ? '#10b981' : '#ef4444' }}>
+                                                        {inv.rating >= 4 ? 'Hài lòng' : 'Chưa tốt'}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <button 
+                                                    className={styles.actionLink} 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRate(inv.id);
+                                                    }}
+                                                >
+                                                    Đánh giá
+                                                </button>
+                                            )}
+
+                                            <span style={{ fontSize: '10px', color: '#e2e8f0' }}>|</span>
+
+                                            {inv.hasVAT ? (
+                                                <div className={styles.vatBadge}>VAT</div>
+                                            ) : (
+                                                <button 
+                                                    className={styles.actionLink}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveInvoiceForVAT(inv.id);
+                                                    }}
+                                                >
+                                                    Lấy VAT
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className={styles.sheetInfoRow}>
-                                    <span>Giờ vào</span>
-                                    <strong>{formatDateTime(selectedInvoice.startedAt).time}</strong>
-                                </div>
-                                <div className={styles.sheetInfoRow}>
-                                    <span>Giờ thanh toán</span>
-                                    <strong>{formatDateTime(selectedInvoice.endedAt).time}</strong>
-                                </div>
-                                <div className={styles.sheetInfoRow}>
-                                    <span>Bàn</span>
-                                    <strong>{selectedInvoice.tableid}</strong>
-                                </div>
-                                <div className={styles.sheetInfoRow}>
-                                    <span>Số món</span>
-                                    <strong>{selectedInvoice.itemCount}</strong>
-                                </div>
-                                <div className={`${styles.sheetInfoRow} ${styles.totalRow}`}>
-                                    <span>Tổng tiền</span>
-                                    <strong>{selectedInvoice.total.toLocaleString('vi-VN')}đ</strong>
-                                </div>
-                            </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
+
+            {/* VAT SELECTION SHEET remains stable */}
+            {activeInvoiceForVAT && (
+                <div className={styles.overlay} onClick={() => setActiveInvoiceForVAT(null)}>
+                    <div className={styles.bottomSheet} onClick={e => e.stopPropagation()}>
+                        <h3 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '1rem', fontWeight: 800 }}>Chọn thông tin VAT</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {vatProfiles.length > 0 ? (
+                                vatProfiles.map(profile => (
+                                    <button 
+                                        key={profile.id} 
+                                        style={{ padding: '14px', border: '1px solid #f1f5f9', borderRadius: '12px', background: 'white', textAlign: 'left' }}
+                                        onClick={() => handleSelectVAT(activeInvoiceForVAT, profile.id)}
+                                    >
+                                        <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{profile.companyName}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>MST: {profile.taxCode}</div>
+                                    </button>
+                                ))
+                            ) : (
+                                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem', padding: '1.5rem' }}>
+                                    Bạn chưa có thông tin VAT nào.
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>

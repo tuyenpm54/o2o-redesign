@@ -72,6 +72,30 @@ All API routes use Next.js Route Handlers. Data access is handled through Postgr
 - `/api/chat` — Messaging between customer and restaurant.
 - `/api/payment/request` — Payment request.
 
+### Identity & Session Architecture
+
+The system uses a **3-tier identity model**:
+
+| Tier | Entity | Lifecycle | Notes |
+|------|--------|-----------|-------|
+| **Browser** | `session_id` (httpOnly cookie) | Permanent per browser | 1 cookie = 1 browser. Never changes unless deleted. |
+| **Identity** | `user_id` / `guest_id` | Persistent — changes only on Login/Logout | 1 browser has exactly 1 identity at any time. The `sessions.user_id` pointer determines the current identity. |
+| **Table** | `table_session_id` | 1 meal lifecycle (ACTIVE → PAID) | Multiple identities can participate in the same table_session. |
+
+**Guest Creation** (`/api/auth/guest`): Each new browser gets a unique guest identity (`g_{timestamp}`). If a `session_id` cookie already exists, the session's `user_id` is switched to the new guest — the cookie itself stays the same.
+
+**Login — Two Scenarios** (`/api/auth/login`):
+- **Scenario A (New phone)**: The current guest user is upgraded **in-place** — same `user_id`, phone number attached, `isGuest` → `0`. All existing order data is automatically preserved because the ID doesn't change.
+- **Scenario B (Existing phone)**: The session switches to the existing `user_id` associated with that phone. A **Data Stitching** step migrates all data (`order_items`, `order_rounds`, `cart_items`, `chat_messages`) from the old Guest ID to the real User ID, ensuring invoice attribution is preserved.
+
+**Logout** (`/api/auth/logout`): Creates a brand-new guest identity and switches the session to it. The old user account remains in the database with all its historical data intact.
+
+**Invoice Attribution Flow**:
+1. Guest/User places orders → `order_items.user_id` = current identity
+2. Admin clears table → `table_sessions.status` = `'PAID'`, `invoices` record created
+3. User views history → `/api/account/invoices` queries `order_items` by `user_id` joined to `table_sessions` via `table_session_id` FK
+4. Data Stitching ensures that even if the user logged in mid-meal, all orders are correctly attributed to their final identity
+
 ### Data Layer (`src/lib/db.ts`)
 
 - Uses **PostgreSQL** (`pg` pool) for all persisting data (users, sessions, orders, carts, messages).
@@ -116,6 +140,7 @@ There is a UI/UX Pro Max workflow at `.agent/workflows/ui-ux-pro-max.md` with a 
 
 ## Important Notes
 
+- **CRITICAL WORKFLOW RULE**: **NEVER** automatically `git commit` or `git push` code to GitHub or Netlify unless explicitly instructed by the user. ALL developments, modifications, and fixes must be strictly kept in the local environment. Wait for the user's explicit command (e.g., "Hãy push lên", "Build đi") before deploying or pushing any code.
 - The root URL `/` redirects to `/customer`, and `/customer` redirects via `next.config.ts` from `/` to `/home` for the landing page. The primary ordering flow starts at `/customer` or `/discovery?resid=...&tableid=...`.
 - Vietnamese is the default language (`vi`). All UI copy and translations are in `src/context/LanguageContext.tsx`.
 - Order status simulation in `/api/orders` uses `setTimeout` to mimic real-time kitchen progression — this is intentional mock behavior.

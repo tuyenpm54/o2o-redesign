@@ -24,19 +24,20 @@ function TableOrdersContent() {
 
     const MOCK_COLORS = ["#3B82F6", "#EF4444", "#EC4899", "#F59E0B", "#8B5CF6", "#10B981"];
 
-    const [selectedMemberId, setSelectedMemberId] = useState<'me' | 'all' | string>('me');
+    const [selectedMemberId, setSelectedMemberId] = useState<'me' | 'all' | string>('all');
     const [members, setMembers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [unreadChatCount, setUnreadChatCount] = useState(0);
     const [lastUnreadMsg, setLastUnreadMsg] = useState<string | null>(null);
     // Demo mode is now disabled, we use real real-time tracking
-    const [isAvatarListEnabled, setIsAvatarListEnabled] = useState(true);
+
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isSortModalOpen, setIsSortModalOpen] = useState(false);
     const [isTableClosed, setIsTableClosed] = useState(false);
     const [viewMode, setViewMode] = useState<'summary' | 'timeline'>('timeline');
     const [isCheckoutSheetOpen, setIsCheckoutSheetOpen] = useState(false);
     const [isRequestingPayment, setIsRequestingPayment] = useState(false);
+    const [hasRequestedPayment, setHasRequestedPayment] = useState(false);
     const [now, setNow] = useState(Date.now());
     const mountTimeRef = React.useRef(Date.now()); // treat mount time as order placement time
     const lastChatCheckRef = React.useRef<number>(Date.now() - 5000);
@@ -101,6 +102,15 @@ function TableOrdersContent() {
                 }
                 if (data.tableClosedTimestamp && data.tableClosedTimestamp > mountTimeRef.current && !isTableClosed) {
                     setIsTableClosed(true);
+                }
+
+                // Sync payment request status from backend
+                if (data.supportRequests) {
+                    const hasPendingPayment = data.supportRequests.some((req: any) => 
+                        (req.text === "Thanh toán" || req.text === "Yêu cầu thanh toán") && 
+                        req.status !== 'Xong' && req.status !== 'Hoàn thành'
+                    );
+                    if (hasPendingPayment) setHasRequestedPayment(true);
                 }
             } catch (err) {
                 console.error("Failed to fetch table orders:", err);
@@ -475,77 +485,16 @@ function TableOrdersContent() {
                     </div>
                 </div>
                 <div className={styles.headerRight}>
-                    {!isAvatarListEnabled && (
-                        <button className={styles.historyBtn} onClick={() => setIsFilterModalOpen(true)} style={{ marginRight: '8px', color: selectedMemberId !== 'all' ? '#DF1B41' : 'inherit' }}>
-                            <Filter size={20} />
-                        </button>
-                    )}
+                    <button className={styles.historyBtn} onClick={() => setIsFilterModalOpen(true)} style={{ marginRight: '8px', color: selectedMemberId !== 'all' ? '#DF1B41' : 'inherit' }}>
+                        <Filter size={20} />
+                    </button>
                     <button className={styles.historyBtn} onClick={() => setIsSortModalOpen(true)} title={t('Sắp xếp')}>
                         <ListOrdered size={20} />
                     </button>
                 </div>
             </header>
 
-            {isAvatarListEnabled && (
-                <div className={styles.memberSlider}>
-                {/* All Option */}
-                <button className={`${styles.memberItem} ${selectedMemberId === 'all' ? styles.active : ''}`} onClick={() => setSelectedMemberId('all')}>
-                    <div className={styles.avatarWrapper} style={{ position: 'relative', overflow: 'visible' }}>
-                        <div className={styles.allWrapper}>
-                            <Users size={24} color={selectedMemberId === 'all' ? '#F97316' : '#64748B'} />
-                        </div>
-                        {/* Summary of items at table */}
-                        <div className={styles.speechBubble}>
-                            {members.reduce((acc, m) => acc + (m.draftItems?.length || 0) + (m.confirmedOrders?.length || 0), 0)} {t('món')}
-                        </div>
-                    </div>
-                    <span className={styles.memberName}>{t('Cả bàn')}</span>
-                </button>
 
-                {/* current user (Me) logic moved into the list of members for better consistency */}
-                {members.map((mem) => {
-                    const isMe = mem.id === user?.id;
-                    const isActive = selectedMemberId === 'me' ? isMe : selectedMemberId === mem.id;
-                    const fallbackColor = mem.color || MOCK_COLORS[mem.name.length % MOCK_COLORS.length];
-                    const hasItems = (mem.draftItems?.length || 0) > 0;
-
-                    return (
-                        <button
-                            key={mem.id}
-                            className={`${styles.memberItem} ${isActive ? styles.active : ''}`}
-                            onClick={() => setSelectedMemberId(isMe ? 'me' : mem.id)}
-                        >
-                            <div className={styles.avatarWrapper} style={{ position: 'relative', overflow: 'visible' }}>
-                                {mem.avatar ? (
-                                    <img src={mem.avatar} alt={mem.name} className={styles.avatar} style={{ backgroundColor: fallbackColor }} />
-                                ) : (
-                                    <div className={styles.initials} style={{ backgroundColor: fallbackColor }}>
-                                        {mem.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
-                                    </div>
-                                )}
-                                {isMe && (
-                                    <div className={styles.meBadge}>
-                                        <Crown size={10} fill="#F59E0B" color="#F59E0B" />
-                                    </div>
-                                )}
-                                {(!hasItems && (mem.confirmedOrders?.length || 0) > 0) && (
-                                    <div className={styles.doneBadge}>
-                                        <CheckCircle2 size={12} fill="white" />
-                                    </div>
-                                )}
-                                <div className={styles.speechBubble}>
-                                    {isMe
-                                        ? (hasItems ? t('đang chọn món...') : t('Chào bạn!'))
-                                        : (hasItems ? '...' : ((mem.confirmedOrders?.length || 0) > 0 ? t('Đã gọi') : t('Đang xem')))
-                                    }
-                                </div>
-                            </div>
-                            <span className={styles.memberName}>{isMe ? t('Tôi') : mem.name}</span>
-                        </button>
-                    );
-                })}
-                </div>
-            )}
 
             <main className={styles.orderArea}>
                 <div className={styles.orderList}>
@@ -615,8 +564,15 @@ function TableOrdersContent() {
                     {showCheckoutButton && (
                         <button 
                             className="btn-footer-primary" 
-                            style={{ backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: isRequestingPayment ? 0.7 : 1 }} 
-                            disabled={isRequestingPayment}
+                            style={{ 
+                                backgroundColor: hasRequestedPayment ? '#94A3B8' : '#10B981', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                gap: '8px', 
+                                opacity: (isRequestingPayment || hasRequestedPayment) ? 0.7 : 1 
+                            }} 
+                            disabled={isRequestingPayment || hasRequestedPayment}
                             onClick={async () => {
                                 setIsRequestingPayment(true);
                                 try {
@@ -632,6 +588,7 @@ function TableOrdersContent() {
                                         }),
                                     });
                                     if (res.ok) {
+                                        setHasRequestedPayment(true);
                                         setIsCheckoutSheetOpen(true);
                                     } else {
                                         alert(t('Có lỗi xảy ra khi gửi yêu cầu'));
@@ -644,7 +601,7 @@ function TableOrdersContent() {
                             }}
                         >
                             {isRequestingPayment ? <Loader2 size={20} className={styles.spinner} /> : <ReceiptText size={20} />}
-                            {isRequestingPayment ? t('Đang gửi...') : t('Yêu cầu thanh toán')}
+                            {isRequestingPayment ? t('Đang gửi...') : (hasRequestedPayment ? t('Đã gửi yêu cầu thanh toán..') : t('Yêu cầu thanh toán'))}
                         </button>
                     )}
                 </div>

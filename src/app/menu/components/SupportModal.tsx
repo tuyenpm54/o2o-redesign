@@ -101,7 +101,10 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                     let reqStatus = "";
                     
                     if (!isOther && supportRequests) {
-                      const latestRelevantReq = supportRequests.find(r => r.text === action.label);
+                      const latestRelevantReq = supportRequests.find(r => 
+                        r.text === action.label || 
+                        (action.id === 'bill' && (r.text === 'Thanh toán' || r.text === 'Yêu cầu thanh toán'))
+                      );
                       if (latestRelevantReq) {
                         const isCompleted = latestRelevantReq.status === 'Xong' || latestRelevantReq.status === 'Hoàn thành';
                         const reqTs = Number(latestRelevantReq.status_updated_at) || Number(latestRelevantReq.timestamp);

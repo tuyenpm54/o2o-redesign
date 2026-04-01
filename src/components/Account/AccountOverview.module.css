@@ -25,13 +25,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    cursor: pointer;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #f8fafc;
-}
-
-:global(.dark) .profileTop {
-    border-bottom-color: #2a2a3e;
+    padding-bottom: 14px;
 }
 
 .avatar {
@@ -44,7 +38,111 @@
     justify-content: center;
     color: white;
     flex-shrink: 0;
+    overflow: hidden;
 }
+
+.avatarImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+}
+
+.avatarInitial {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+    letter-spacing: -0.5px;
+}
+
+/* Inline QR icon button — placed next to name+phone */
+.qrIconBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+:global(.dark) .qrIconBtn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+}
+
+.qrIconBtn:hover {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+:global(.dark) .qrIconBtn:hover {
+    background: #2a3a50;
+}
+
+.qrIconActive {
+    background: #EFF6FF;
+    border-color: #BFDBFE;
+    color: #2563EB;
+}
+
+:global(.dark) .qrIconActive {
+    background: rgba(37, 99, 235, 0.15);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: #60A5FA;
+}
+
+/* Divider between name row and tier row */
+.divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 14px 0 0;
+}
+
+:global(.dark) .divider {
+    background: #2a2a3e;
+}
+
+/* Points group: points display + redeem button side by side */
+.pointsGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.redeemBtn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+    border: none;
+    border-radius: 100px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #92400E;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+:global(.dark) .redeemBtn {
+    background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.2));
+    color: #FCD34D;
+}
+
+.redeemBtn:hover {
+    transform: scale(1.04);
+    box-shadow: 0 2px 8px rgba(249,115,22,0.2);
+}
+
 
 .profileInfo {
     flex: 1;
@@ -149,6 +247,26 @@
     color: #f97316;
 }
 
+/* Inline "Đổi ngay" button inside progressNote */
+.redeemInlineBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: inherit;
+    font-weight: 800;
+    color: #059669;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    transition: color 0.15s;
+    display: inline;
+}
+
+.redeemInlineBtn:hover {
+    color: #047857;
+}
+
 /* Barcode On-demand */
 .barcodeToggle {
     display: flex;
@@ -243,8 +361,89 @@
     color: #94a3b8;
 }
 
-/* ═══ CRITICAL: Quick Navigation ═══ */
-/* ═══ CRITICAL: Quick Navigation ═══ */
+/* ═══ IMPORTANT: Quick Actions Grid ═══ */
+.quickActionsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.quickAction {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 12px;
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+:global(.dark) .quickAction {
+    background: #1a1a2e;
+    border-color: #2a2a3e;
+}
+
+.quickAction:hover {
+    background: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+:global(.dark) .quickAction:hover {
+    background: #1f1f35;
+}
+
+.quickAction:active {
+    transform: scale(0.97);
+}
+
+.quickActionIcon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quickActionIcon.orange {
+    background: #FFF7ED;
+    color: #F97316;
+}
+:global(.dark) .quickActionIcon.orange {
+    background: rgba(249, 115, 22, 0.15);
+}
+
+.quickActionIcon.pink {
+    background: #FDF2F8;
+    color: #EC4899;
+}
+:global(.dark) .quickActionIcon.pink {
+    background: rgba(236, 72, 153, 0.15);
+}
+
+.quickActionIcon.blue {
+    background: #EFF6FF;
+    color: #3B82F6;
+}
+:global(.dark) .quickActionIcon.blue {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.quickActionLabel {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+:global(.dark) .quickActionLabel {
+    color: #94a3b8;
+}
+
+/* ═══ ON-DEMAND: Compact Navigation ═══ */
 
 .navCard {
     background: white;
@@ -369,6 +568,51 @@
     color: #475569;
 }
 
+.navIcon.red {
+    background: #FEF2F2;
+    color: #EF4444;
+}
+:global(.dark) .navIcon.red {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+/* Toggle Switch */
+.toggleSwitch {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: #cbd5e1;
+    padding: 2px;
+    cursor: pointer;
+    transition: background 0.25s;
+    flex-shrink: 0;
+}
+
+.toggleOn {
+    background: #22c55e;
+}
+
+:global(.dark) .toggleSwitch {
+    background: #475569;
+}
+
+:global(.dark) .toggleOn {
+    background: #22c55e;
+}
+
+.toggleKnob {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.25s;
+}
+
+.toggleOn .toggleKnob {
+    transform: translateX(20px);
+}
+
 /* ═══ SUPPORTIVE: Rewards ═══ */
 .rewardsSection {
     margin-top: 0;
@@ -470,7 +714,10 @@
 
 /* ═══ SUPPORTIVE: Logout ═══ */
 .logoutBtn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
     padding: 14px;
     background: none;
