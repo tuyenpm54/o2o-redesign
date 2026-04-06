@@ -30,7 +30,8 @@ export default function HQRestaurantsPage() {
             users: "12,450", usersGrowth: 8.4,
             tableCoverage: 85,
             slaStatus: 'tốt',
-            slaViolations: []
+            slaViolations: [],
+            plan: 'Premium', usage: 4520, limit: -1
         },
         { 
             id: "RES-02", name: "Phở 24 Hai Bà Trưng", status: "online", mgr: "Trần Thị B",
@@ -41,7 +42,8 @@ export default function HQRestaurantsPage() {
             slaViolations: [
                 { phase: "Chế biến", issue: "Thời gian chờ trung bình 18p (chuẩn 12p)" },
                 { phase: "Lên món / Trả đồ", issue: "Tắc nghẽn 5 đơn tại quầy nhận" }
-            ]
+            ],
+            plan: 'Pro', usage: 842, limit: 1000
         },
         { 
             id: "RES-03", name: "KFC Vincom Đồng Khởi", status: "offline", mgr: "Lê Văn C",
@@ -49,7 +51,8 @@ export default function HQRestaurantsPage() {
             users: "1,204", usersGrowth: -30.5,
             tableCoverage: 15,
             slaStatus: 'tốt',
-            slaViolations: []
+            slaViolations: [],
+            plan: 'Cơ bản', usage: 98, limit: 100
         },
         { 
             id: "RES-04", name: "Phúc Long Lê Lợi", status: "online", mgr: "Phạm D",
@@ -59,7 +62,8 @@ export default function HQRestaurantsPage() {
             slaStatus: 'xấu',
             slaViolations: [
                 { phase: "Order", issue: "Thời gian nhận đơn trung bình 5p (chuẩn tối đa 2p)" }
-            ]
+            ],
+            plan: 'Pro', usage: 1120, limit: 1000
         },
     ];
 
@@ -181,9 +185,8 @@ export default function HQRestaurantsPage() {
                                 <th className="px-6 py-4 font-semibold text-slate-400 dark:text-slate-500 text-[11px] tracking-widest uppercase whitespace-nowrap w-[15%]">QUẢN LÝ</th>
                                 <th className="px-6 py-4 font-semibold text-slate-400 dark:text-slate-500 text-[11px] tracking-widest uppercase whitespace-nowrap text-right w-[12%]">DOANH THU</th>
                                 <th className="px-6 py-4 font-semibold text-slate-400 dark:text-slate-500 text-[11px] tracking-widest uppercase whitespace-nowrap text-right w-[10%]">USERS</th>
-                                <th className="px-6 py-4 font-semibold text-slate-400 dark:text-slate-500 text-[11px] tracking-widest uppercase whitespace-nowrap w-[12%]">COVER BÀN</th>
-                                <th className="px-6 py-4 font-semibold text-slate-400 dark:text-slate-500 text-[11px] tracking-widest uppercase whitespace-nowrap w-[12%] text-center">TRẠNG THÁI</th>
-                                <th className="px-6 py-4 font-semibold text-slate-400 dark:text-slate-500 text-[11px] tracking-widest uppercase whitespace-nowrap w-[10%] text-center">SLA</th>
+                                <th className="px-6 py-4 font-semibold text-slate-400 dark:text-slate-500 text-[11px] tracking-widest uppercase whitespace-nowrap w-[15%] text-center">GÓI CƯỚC</th>
+                                <th className="px-6 py-4 font-semibold text-slate-400 dark:text-slate-500 text-[11px] tracking-widest uppercase whitespace-nowrap w-[15%] text-center">LƯỢT GỌI MÓN</th>
                                 <th className="px-4 py-4 w-[4%]"></th>
                             </tr>
                         </thead>
@@ -213,41 +216,38 @@ export default function HQRestaurantsPage() {
                                             </div>
                                         </div>
                                     </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border transition-all ${
+                                            res.plan === 'Premium' ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 border-orange-200' :
+                                            res.plan === 'Pro' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 border-blue-200' :
+                                            'bg-slate-50 dark:bg-slate-500/10 text-slate-600 border-slate-200'
+                                        }`}>
+                                            {res.plan}
+                                        </span>
+                                    </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3 w-full">
-                                            <span className={
-                                                `w-7 text-left text-[11px] font-bold ${
-                                                    res.tableCoverage >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
-                                                    res.tableCoverage <= 30 ? 'text-red-500 dark:text-red-400' :
-                                                    'text-slate-500 dark:text-slate-400 font-medium'
-                                                }`
-                                            }>
-                                                {res.tableCoverage}%
-                                            </span>
-                                            <div className="flex-1 h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                        <div className="flex flex-col items-center gap-1.5 group/usage relative">
+                                            <div className="flex items-center justify-between w-full max-w-[100px] text-[10px] font-black uppercase tracking-tight">
+                                                <span className={res.limit !== -1 && res.usage >= res.limit ? 'text-red-500' : 'text-slate-500'}>
+                                                    {res.usage.toLocaleString()}
+                                                </span>
+                                                <span className="text-slate-300">/</span>
+                                                <span className="text-slate-400">
+                                                    {res.limit === -1 ? '∞' : res.limit.toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <div className="w-full max-w-[100px] h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
                                                 <div 
-                                                    className={`h-full rounded-full transition-all duration-500 ${
-                                                        res.tableCoverage >= 80 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
-                                                        res.tableCoverage <= 30 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' :
-                                                        'bg-slate-400 dark:bg-slate-500'
+                                                    className={`h-full rounded-full transition-all duration-1000 ${
+                                                        res.limit === -1 ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,178,8,0.3)]' :
+                                                        res.usage >= res.limit ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]' :
+                                                        res.usage >= res.limit * 0.8 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,107,15,0.3)]' :
+                                                        'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]'
                                                     }`}
-                                                    style={{ width: `${res.tableCoverage}%` }}
+                                                    style={{ width: `${res.limit === -1 ? 100 : Math.min((res.usage / res.limit) * 100, 100)}%` }}
                                                 />
                                             </div>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        {res.status === 'online' ? (
-                                            <div className="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 box-content border-2 border-emerald-100/50 dark:border-emerald-500/20"></span> 
-                                                <span>Đang mở cửa</span>
-                                            </div>
-                                        ) : (
-                                            <div className="inline-flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span> 
-                                                <span>Tạm nghỉ</span>
-                                            </div>
-                                        )}
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         {res.slaStatus === 'tốt' ? (

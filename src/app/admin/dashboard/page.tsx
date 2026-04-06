@@ -160,6 +160,27 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Quota Indicator for Store Manager */}
+                    <div className="hidden lg:flex flex-col items-end mr-4 group cursor-help relative">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hạn mức lượt gọi món</span>
+                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded italic">Gói Pro</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs font-black text-slate-700 dark:text-slate-300">842 <span className="text-slate-400 font-medium">/ 1.000</span></span>
+                            <div className="w-24 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-1000" style={{ width: '84.2%' }} />
+                            </div>
+                        </div>
+                        
+                        {/* Tooltip on hover */}
+                        <div className="absolute top-full right-0 mt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <div className="bg-white dark:bg-[#1A1D27] border border-slate-200 dark:border-white/10 rounded-xl p-3 shadow-xl text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                Bạn đã sử dụng <strong className="text-slate-900 dark:text-white">84%</strong> hạn mức tháng này. Nâng cấp lên <strong className="text-orange-500">Premium</strong> để không giới hạn.
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="hidden lg:flex bg-slate-200/60 dark:bg-[#1A1D27] p-1 rounded-2xl border border-slate-300/50 dark:border-white/10">
                         {(['realtime', 'analytics'] as const).map(tab => (
                             <button key={tab} onClick={() => setActiveTab(tab)}
