@@ -67,8 +67,8 @@ export default function BillingPage() {
                     
                     <ul className="space-y-4 mb-8">
                         <li className="flex items-start gap-3"><CheckCircle2 className="text-green-500 shrink-0" size={20}/> <span className="font-medium">Quản lý tối đa 10 bàn</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-green-500 shrink-0" size={20}/> <span className="font-medium">300 lượt gọi O2O / tháng</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-green-500 shrink-0" size={20}/> <span className="font-medium">Giao diện O2O mặc định</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-green-500 shrink-0" size={20}/> <span className="font-medium">100 lượt gọi món / tháng</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-green-500 shrink-0" size={20}/> <span className="font-medium">Giao diện mặc định</span></li>
                         <li className="flex items-start gap-3 text-slate-400"><Shield className="shrink-0" size={20}/> <span className="line-through">Tùy chỉnh giao diện nâng cao</span></li>
                     </ul>
 
@@ -89,7 +89,7 @@ export default function BillingPage() {
                     
                     <ul className="space-y-4 mb-8 text-slate-700 dark:text-slate-300">
                         <li className="flex items-start gap-3"><CheckCircle2 className="text-blue-500 shrink-0" size={20}/> <span className="font-medium">Không giới hạn số bàn</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-blue-500 shrink-0" size={20}/> <span className="font-medium">Tối đa 3000 lượt gọi O2O / tháng</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-blue-500 shrink-0" size={20}/> <span className="font-medium">Tối đa 1000 lượt gọi món / tháng</span></li>
                         <li className="flex items-start gap-3"><CheckCircle2 className="text-blue-500 shrink-0" size={20}/> <span className="font-medium">Tùy chỉnh màu sắc & thương hiệu</span></li>
                         <li className="flex items-start gap-3 text-slate-400"><Shield className="shrink-0" size={20}/> <span className="line-through">Tính năng custom riêng biệt</span></li>
                     </ul>
@@ -108,7 +108,7 @@ export default function BillingPage() {
                     
                     <ul className="space-y-4 mb-8 text-slate-700 dark:text-slate-300">
                         <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Mọi thứ của gói Pro</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Không giới hạn lượt gọi O2O</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Không giới hạn lượt gọi món</span></li>
                         <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Mở khóa tính năng custom riêng</span></li>
                         <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Thiết kế tùy biến nhãn trắng</span></li>
                     </ul>
