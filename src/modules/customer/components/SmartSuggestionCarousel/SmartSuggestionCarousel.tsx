@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Plus, Minus, ThumbsUp } from 'lucide-react';
+import { Sparkles, Plus, Minus, ThumbsUp, Heart } from 'lucide-react';
 import styles from './SmartSuggestionCarousel.module.css';
 
 export interface SuggestedItem {
