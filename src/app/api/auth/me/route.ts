@@ -47,11 +47,58 @@ export async function GET() {
             );
         }
 
-        // Parse preferences
+        // ✅ Hybrid History Logic:
+        // 1. Try to use hardcoded/cached history from user.preferences_history first (JSON field)
+        let finalHistory = [];
+        try {
+            // preferences_history is used for pre-calculated/hardcoded historical data
+            finalHistory = JSON.parse(user.preferences_history || '[]');
+        } catch (e) {
+            finalHistory = [];
+        }
+
+        // 2. If preferences_history is empty, aggregate from DB order_items
+        if (!finalHistory || finalHistory.length === 0) {
+            const historyRows = await db.all(
+                `SELECT oi.item_id as id, SUM(oi.qty) as quantity 
+                 FROM order_items oi
+                 JOIN table_sessions ts ON oi.table_session_id = ts.id
+                 WHERE oi.user_id = ? AND ts.status = 'PAID'
+                 GROUP BY oi.item_id 
+                 ORDER BY quantity DESC`,
+                [user.id]
+            );
+            
+            finalHistory = historyRows || [];
+
+            // 3. Sync back to users table if we found something in the DB
+            if (finalHistory.length > 0) {
+                await db.run(
+                    'UPDATE users SET preferences_history = ? WHERE id = ?',
+                    [JSON.stringify(finalHistory), user.id]
+                );
+            }
+        }
+
+        user.history = finalHistory;
         user.preferences = JSON.parse(user.preferences || '[]');
         user.isGuest = !!user.isGuest;
         user.visitCount = user.visit_count || 1;
         user.lastVisitAt = user.last_visit_at;
+
+        // Fetch assigned restaurant for admin users (via user_restaurants table)
+        const assignedRestaurant = await db.get(
+            `SELECT r.id as restaurant_id, r.name as restaurant_name
+             FROM user_restaurants ur
+             JOIN restaurants r ON r.id = ur.restaurant_id
+             WHERE ur.user_id = ?
+             LIMIT 1`,
+            [user.id]
+        );
+        if (assignedRestaurant) {
+            user.restaurant_id = assignedRestaurant.restaurant_id;
+            user.restaurant_name = assignedRestaurant.restaurant_name;
+        }
 
         return ApiSuccess({ user });
     } catch (error) {

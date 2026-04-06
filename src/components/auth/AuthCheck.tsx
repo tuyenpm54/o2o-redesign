@@ -1,33 +1,54 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export function AuthCheck({ children }: { children: React.ReactNode }) {
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+    const { user, isGuest, isLoadingAuth } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
 
     useEffect(() => {
-        const checkAuth = () => {
-            const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            setIsAuthenticated(loggedIn);
-
-            if (!loggedIn && pathname.startsWith('/admin')) {
-                router.replace('/login');
+        if (!isLoadingAuth) {
+            const isProtected = pathname.startsWith('/admin') || pathname.startsWith('/hq');
+            
+            if (isProtected) {
+                // Must be a registered user (not guest) and exist
+                if (!user || isGuest) {
+                    router.replace('/login');
+                } else if (pathname.startsWith('/hq') && user.role !== 'CHAIN_MANAGER') {
+                    // Redirect restaurant admins away from HQ
+                    router.replace('/admin/dashboard');
+                } else if (pathname.startsWith('/admin') && user.role === 'CHAIN_MANAGER') {
+                    // Redirect HQ managers away from restaurant admin
+                    router.replace('/hq/dashboard');
+                }
             }
-        };
+        }
+    }, [pathname, router, user, isGuest, isLoadingAuth]);
 
-        checkAuth();
-    }, [pathname, router]);
-
+    const isProtected = pathname.startsWith('/admin') || pathname.startsWith('/hq');
+    
     // Prevent flash of content
-    if (isAuthenticated === null && pathname.startsWith('/admin')) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
-                <div className="w-8 h-8 border-4 border-zinc-900 dark:border-white border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
+    if (isProtected) {
+        if (isLoadingAuth) {
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#050510]">
+                    <div className="w-8 h-8 border-4 border-slate-900 dark:border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+            );
+        }
+        if (!user || isGuest) {
+            return null;
+        }
+        // Prevent layout from flashing the wrong UI before the route changes
+        if (pathname.startsWith('/hq') && user.role !== 'CHAIN_MANAGER') {
+            return null;
+        }
+        if (pathname.startsWith('/admin') && user.role === 'CHAIN_MANAGER') {
+            return null;
+        }
     }
 
     return <>{children}</>;

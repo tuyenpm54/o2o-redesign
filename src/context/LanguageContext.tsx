@@ -29,6 +29,7 @@ export const translations: Translations = {
 
     // UI Elements
     'Gợi ý thông minh': { vi: 'Gợi ý thông minh', en: 'Smart Choices' },
+    'Gợi ý gọi món': { vi: 'Gợi ý gọi món', en: 'Order Suggestions' },
     'Khám phá': { vi: 'Khám phá', en: 'Discover' },
     'Gửi yêu cầu gọi món': { vi: 'Gửi yêu cầu gọi món', en: 'Send Order Request' },
     'Chi tiết gọi món': { vi: 'Chi tiết gọi món', en: 'Order Details' },
@@ -46,7 +47,7 @@ export const translations: Translations = {
     'Người cùng bàn': { vi: 'Người cùng bàn', en: 'Table Members' },
     'tại bàn': { vi: 'tại bàn', en: 'at table' },
     'đang chọn món...': { vi: 'đang chọn món...', en: 'selecting items...' },
-    'Dành riêng cho bạn': { vi: 'Dành riêng cho bạn', en: 'Specially for you' },
+    'Món bạn từng gọi': { vi: 'Món bạn từng gọi', en: 'Specially for you' },
     'Chào bạn!': { vi: 'Chào bạn!', en: 'Hello!' },
     'Đã xong': { vi: 'Đã xong', en: 'Done' },
     'món': { vi: 'món', en: 'items' },
@@ -67,6 +68,8 @@ export const translations: Translations = {
     'Vâng, xem gợi ý ngay': { vi: 'Vâng, xem gợi ý ngay', en: 'Yes, show suggestions' },
     'Không, để tôi chọn lại': { vi: 'Không, để tôi chọn lại', en: 'No, let me choose again' },
     'Hôm nay mình đi mấy người?': { vi: 'Hôm nay mình đi mấy người?', en: 'How many people today?' },
+    'Hôm nay bạn đi cùng ai?': { vi: 'Hôm nay bạn đi cùng ai?', en: 'Who are you coming with today?' },
+    'Chào mừng bạn đã tới': { vi: 'Chào mừng bạn đã tới', en: 'Welcome to' },
     'Để chúng tôi chuẩn bị bàn chu đáo nhất': { vi: 'Để chúng tôi chuẩn bị bàn chu đáo nhất', en: 'So we can prepare the best table for you' },
     'Lưu ý:': { vi: 'Lưu ý:', en: 'Note:' },
     'Khám phá ngay': { vi: 'Khám phá ngay', en: 'Explore now' },

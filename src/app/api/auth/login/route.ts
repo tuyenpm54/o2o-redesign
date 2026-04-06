@@ -4,29 +4,39 @@ import { getDb } from '@/lib/db';
 
 export async function POST(request: Request) {
     try {
-        const { phone, name } = await request.json();
+        // Allow passing 'identifier' or 'phone' for backward compatibility
+        const body = await request.json();
+        const identifier = body.identifier || body.phone;
+        const name = body.name;
 
-        if (!phone) {
-            return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
+        if (!identifier) {
+            return NextResponse.json({ error: 'Phone or Email is required' }, { status: 400 });
         }
 
         const db = await getDb();
         const cookieStore = await cookies();
         const existingSessionId = cookieStore.get('session_id')?.value;
 
-        // Find or create the real user account
-        let user = await db.get('SELECT * FROM users WHERE phone = ?', [phone]);
+        // Find or create the real user account by checking either phone or email
+        let user = await db.get('SELECT * FROM users WHERE phone = ? OR email = ?', [identifier, identifier]);
         let userId: string;
 
+        const isEmail = identifier.includes('@');
+        
         if (user) {
             userId = user.id;
-            if (name && name !== 'Khách hàng mới') {
-                await db.run('UPDATE users SET name = ?, isGuest = 0 WHERE id = ?', [name, userId]);
-                user.name = name;
-                user.isGuest = 0;
+            const updateProps = [name || user.name];
+            let sql = 'UPDATE users SET name = COALESCE(NULLIF(?, \'\'), name), isGuest = 0';
+            if (isEmail) {
+                sql += ', email = ?';
+                updateProps.push(identifier);
             } else {
-                await db.run('UPDATE users SET isGuest = 0 WHERE id = ?', [userId]);
+                sql += ', phone = COALESCE(phone, ?)';
+                updateProps.push(identifier);
             }
+            sql += ' WHERE id = ?';
+            updateProps.push(userId);
+            await db.run(sql, updateProps);
         } else {
             // New user: create account (reuse guest user id so cart data is preserved)
             const existingSession = existingSessionId
@@ -37,28 +47,30 @@ export async function POST(request: Request) {
                 : null;
 
             if (existingGuestUser) {
-                // Upgrade guest user in-place — same user_id, cart data preserved
+                // Upgrade guest user in-place
                 userId = existingGuestUser.id;
                 await db.run(
-                    'UPDATE users SET phone = ?, name = ?, isGuest = 0, tier = ?, avatar = ? WHERE id = ?',
+                    'UPDATE users SET phone = COALESCE(phone, ?), email = COALESCE(email, ?), name = ?, isGuest = 0, avatar = ? WHERE id = ?',
                     [
-                        phone,
+                        isEmail ? null : identifier,
+                        isEmail ? identifier : null,
                         name || 'Khách hàng mới',
-                        'Thành viên',
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${phone}`,
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${identifier}`,
                         userId
                     ]
                 );
             } else {
                 userId = `u${Date.now()}`;
                 await db.run(
-                    'INSERT INTO users (id, phone, name, tier, avatar, isGuest) VALUES (?, ?, ?, ?, ?, ?)',
+                    'INSERT INTO users (id, phone, email, name, tier, role, avatar, isGuest) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                     [
                         userId,
-                        phone,
+                        isEmail ? null : identifier,
+                        isEmail ? identifier : null,
                         name || 'Khách hàng mới',
                         'Thành viên',
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${phone}`,
+                        'CUSTOMER',
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${identifier}`,
                         0
                     ]
                 );

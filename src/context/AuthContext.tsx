@@ -10,8 +10,11 @@ interface UserProfile {
     points?: number;
     avatar?: string;
     tier?: string;
+    role?: string;
     preferences?: string[];
     isGuest?: boolean;
+    restaurant_id?: string;
+    restaurant_name?: string;
 }
 
 interface AuthContextType {
@@ -102,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const logout = React.useCallback(async (redirectTo?: string) => {
-        const destination = redirectTo || '/customer';
+        const destination = redirectTo || '/menu';
         try {
             const res = await fetch('/api/auth/logout', { method: 'POST' });
             if (res.ok) {

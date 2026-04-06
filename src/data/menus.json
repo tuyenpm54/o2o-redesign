@@ -1,58 +1,4 @@
 {
-    "r1": {
-        "categories": [
-            "Khai vị",
-            "Món chính",
-            "Món ăn kèm",
-            "Món ăn chơi",
-            "Đồ uống",
-            "Tráng miệng"
-        ],
-        "preferences": [
-            {
-                "id": "kids",
-                "label": "Có trẻ em"
-            },
-            {
-                "id": "noOnion",
-                "label": "Không ăn hành/tỏi"
-            },
-            {
-                "id": "noSeafood",
-                "label": "Dị ứng hải sản"
-            },
-            {
-                "id": "healthy",
-                "label": "Ăn thanh đạm"
-            },
-            {
-                "id": "vegetarian",
-                "label": "Đồ chay"
-            },
-            {
-                "id": "lessSpicy",
-                "label": "Ít cay"
-            }
-        ],
-        "items": [
-            {
-                "id": 101,
-                "name": "Lẩu Thuyền Chài Đặc Biệt",
-                "price": 1250000,
-                "img": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600",
-                "desc": "Hương vị biển cả với tôm hùm, cua Cà Mau và nước dùng bí truyền.",
-                "tags": [
-                    "Bán chạy",
-                    "Signature"
-                ],
-                "kidsFriendly": false,
-                "seafood": true,
-                "onionFree": false,
-                "status": "Trending",
-                "category": "Món chính"
-            }
-        ]
-    },
     "100": {
         "categories": [
             "Khai vị",
@@ -60,7 +6,8 @@
             "Món ăn kèm",
             "Món ăn chơi",
             "Đồ uống",
-            "Tráng miệng"
+            "Tráng miệng",
+            "Combo"
         ],
         "preferences": [
             {
@@ -114,12 +61,13 @@
                 "tags": [
                     "Thanh đạm",
                     "Khai vị",
-                    "Signature"
+                    "Signature",
+                    "Bán chạy"
                 ],
                 "kidsFriendly": false,
                 "seafood": false,
                 "onionFree": false,
-                "status": "Chef Pick",
+                "status": "Best Seller",
                 "category": "Khai vị"
             },
             {
@@ -198,12 +146,13 @@
                 "tags": [
                     "Hải sản",
                     "Tươi sống",
-                    "Signature"
+                    "Signature",
+                    "Bán chạy"
                 ],
                 "kidsFriendly": false,
                 "seafood": true,
                 "onionFree": false,
-                "status": "Chef Pick",
+                "status": "Best Seller",
                 "category": "Món chính"
             },
             {
@@ -334,6 +283,170 @@
                 "onionFree": true,
                 "status": "Dessert",
                 "category": "Tráng miệng"
+            },
+            {
+                "id": 701,
+                "name": "Combo Tiết Kiệm: Cơm Gà BBQ + Trà Đào",
+                "price": 285000,
+                "originalPrice": 304000,
+                "save": 19000,
+                "img": "/food/combo-ga.jpg",
+                "desc": "Cơm gà nướng mềm tan kèm trà đào cam sả thanh mát.",
+                "tags": [
+                    "MUST TRY"
+                ],
+                "people": 2,
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Saving",
+                "category": "Combo"
+            },
+            {
+                "id": 702,
+                "name": "Combo Gia Đình 4-6 Người",
+                "price": 520000,
+                "originalPrice": 580000,
+                "save": 60000,
+                "img": "/food/combo-family.jpg",
+                "desc": "Đầy đủ các món ăn kèm, khai vị và 4 lon Coca.",
+                "tags": [
+                    "Gia đình",
+                    "Bán chạy"
+                ],
+                "people": 4,
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": false,
+                "status": "Best Seller",
+                "category": "Combo"
+            },
+            {
+                "id": 703,
+                "name": "Combo Văn Phòng: Mì Ý + Coca",
+                "price": 105000,
+                "originalPrice": 114000,
+                "save": 9000,
+                "img": "/food/combo-van-phong.jpg",
+                "desc": "Bữa trưa nhanh gọn, giàu dinh dưỡng cho dân công sở.",
+                "tags": [
+                    "Văn phòng"
+                ],
+                "people": 2,
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Lunch Set",
+                "category": "Combo"
+            },
+            {
+                "id": 704,
+                "name": "Combo Đại Tiệc 8-10 Người",
+                "price": 1850000,
+                "originalPrice": 2100000,
+                "save": 250000,
+                "img": "/food/combo-tiec.jpg",
+                "desc": "Đầy đủ các món từ khai vị đến tráng miệng, kèm rượu vang.",
+                "tags": [
+                    "Đại tiệc"
+                ],
+                "people": 8,
+                "kidsFriendly": true,
+                "seafood": true,
+                "onionFree": false,
+                "status": "Party",
+                "category": "Combo"
+            },
+            {
+                "id": 705,
+                "name": "Combo Bạn Thân 2 Người",
+                "price": 345000,
+                "originalPrice": 400000,
+                "save": 55000,
+                "img": "/food/combo-ban-than.jpg",
+                "desc": "Phù hợp cho các cặp đôi hoặc bạn thân đi 2 người.",
+                "tags": [
+                    "Bạn thân",
+                    "Bán chạy"
+                ],
+                "people": 2,
+                "kidsFriendly": true,
+                "seafood": false,
+                "onionFree": true,
+                "status": "Best Seller",
+                "category": "Combo"
+            },
+            {
+                "id": 706,
+                "name": "Combo Liên Hoan 4-6 Người",
+                "price": 890000,
+                "originalPrice": 990000,
+                "save": 100000,
+                "img": "/food/combo-lien-hoan.jpg",
+                "desc": "Set hải sản tổng hợp và bia lạnh cho nhóm bạn.",
+                "tags": [
+                    "Liên hoan"
+                ],
+                "people": 4,
+                "kidsFriendly": false,
+                "seafood": true,
+                "onionFree": false,
+                "status": "Party",
+                "category": "Combo"
+            }
+        ]
+    },
+    "r1": {
+        "categories": [
+            "Khai vị",
+            "Món chính",
+            "Món ăn kèm",
+            "Món ăn chơi",
+            "Đồ uống",
+            "Tráng miệng"
+        ],
+        "preferences": [
+            {
+                "id": "kids",
+                "label": "Có trẻ em"
+            },
+            {
+                "id": "noOnion",
+                "label": "Không ăn hành/tỏi"
+            },
+            {
+                "id": "noSeafood",
+                "label": "Dị ứng hải sản"
+            },
+            {
+                "id": "healthy",
+                "label": "Ăn thanh đạm"
+            },
+            {
+                "id": "vegetarian",
+                "label": "Đồ chay"
+            },
+            {
+                "id": "lessSpicy",
+                "label": "Ít cay"
+            }
+        ],
+        "items": [
+            {
+                "id": 101,
+                "name": "Lẩu Thuyền Chài Đặc Biệt",
+                "price": 1250000,
+                "img": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600",
+                "desc": "Hương vị biển cả với tôm hùm, cua Cà Mau và nước dùng bí truyền.",
+                "tags": [
+                    "Bán chạy",
+                    "Signature"
+                ],
+                "kidsFriendly": false,
+                "seafood": true,
+                "onionFree": false,
+                "status": "Trending",
+                "category": "Món chính"
             }
         ]
     }

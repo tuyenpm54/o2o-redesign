@@ -226,9 +226,23 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
   }
   const effectiveAutoFocus = autoFocusIndex;
 
+  const isJustOrdered = hasOrders && roundKeys.length > 0 && groupedRounds[roundKeys[roundKeys.length - 1]]?.timestamp 
+    ? Date.now() - groupedRounds[roundKeys[roundKeys.length - 1]].timestamp < 8000 
+    : false;
 
   return (
-    <div className={styles.unifiedContextCard}>
+    <>
+      <style>{`
+        @keyframes orderPlacedPulse {
+          0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); border-color: #10b981; background-color: rgba(16, 185, 129, 0.1); }
+          50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); border-color: rgba(16, 185, 129, 0.2); background-color: var(--menu-card-bg, #fff); }
+          100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); border-color: var(--menu-card-border, rgba(0,0,0,0.06)); background-color: var(--menu-card-bg, #fff); }
+        }
+        .order-just-placed {
+          animation: orderPlacedPulse 1.2s ease-out 3;
+        }
+      `}</style>
+      <div className={`${styles.unifiedContextCard} ${isJustOrdered ? 'order-just-placed' : ''}`}>
       {/* ==== NC0: Pre-Order ==== */}
       {!hasOrders ? (
         <>
@@ -520,5 +534,6 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
         })()
       )}
     </div>
+    </>
   );
 };

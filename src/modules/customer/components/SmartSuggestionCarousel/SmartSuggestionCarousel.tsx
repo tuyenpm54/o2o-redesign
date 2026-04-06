@@ -31,10 +31,10 @@ export const SmartSuggestionCarousel: React.FC<SmartSuggestionCarouselProps> = (
         <section className={styles.container}>
             <div className={styles.header}>
                 <h2 className={styles.title}>
-                    <Sparkles size={18} className={styles.sparkleIcon} />
-                    O2O Đề xuất cho bạn
+                    <Heart size={20} className="text-red-500 fill-red-500" style={{marginRight: 6}} />
+                    Món bạn từng gọi
                 </h2>
-                <span className={styles.subtitle}>Dựa trên ưu tiên của bạn</span>
+                <span className={styles.subtitle}>Dựa trên lịch sử gọi món</span>
             </div>
 
             <div className={styles.carousel}>

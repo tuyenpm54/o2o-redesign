@@ -47,10 +47,10 @@ import { MenuGrid } from "./components/MenuGrid";
 import { FeaturedSections } from "./components/FeaturedSections";
 import { SupportModal } from "./components/SupportModal";
 
-
 import { useUserState } from "./hooks/useUserState";
 import { useMenuContext } from "./hooks/useMenuContext";
 import pairingsData from "@/data/pairings.json";
+import { ServiceBellIcon } from '@/components/Icons/ServiceBellIcon';
   // Added CheckCircle2 above
 
 
@@ -204,6 +204,7 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
   } = cart;
 
   const onboardingBlock = displayConfig?.find(b => b.type === 'onboarding-wizard');
+  const supportOptionsBlock = displayConfig?.find(b => b.type === 'support-options');
   const isWizardEnabled = onboardingBlock?.config?.isEnabled !== false;
   const wizardStyle = onboardingBlock?.config?.wizardStyle || 'v2';
   const WizardComponent = wizardStyle === 'v2' ? MenuWizardV2 : MenuWizard;
@@ -347,6 +348,21 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
 
   const { timeOfDay, userHistory, isGroup, greeting, theme } = useMenuContext(table.tableMembers.length);
 
+  const manualBestSaleIds = useMemo(() => {
+    const block = displayConfig?.find(b => b.type === 'best-sale' && b.config?.isEnabled !== false);
+    return block?.config?.itemIds || [];
+  }, [displayConfig]);
+
+  const finalTopItems = useMemo(() => {
+    if (manualBestSaleIds.length > 0) {
+      const items = manualBestSaleIds
+        .map((id: number) => table.menuItems.find((m: any) => m.id === id || m.id === String(id)))
+        .filter(Boolean);
+      return items.length > 0 ? items : table.topItems;
+    }
+    return table.topItems;
+  }, [manualBestSaleIds, table.menuItems, table.topItems]);
+
   const sophisticatedCategories = useMemo(() => {
     let list = [...table.categories];
     if (timeOfDay === 'morning') {
@@ -362,12 +378,12 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
       const topPriority = ['Món Chính', 'Món ăn kèm', 'Thức Ăn Nhanh'];
       list = [...topPriority.filter(c => list.includes(c)), ...list.filter(c => !topPriority.includes(c))];
     }
-    if (table.topItems.length > 0) list.unshift("Siêu phẩm bán chạy");
-    if (table.personalizedItems.length > 0) list.unshift("Lựa chọn dành cho bạn");
+    if (finalTopItems.length > 0) list.unshift("Món bán chạy");
+    if (table.personalizedItems.length > 0) list.unshift("Món bạn từng gọi");
     if (isGroup) list.unshift("Combo Nhóm Ngon Nhất");
     else list.unshift("Combo tiết kiệm");
     return list.filter((v, i, a) => a.indexOf(v) === i);
-  }, [table.categories, table.topItems.length, table.personalizedItems.length, timeOfDay, isGroup]);
+  }, [table.categories, finalTopItems.length, table.personalizedItems.length, timeOfDay, isGroup]);
 
   const displayMenuItems = useMemo(() => {
     let base = table.menuItems;
@@ -387,14 +403,14 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
     const q = ui.searchQuery.toLowerCase();
     const catsWithMatches = new Set<string>();
     displayMenuItems.forEach((i: any) => catsWithMatches.add(i.category));
-    if (table.personalizedItems.length > 0 && table.personalizedItems.some((i: any) => i.name.toLowerCase().includes(q) || (i.tags && i.tags.some((t: string) => t.toLowerCase().includes(q))))) catsWithMatches.add("Lựa chọn dành cho bạn");
-    if (table.topItems.length > 0 && table.topItems.some((i: any) => i.name.toLowerCase().includes(q) || (i.tags && i.tags.some((t: string) => t.toLowerCase().includes(q))))) catsWithMatches.add("Siêu phẩm bán chạy");
+    if (table.personalizedItems.length > 0 && table.personalizedItems.some((i: any) => i.name.toLowerCase().includes(q) || (i.tags && i.tags.some((t: string) => t.toLowerCase().includes(q))))) catsWithMatches.add("Món bạn từng gọi");
+    if (finalTopItems.length > 0 && finalTopItems.some((i: any) => i.name.toLowerCase().includes(q) || (i.tags && i.tags.some((t: string) => t.toLowerCase().includes(q))))) catsWithMatches.add("Món bán chạy");
     if (COMBOS.some((i: any) => i.name.toLowerCase().includes(q) || (i.desc && i.desc.toLowerCase().includes(q)))) {
       catsWithMatches.add("Combo tiết kiệm");
       catsWithMatches.add("Combo Nhóm Ngon Nhất");
     }
     return sophisticatedCategories.filter((c: string) => catsWithMatches.has(c));
-  }, [sophisticatedCategories, displayMenuItems, ui.searchQuery, table.personalizedItems, table.topItems]);
+  }, [sophisticatedCategories, displayMenuItems, ui.searchQuery, table.personalizedItems, finalTopItems]);
 
   const scrollToCategory = (cat: string) => {
     const section = categoryRefs.current[cat];
@@ -554,7 +570,6 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
       table.setSittingSince(null);
       // Wait a moment then re-login/refresh
       setTimeout(() => {
-        loginAsGuest();
         fetchLiveTableData(true);
       }, 500);
     } catch (e) {
@@ -628,6 +643,7 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
         categories={sophisticatedCategories}
         total={total}
         cartItems={cartItems}
+        restaurantName={restaurant?.name}
         handlePlaceOrder={handlePlaceOrder}
         handleStartOnboarding={async () => {
           setOnboardingStep(1);
@@ -730,19 +746,22 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
                 />
               );
             case 'best-sale':
+              if (finalTopItems.length === 0) return null;
+
               return (
                 <FeaturedSections
                   key={block.id}
                   searchQuery={searchQuery}
                   userHistory={[]} // Hide history from this block
                   personalizedItems={[]} // Hide personalized from this block
-                  topItems={topItems}
+                  topItems={finalTopItems}
                   filteredCategories={filteredCategories}
                   theme={theme}
                   t={t}
                   categoryRefs={categoryRefs}
                   setSelectedItem={setSelectedItem}
                   proceedAddToCart={proceedAddToCart}
+                  customTitle={block.title || "Món bán chạy"}
                 />
               );
             case 'combo':
@@ -803,7 +822,7 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
                       {isInactive && cartItems.length === 0 && !hasLateOrders && !isCheckoutRequested && (
                           <span className={styles.supportText}>Bạn cần hỗ trợ?</span>
                       )}
-                      <BellRing size={22} className={styles.fabSupportIcon} />
+                      <ServiceBellIcon size={22} className={styles.fabSupportIcon} />
                   </>
               )}
           </button>
@@ -826,6 +845,7 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
         user={user}
         setToast={setToast as any}
         fetchLiveTableData={fetchLiveTableData}
+        supportOptionsConfig={supportOptionsBlock?.config?.options}
       />
 
       <CartDrawer

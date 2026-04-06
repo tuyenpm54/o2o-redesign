@@ -14,7 +14,9 @@ export async function GET(request: Request) {
         if (!config) {
             // Initial default config if not exists
             const initialBlocks = [
-                { id: 'b1', type: 'hero-banner', title: 'Banner Khuyến Mãi', config: {} },
+                { id: 'b1', type: 'for-you', title: 'Món Bạn Từng Gọi', config: { isEnabled: true } },
+                { id: 'b2', type: 'combo', title: 'Combo Tiết Kiệm', config: { isEnabled: true, limit: 10, itemIds: [701, 702, 703, 704, 705, 706] } },
+                { id: 'b3', type: 'best-sale', title: 'Siêu Phẩm Bán Chạy', config: { isEnabled: true } },
                 { id: 'b4', type: 'menu-grid', title: 'Thực Đơn Của Chúng Tôi', config: { viewType: 'list' } }
             ];
             const id = crypto.randomUUID();

@@ -41,15 +41,15 @@ Configured in `src/config/shopConfig.ts`, with UI copy in `src/constants/copy.ts
 
 ### Key Pages (App Router — `src/app/`)
 
-- `/` → redirects to `/customer`
-- `/customer` — Main storefront preview with dynamic module rendering driven by `localStorage` config (`preview_storefront_config`). This is the primary customer-facing ordering page.
-- `/discovery?resid=&tableid=` — Restaurant-specific menu page entered via QR scan. Fetches restaurant data, menu, and table members from APIs. Has a guided wizard, cart drawer, item detail modal, and food pairing recommendations.
-- `/mall` — Multi-store food court ordering (similar structure to `/customer` but with multiple store sources like KFC, Phở 24, Highlands Coffee).
+- `/` → redirects to `/menu`
+- `/menu` — Main storefront preview with dynamic module rendering driven by `localStorage` config (`preview_storefront_config`). This is the primary customer-facing ordering page.
+- `/menu?resid=100&tableid=A-12` — Restaurant-specific menu page entered via QR scan. Fetches restaurant data, menu, and table members from APIs. Has a guided wizard, cart drawer, item detail modal, and food pairing recommendations.
+- `/mall` — Multi-store food court ordering (similar structure to `/menu` but with multiple store sources like KFC, Phở 24, Highlands Coffee).
 - `/admin` → redirects to `/admin/dashboard`. Protected by `AuthCheck`. Uses sidebar layout (`AdminSidebar`). Sub-pages: `/dashboard`, `/appearance`, `/display`, `/modules`.
 - `/account`, `/account/settings`, `/account/vouchers` — User profile and settings.
 - `/chat` — Customer-restaurant messaging.
-- `/bill`, `/customer/bill`, `/mall/bill` — Bill/payment views.
-- `/customer/orders`, `/mall/orders`, `/order-history` — Order tracking with rounds.
+- `/bill`, `/menu/bill`, `/mall/bill` — Bill/payment views.
+- `/menu/orders`, `/mall/orders`, `/order-history` — Order tracking with rounds.
 - `/login` — Login page.
 - `/home` — Landing page (Hero, Features, Pricing).
 
@@ -110,16 +110,16 @@ The system uses a **3-tier identity model**:
 
 ### Modular UI System
 
-The customer storefront (`/customer`) uses a zone-based modular architecture (documented in `docs/modular_ui_architecture.md`). Modules are rendered dynamically from a config stored in `localStorage`. Module types include: `hero-banner`, `group-ordering`, `guided-discovery`, `bill-discount-progress`, `flash-sales`, `collection-grid`, `menu-grid`, `smart-suggestions`.
+The customer storefront (`/menu`) uses a zone-based modular architecture (documented in `docs/modular_ui_architecture.md`). Modules are rendered dynamically from a config stored in `localStorage`. Module types include: `hero-banner`, `group-ordering`, `guided-discovery`, `bill-discount-progress`, `flash-sales`, `collection-grid`, `menu-grid`, `smart-suggestions`.
 
 The admin panel (`/admin/modules`, `/admin/display`) configures which modules appear and in what order, pushing config to the customer storefront via `localStorage` / `postMessage`.
 
 ### Component Organization
 
 - `src/components/` — Shared components (ThemeProvider, ThemeToggle, Account section, auth components, landing page components).
-- `src/modules/customer/components/` — Customer-facing feature modules, each in its own folder with `.tsx` + `.module.css`. Examples: `ContextBanner`, `Greeting`, `Header`, `FlashSale`, `SmartSuggestion`, `Buffet`, `LoyaltyCard`, `OnboardingGuide`, `MemberLobby`, `ActiveOrder`, `BannerSlider`, `FilterTagsBar`, `PromotionStrip`.
+- `src/modules/menu/components/` — Customer-facing feature modules, each in its own folder with `.tsx` + `.module.css`. Examples: `ContextBanner`, `Greeting`, `Header`, `FlashSale`, `SmartSuggestion`, `Buffet`, `LoyaltyCard`, `OnboardingGuide`, `MemberLobby`, `ActiveOrder`, `BannerSlider`, `FilterTagsBar`, `PromotionStrip`.
 - `src/modules/admin/components/` — Admin panel components (sidebar, charts, config panels, previews).
-- `src/app/discovery/components/` — Discovery-page-specific components (Header, Footer, ItemDetailModal, CartDrawer, DiscoveryWizard).
+- `src/app/menu/components/` — Discovery-page-specific components (Header, Footer, ItemDetailModal, CartDrawer, DiscoveryWizard).
 
 ## Styling Conventions
 
@@ -141,7 +141,7 @@ There is a UI/UX Pro Max workflow at `.agent/workflows/ui-ux-pro-max.md` with a 
 ## Important Notes
 
 - **CRITICAL WORKFLOW RULE**: **NEVER** automatically `git commit` or `git push` code to GitHub or Netlify unless explicitly instructed by the user. ALL developments, modifications, and fixes must be strictly kept in the local environment. Wait for the user's explicit command (e.g., "Hãy push lên", "Build đi") before deploying or pushing any code.
-- The root URL `/` redirects to `/customer`, and `/customer` redirects via `next.config.ts` from `/` to `/home` for the landing page. The primary ordering flow starts at `/customer` or `/discovery?resid=...&tableid=...`.
+- The root URL `/` redirects to `/menu`, and `/menu` redirects via `next.config.ts` from `/` to `/home` for the landing page. The primary ordering flow starts at `/menu` or `/menu?resid=...&tableid=...`.
 - Vietnamese is the default language (`vi`). All UI copy and translations are in `src/context/LanguageContext.tsx`.
 - Order status simulation in `/api/orders` uses `setTimeout` to mimic real-time kitchen progression — this is intentional mock behavior.
 - The system connects to a PostgreSQL database via `DATABASE_URL`. Do not write new features relying on local JSON files or SQLite.

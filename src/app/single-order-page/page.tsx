@@ -153,7 +153,8 @@ const PROMO_REWARD = 'giảm 10%';
 import { TABLE_MEMBERS, MEMBER_ORDERS } from '@/data/mock-table';
 
 
-import { OnboardingGuide } from '@/modules/customer/components/Onboarding/OnboardingGuide'; // Import new component
+import { OnboardingGuide } from '@/modules/customer/components/Onboarding/OnboardingGuide';import { ServiceBellIcon } from '@/components/Icons/ServiceBellIcon';
+ // Import new component
 
 
 
@@ -897,7 +898,7 @@ function StorefrontPreviewContent() {
                     className={`${styles.staffFab}`}
                     onClick={() => router.push('/chat?from=/single-order-page')}
                 >
-                    <BellRing size={22} className={styles.staffIcon} />
+                    <ServiceBellIcon size={22} className={styles.staffIcon} />
                     <span className={styles.staffLabel}>Hỗ trợ</span>
                 </button>
             </div >

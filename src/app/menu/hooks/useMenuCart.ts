@@ -212,9 +212,40 @@ export function useMenuCart({
       });
 
       if (res.ok) {
+        // --- SYNC LOCAL HISTORY INSTANTLY ---
+        // Helps "Món bạn từng gọi" show up immediately for guest users without waiting for payment
+        try {
+          const stored = localStorage.getItem('user_order_history');
+          let history = stored ? JSON.parse(stored) : [];
+          
+          // Add newly ordered items to history
+          previousCartItems.forEach(cartItem => {
+            const existingIdx = history.findIndex((h: any) => h.id === cartItem.item.id || h === cartItem.item.id);
+            if (existingIdx !== -1) {
+              if (typeof history[existingIdx] === 'object') {
+                history[existingIdx].quantity = (history[existingIdx].quantity || 1) + cartItem.quantity;
+              }
+            } else {
+              history.push({ 
+                id: cartItem.item.id, 
+                name: cartItem.item.name, 
+                quantity: cartItem.quantity,
+                img: cartItem.item.img
+              });
+            }
+          });
+          
+          localStorage.setItem('user_order_history', JSON.stringify(history.slice(0, 20))); // Keep last 20
+        } catch(e) {}
+
         tableAPI.current?.fetchLiveTableData(true);
         setTimeout(() => { tableAPI.current?.fetchMainData(); }, 800);
         setTimeout(checkUnread, 1500);
+        
+        // Scroll to top of the page when order is successfully placed
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       } else {
         const data = await res.json();
         setCartItems(previousCartItems);

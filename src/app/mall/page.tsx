@@ -127,7 +127,8 @@ const PROMO_REWARD = 'giảm 10%';
 import { TABLE_MEMBERS, MEMBER_ORDERS } from '@/data/mock-table';
 
 
-import { OnboardingGuide } from '@/modules/customer/components/Onboarding/OnboardingGuide'; // Import new component
+import { OnboardingGuide } from '@/modules/customer/components/Onboarding/OnboardingGuide';import { ServiceBellIcon } from '@/components/Icons/ServiceBellIcon';
+ // Import new component
 
 
 
@@ -741,7 +742,7 @@ export default function MallOrderingPage() {
                     className={`${styles.staffFab} ${hasActiveRequest ? styles.active : ''}`}
                     onClick={() => setShowSupportMenu(true)}
                 >
-                    <BellRing size={22} className={styles.staffIcon} />
+                    <ServiceBellIcon size={22} className={styles.staffIcon} />
                     <span className={styles.staffLabel}>Hỗ trợ</span>
                     {hasActiveRequest && (
                         <span className={styles.activeCount}>

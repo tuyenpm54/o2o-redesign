@@ -29,6 +29,7 @@ interface MenuWizardProps {
     addToTotal: (item: any) => void;
     removeFromTotal: (item: any) => void;
     cartPulse: boolean;
+    restaurantName?: string;
 }
 
 export function MenuWizardV2({
@@ -53,7 +54,8 @@ export function MenuWizardV2({
     getItemQuantity,
     addToTotal,
     removeFromTotal,
-    cartPulse
+    cartPulse,
+    restaurantName
 }: MenuWizardProps) {
     const { t, language } = useLanguage();
     
@@ -121,16 +123,16 @@ export function MenuWizardV2({
                                 <div className={v2Styles.headerText}>
                                     <div className={`${v2Styles.greeting} ${v2Styles.stagger1}`}>
                                         <Sparkles size={14} fill="#FBBF24" />
-                                        <span>{t('Mời bạn chọn')}</span>
+                                        <span>{t('Gợi ý gọi món')}</span>
                                     </div>
                                     <h1 className={`${v2Styles.mainTitle} ${v2Styles.stagger1}`}>
-                                        {t('Hôm nay bạn muốn ăn thế nào?')}
+                                        {t('Chào mừng bạn đã tới')} <span style={{ WebkitTextFillColor: '#FBBF24', WebkitBackgroundClip: 'none', background: 'none' }}>{restaurantName || 'Nhà hàng'}</span>
                                     </h1>
                                 </div>
 
                                 {/* Primary Question: Bento Grid */}
                                 <div className={`${v2Styles.sectionContainer} ${v2Styles.stagger2}`}>
-                                    <h3 className={v2Styles.sectionHeader}>{t('Đi cùng ai?')} <span>({t('Bắt buộc')})</span></h3>
+                                    <h3 className={v2Styles.sectionHeader}>{t('Hôm nay bạn đi cùng ai?')} <span>({t('Bắt buộc')})</span></h3>
                                     <div className={v2Styles.bentoGrid}>
                                         {GROUP_OPTIONS.map((o) => (
                                             <button
@@ -317,7 +319,11 @@ export function MenuWizardV2({
                                                             <h4>{entry.item.name}</h4>
                                                             <p>{entry.item.price.toLocaleString("vi-VN")}đ</p>
                                                         </div>
-                                                        <div className={v2Styles.glassCartQty}><span>x{entry.quantity}</span></div>
+                                                        <div className={v2Styles.glassCartQty}>
+                                                            <button onClick={() => removeFromTotal(entry.item)}>-</button>
+                                                            <span>{entry.quantity}</span>
+                                                            <button onClick={() => addToTotal(entry.item)}>+</button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                                 <div className={v2Styles.glassCartTotal}>
@@ -332,12 +338,12 @@ export function MenuWizardV2({
 
                             {/* Floating Nav using old styles mapping */}
                             <div className={v2Styles.floatingNav}>
-                                <div style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '99px', padding: '8px 8px 8px 16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <div style={{ width: '100%', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderRadius: '99px', padding: '6px 6px 6px 16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
                                     <button
                                         onClick={() => setOnboardingStep((prev) => Math.max(0, prev > categories.length ? categories.length : 0))}
-                                        style={{ opacity: onboardingStep > 0 ? 1 : 0, pointerEvents: onboardingStep > 0 ? 'auto' : 'none', background: 'transparent', color: 'white', border: 'none', display: 'flex', alignItems: 'center', padding: 0 }}
+                                        style={{ opacity: onboardingStep > 0 ? 1 : 0, pointerEvents: onboardingStep > 0 ? 'auto' : 'none', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, width: '40px', height: '40px', borderRadius: '50%' }}
                                     >
-                                        <ChevronLeft size={24} />
+                                        <ChevronLeft size={20} />
                                     </button>
 
                                     <button

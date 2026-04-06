@@ -1,5 +1,7 @@
 import React from 'react';
 import { Utensils, Sparkles, CheckCircle2, Wallet, MoreHorizontal, Check, Clock, Users, BellRing } from 'lucide-react';
+import { getIconComponent } from '@/lib/icons';
+import { ServiceBellIcon } from '@/components/Icons/ServiceBellIcon';
 
 interface SupportModalProps {
   isStaffModalOpen: boolean;
@@ -17,6 +19,7 @@ interface SupportModalProps {
   user: any;
   setToast: (toast: { message: string, submessage?: string }) => void;
   fetchLiveTableData: () => void;
+  supportOptionsConfig?: any[] | null;
 }
 
 export const SupportModal: React.FC<SupportModalProps> = ({
@@ -35,8 +38,19 @@ export const SupportModal: React.FC<SupportModalProps> = ({
   user,
   setToast,
   fetchLiveTableData,
+  supportOptionsConfig,
 }) => {
   if (!isStaffModalOpen) return null;
+
+  const defaultOptions = [
+    { id: 'cutlery', icon: 'Utensils', label: t('Thêm bát đũa') },
+    { id: 'napkin', icon: 'Sparkles', label: t('Khăn giấy') },
+    { id: 'clean', icon: 'CheckCircle2', label: t('Dọn bàn') },
+    { id: 'bill', icon: 'Wallet', label: t('Thanh toán') },
+    { id: 'other', icon: 'MoreHorizontal', label: t('Yêu cầu khác'), isOther: true },
+  ];
+  
+  const optionsToRender = supportOptionsConfig && supportOptionsConfig.length > 0 ? supportOptionsConfig : defaultOptions;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => { setIsStaffModalOpen(false); setSelectedSupportOptions([]); setCustomSupportText(''); }} style={{ zIndex: 11000 }}>
@@ -87,15 +101,10 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                   {t('Quý khách có thể chọn nhiều yêu cầu cùng lúc')}
                 </p>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  {[
-                    { id: 'cutlery', icon: <Utensils size={28} strokeWidth={1.5} />, label: t('Thêm bát đũa') },
-                    { id: 'napkin', icon: <Sparkles size={28} strokeWidth={1.5} />, label: t('Khăn giấy') },
-                    { id: 'clean', icon: <CheckCircle2 size={28} strokeWidth={1.5} />, label: t('Dọn bàn') },
-                    { id: 'bill', icon: <Wallet size={28} strokeWidth={1.5} />, label: t('Thanh toán') },
-                    { id: 'other', icon: <MoreHorizontal size={28} strokeWidth={1.5} />, label: t('Yêu cầu khác') },
-                  ].map(action => {
+                  {optionsToRender.map(action => {
                     const isSelected = selectedSupportOptions.includes(action.label);
-                    const isOther = action.id === 'other';
+                    const isOther = action.isOther === true || action.id === 'other';
+                    const DynamicIcon = getIconComponent(action.icon);
 
                     let isDisabled = false;
                     let reqStatus = "";
@@ -166,7 +175,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                           
                           {/* Icon */}
                           <div className={`${iconColor} transition-colors duration-200`}>
-                            {action.icon}
+                            <DynamicIcon size={28} strokeWidth={1.5} />
                           </div>
                           
                           {/* Label */}
@@ -316,7 +325,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                 fetchLiveTableData();
               }}
             >
-              <BellRing size={20} strokeWidth={2.5} /> 
+              <ServiceBellIcon size={20} strokeWidth={2.5} /> 
               {selectedSupportOptions.length > 0 ? `${t('Gửi')} ${selectedSupportOptions.length} ${t('yêu cầu')}` : t('Gửi yêu cầu')}
             </button>
           )}

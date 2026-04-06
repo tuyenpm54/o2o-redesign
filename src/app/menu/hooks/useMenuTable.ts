@@ -44,7 +44,7 @@ export function useMenuTable({
   const [sittingSince, setSittingSince] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  const seenMemberIds = useRef<Set<string>>(new Set());
+  const seenMemberIds = useRef<Set<string>>(new Set(tableMembers.map(m => m.id)));
   const membersRef = useRef<any[]>(tableMembers);
   const mountTimeRef = useRef<number>(Date.now());
 
@@ -200,30 +200,27 @@ export function useMenuTable({
         }));
     }
 
-    // Step 2: Bổ sung nếu ít món
-    const preferredTags = usr?.preferences || usr?.tags || [];
-    let fallbackItems: any[] = [];
-    
-    const pool = menuItems.filter((m: any) => !recommendedFromHistory.some(h => h.id === m.id));
-    
-    fallbackItems = pool.filter((m: any) => {
-      const matchPref = preferredTags.some((t: string) => m.tags?.includes(t));
-      const isBestOrNew = m.tags?.includes('Bán chạy') || m.tags?.includes('Signature') || m.tags?.includes('Mới');
-      return matchPref || isBestOrNew;
-    }).sort((a: any, b: any) => {
-      const aMatch = preferredTags.some((t: string) => a.tags?.includes(t)) ? 1 : 0;
-      const bMatch = preferredTags.some((t: string) => b.tags?.includes(t)) ? 1 : 0;
-      if (aMatch !== bMatch) return bMatch - aMatch;
-      return 0;
-    }).map((item: any) => {
-      const matchedTag = preferredTags.find((t: string) => item.tags?.includes(t));
-      return {
-        ...item,
-        matchReason: matchedTag ? `Sở thích: ${matchedTag}` : (item.tags?.includes('Mới') ? 'Món mới' : 'Bán chạy')
-      };
-    });
+    // Chỉ hiển thị món user từng gọi theo thứ tự số lượng gọi từ cao tới thấp, tối đa 5 món
+    if (recommendedFromHistory.length > 0) {
+      return recommendedFromHistory.slice(0, 5);
+    }
 
-    return [...recommendedFromHistory, ...fallbackItems].slice(0, 10);
+    // --- FALLBACK FOR PREVIEW / NEW USERS ---
+    // If no history exists, we pick 2-3 random "best seller" items or first 3 items 
+    // to ensure the "Món bạn từng gọi" block shows up during development/preview.
+    // In production, we might want to hide it, but for development it helps to see it.
+    const isPreview = typeof window !== 'undefined' && localStorage.getItem('preview_storefront_config');
+    if (isPreview && menuItems.length > 0) {
+      return menuItems
+        .filter((i: any) => i.status === "Best Seller" || i.tags?.includes("Bán chạy"))
+        .slice(0, 3)
+        .map((item: any) => ({
+          ...item,
+          matchReason: "Gợi ý dành riêng cho bạn"
+        }));
+    }
+
+    return [];
   }, [menuItems, user, localHistory]);
 
   return {

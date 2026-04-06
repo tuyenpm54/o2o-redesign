@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutTemplate, Plus, Save, ChevronUp, ChevronDown, Trash2, Settings2, Eye, X, Copy, Palette, ExternalLink, CheckCircle2, AlertTriangle, Clock, UsersRound } from 'lucide-react';
 import { SurveyEditorModal, DEFAULT_SURVEY_CONFIG } from './SurveyEditorModal';
+import { IconDictionary } from '@/lib/icons';
 
-type ModuleType = 'menu-grid' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'custom';
+type ModuleType = 'menu-grid' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'support-options' | 'custom';
 
 interface StorefrontBlock {
     id: string;
@@ -21,12 +22,13 @@ interface StorefrontTemplate {
 }
 
 const MODULE_DEFINITIONS: Record<ModuleType, { name: string; description: string; category: 'layout' | 'action' }> = {
-    'for-you': { name: 'Dành Cho Bạn', description: 'Gợi ý cá nhân hóa theo lịch sử khách (Chỉ On/Off)', category: 'layout' },
+    'for-you': { name: 'Món Bạn Từng Gọi', description: 'Hiển thị tối đa 5 món khách đã từng gọi nhiều nhất (Chỉ On/Off)', category: 'layout' },
     'combo': { name: 'Combo Tiết Kiệm', description: 'Hiển thị các gói combo giá tốt', category: 'layout' },
     'best-sale': { name: 'Siêu Phẩm Bán Chạy', description: 'Danh sách món bán chạy nhất', category: 'layout' },
     'custom': { name: 'Danh Mục Tuỳ Chỉnh', description: 'Tự cấu hình danh mục riêng', category: 'layout' },
     'menu-grid': { name: 'Thực Đơn Của Quán', description: 'Hiển thị mục thực đơn cốt lõi (Ghim dưới đáy menu)', category: 'layout' },
     'onboarding-wizard': { name: 'Khám Phá Menu (Giới thiệu)', description: 'Bật/Tắt và thiết lập Khảo sát đầu vào (V2)', category: 'action' },
+    'support-options': { name: 'Tùy Chỉnh Yêu Cầu Hỗ Trợ', description: 'Cấu hình các nút chức năng trong modal Yêu Cầu Hỗ Trợ', category: 'action' },
 };
 
 const SYSTEM_TEMPLATES: StorefrontTemplate[] = [
@@ -35,8 +37,8 @@ const SYSTEM_TEMPLATES: StorefrontTemplate[] = [
         name: 'Mẫu Ăn Tại Bàn (Dining)',
         isSystem: true,
         blocks: [
-            { id: 'b1', type: 'for-you', title: 'Dành Cho Bạn', config: { isEnabled: true } },
-            { id: 'b2', type: 'combo', title: 'Combo Tiết Kiệm', config: { isEnabled: true } },
+            { id: 'b1', type: 'for-you', title: 'Món Bạn Từng Gọi', config: { isEnabled: true } },
+            { id: 'b2', type: 'combo', title: 'Combo Tiết Kiệm', config: { isEnabled: true, limit: 10, itemIds: [701, 702, 703, 704, 705, 706] } },
             { id: 'b3', type: 'best-sale', title: 'Siêu Phẩm Bán Chạy', config: { isEnabled: true } },
             { id: 'b4', type: 'custom', title: 'Danh Mục Tuỳ Chỉnh', config: { isEnabled: true, groupName: '' } },
             { id: 'b5', type: 'menu-grid', title: 'Thực Đơn Mặc Định', config: {} }
@@ -71,20 +73,199 @@ function CheckIcon(props: any) {
     );
 }
 
-function ModuleConfigForm({ block, onChange }: { block: StorefrontBlock, onChange: (newConfig: any) => void }) {
+function ModuleConfigForm({ block, onChange, allMenuItems = [] }: { block: StorefrontBlock, onChange: (newConfig: any) => void, allMenuItems?: any[] }) {
     const { type, config } = block;
     const isValid = isBlockValid(block);
     const [previewStyle, setPreviewStyle] = useState<'v1' | 'v2' | null>(null);
     const [isEditSurveyOpen, setIsEditSurveyOpen] = useState(false);
+    
+    // Icon picker state
+    const [iconPickerOpenForId, setIconPickerOpenForId] = useState<string | null>(null);
 
-    if (type === 'for-you' || type === 'best-sale' || type === 'combo') {
+    if (type === 'for-you') {
         return (
             <div className="space-y-4">
                 <div className="text-sm text-slate-500 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 flex items-start gap-3">
                     <div className="mt-0.5 text-blue-500"><Settings2 size={16} /></div>
                     <div>
-                        <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Module Tự Động</p>
-                        Khối nội dung này được hệ thống tự động tính toán dựa trên dữ liệu gọi món thực tế và trí tuệ nhân tạo. Bạn chỉ cần điều khiển Bật/Tắt hiển thị.
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Module Tự Động (Lịch Sử Gọi Món)</p>
+                        Khối nội dung này được hệ thống tự động lọc các món khách đã từng gọi trong quá khứ, sắp xếp theo số lượng gọi nhiều nhất (nhằm giúp khách tiếp tục "gọi như cũ" một cách nhanh chóng). Khối sẽ tự ẩn nếu khách chưa có lịch sử. Bạn chỉ cần điều khiển Bật/Tắt hiển thị.
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (type === 'best-sale') {
+        const itemIds = config.itemIds || [];
+        const limit = config.limit || 10;
+        const selectedItems = allMenuItems.filter(item => itemIds.includes(item.id));
+
+        return (
+            <div className="space-y-6">
+                <div className="text-sm text-slate-500 p-4 bg-amber-50/50 dark:bg-amber-500/5 rounded-xl border border-amber-100 dark:border-amber-500/20 flex items-start gap-3">
+                    <div className="mt-0.5 text-amber-500"><Settings2 size={16} /></div>
+                    <div>
+                        <p className="font-semibold text-amber-900 dark:text-amber-300 mb-1">Thiết lập Món Bán Chạy thủ công</p>
+                        Chọn tối đa {limit} món bán chạy nhất từ thực đơn của bạn để hiển thị nổi bật trên trang chủ.
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Số lượng tối đa ({limit})</label>
+                        <input 
+                            type="number" 
+                            className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-bold opacity-50"
+                            value={limit}
+                            min={1}
+                            max={10}
+                            disabled
+                            title="Giới hạn tối đa 10 món theo yêu cầu"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Chọn món bán chạy ({itemIds.length}/10)</label>
+                    <div className="flex gap-2 mb-4">
+                        <select 
+                            className="flex-1 px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm"
+                            onChange={(e) => {
+                                const id = parseInt(e.target.value);
+                                if (id && !itemIds.includes(id) && itemIds.length < 10) {
+                                    onChange({ ...config, itemIds: [...itemIds, id] });
+                                }
+                                e.target.value = "";
+                            }}
+                            disabled={itemIds.length >= 10}
+                        >
+                            <option value="">{itemIds.length >= 10 ? "-- Đã đạt giới hạn 10 món --" : "-- Tìm món trong thực đơn --"}</option>
+                            {allMenuItems
+                                .filter(item => !itemIds.includes(item.id))
+                                .map(item => (
+                                    <option key={item.id} value={item.id}>{item.name} - {item.price.toLocaleString()}đ</option>
+                                ))
+                            }
+                        </select>
+                    </div>
+
+                    <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-black/20">
+                        {selectedItems.length > 0 ? (
+                            <div className="divide-y divide-slate-100 dark:divide-white/5">
+                                {selectedItems.map((item) => (
+                                    <div key={item.id} className="flex items-center justify-between p-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 overflow-hidden shrink-0 border border-slate-200 dark:border-white/5">
+                                                <img src={item.img} alt="" className="w-full h-full object-cover" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.name}</div>
+                                                <div className="text-xs text-amber-600 dark:text-amber-400 font-bold">{item.price.toLocaleString()}đ</div>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => onChange({ ...config, itemIds: itemIds.filter((id: number) => id !== item.id) })}
+                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-8 text-center text-slate-400 italic text-sm">
+                                Chưa có món bán chạy nào được chọn.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (type === 'combo') {
+        const itemIds = config.itemIds || [];
+        const limit = config.limit || 10;
+        const selectedItems = allMenuItems.filter(item => itemIds.includes(item.id));
+
+        return (
+            <div className="space-y-6">
+                <div className="text-sm text-slate-500 p-4 bg-blue-50/50 dark:bg-blue-500/5 rounded-xl border border-blue-100 dark:border-blue-500/20 flex items-start gap-3">
+                    <div className="mt-0.5 text-blue-500"><Settings2 size={16} /></div>
+                    <div>
+                        <p className="font-semibold text-blue-900 dark:text-blue-300 mb-1">Thiết lập Combo thủ công</p>
+                        Chọn tối đa {limit} món combo từ thực đơn của bạn để hiển thị nổi bật trên trang chủ.
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Số lượng tối đa ({limit})</label>
+                        <input 
+                            type="number" 
+                            className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-bold opacity-50"
+                            value={limit}
+                            min={1}
+                            max={10}
+                            disabled
+                            title="Giới hạn tối đa 10 món theo yêu cầu"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Chọn món combo ({itemIds.length}/10)</label>
+                    <div className="flex gap-2 mb-4">
+                        <select 
+                            className="flex-1 px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm"
+                            onChange={(e) => {
+                                const id = parseInt(e.target.value);
+                                if (id && !itemIds.includes(id) && itemIds.length < 10) {
+                                    onChange({ ...config, itemIds: [...itemIds, id] });
+                                }
+                                e.target.value = "";
+                            }}
+                            disabled={itemIds.length >= 10}
+                        >
+                            <option value="">{itemIds.length >= 10 ? "-- Đã đạt giới hạn 10 món --" : "-- Tìm món trong thực đơn --"}</option>
+                            {allMenuItems
+                                .filter(item => !itemIds.includes(item.id))
+                                .map(item => (
+                                    <option key={item.id} value={item.id}>{item.name} - {item.price.toLocaleString()}đ</option>
+                                ))
+                            }
+                        </select>
+                    </div>
+
+                    <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-black/20">
+                        {selectedItems.length > 0 ? (
+                            <div className="divide-y divide-slate-100 dark:divide-white/5">
+                                {selectedItems.map((item) => (
+                                    <div key={item.id} className="flex items-center justify-between p-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 overflow-hidden shrink-0 border border-slate-200 dark:border-white/5">
+                                                <img src={item.img} alt="" className="w-full h-full object-cover" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.name}</div>
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 font-bold">{item.price.toLocaleString()}đ</div>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => onChange({ ...config, itemIds: itemIds.filter((id: number) => id !== item.id) })}
+                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-8 text-center text-slate-400 italic text-sm">
+                                Chưa có món combo nào được chọn.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -301,6 +482,122 @@ function ModuleConfigForm({ block, onChange }: { block: StorefrontBlock, onChang
         );
     }
 
+    if (type === 'support-options') {
+        const options = config.options || [
+            { id: 'cutlery', label: 'Thêm bát đũa', icon: 'Utensils', isOther: false },
+            { id: 'napkin', label: 'Khăn giấy', icon: 'Sparkles', isOther: false },
+            { id: 'clean', label: 'Dọn bàn', icon: 'CheckCircle2', isOther: false },
+            { id: 'bill', label: 'Thanh toán', icon: 'Wallet', isOther: false },
+            { id: 'other', label: 'Yêu cầu khác', icon: 'MoreHorizontal', isOther: true },
+        ];
+
+        const handleOptionChange = (id: string, field: string, value: any) => {
+            const newOptions = options.map((opt: any) => opt.id === id ? { ...opt, [field]: value } : opt);
+            onChange({ ...config, options: newOptions });
+        };
+
+        const handleAddOption = () => {
+            const newId = 'opt_' + Date.now();
+            onChange({ ...config, options: [...options, { id: newId, label: 'Tùy chọn mới', icon: 'Star', isOther: false }] });
+        };
+
+        const handleRemoveOption = (id: string) => {
+            onChange({ ...config, options: options.filter((opt: any) => opt.id !== id) });
+        };
+
+        return (
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h5 className="font-bold text-slate-800 dark:text-slate-100">Cấu hình các yêu cầu</h5>
+                        <p className="text-xs text-slate-500 mt-1">Sắp xếp, chỉnh sửa hoặc thêm các lựa chọn mà khách có thể yêu cầu.</p>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    {options.map((opt: any, index: number) => {
+                        const IconComponent = IconDictionary[opt.icon] || IconDictionary['HelpCircle'];
+
+                        return (
+                            <div key={opt.id} className="flex items-center gap-3 p-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl relative">
+                                {/* Icon Picker Trigger */}
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setIconPickerOpenForId(iconPickerOpenForId === opt.id ? null : opt.id)}
+                                        className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
+                                    >
+                                        <IconComponent size={20} />
+                                    </button>
+                                    
+                                    {/* Icon Picker Popover */}
+                                    {iconPickerOpenForId === opt.id && (
+                                        <div className="absolute top-12 left-0 w-64 p-3 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 grid grid-cols-6 gap-2">
+                                            {Object.keys(IconDictionary).map((iconKey) => {
+                                                const DynIcon = IconDictionary[iconKey];
+                                                return (
+                                                    <button
+                                                        key={iconKey}
+                                                        onClick={() => {
+                                                            handleOptionChange(opt.id, 'icon', iconKey);
+                                                            setIconPickerOpenForId(null);
+                                                        }}
+                                                        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${opt.icon === iconKey ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400' : 'hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300'}`}
+                                                    >
+                                                        <DynIcon size={16} />
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex-1 flex flex-col gap-1.5">
+                                    <input 
+                                        type="text" 
+                                        value={opt.label}
+                                        onChange={(e) => handleOptionChange(opt.id, 'label', e.target.value)}
+                                        className="w-full bg-transparent outline-none font-semibold text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 border-b border-transparent focus:border-slate-300 dark:focus:border-slate-600 pb-0.5 transition-colors"
+                                        placeholder="Nhập tên chức năng"
+                                    />
+                                    
+                                    <label className="flex items-center gap-1.5 text-[10px] text-slate-500 cursor-pointer w-max">
+                                        <input 
+                                            type="checkbox"
+                                            checked={opt.isOther}
+                                            onChange={(e) => handleOptionChange(opt.id, 'isOther', e.target.checked)}
+                                            className="rounded text-blue-500 focus:ring-blue-500"
+                                        />
+                                        Là mục "Yêu cầu khác" (cho phép gõ thêm)
+                                    </label>
+                                </div>
+                                
+                                <button 
+                                    onClick={() => handleRemoveOption(opt.id)}
+                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        )
+                    })}
+                </div>
+                
+                {options.length < 6 ? (
+                    <button 
+                        onClick={handleAddOption}
+                        className="w-full py-2.5 border border-dashed border-slate-300 dark:border-white/20 rounded-xl flex items-center justify-center gap-2 text-slate-500 hover:text-blue-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all text-sm font-semibold"
+                    >
+                        <Plus size={16} /> Thêm chức năng
+                    </button>
+                ) : (
+                    <div className="text-center text-xs text-orange-500 font-medium bg-orange-50 dark:bg-orange-900/10 py-2 rounded-lg border border-orange-200 dark:border-orange-500/20">
+                        Đã đạt giới hạn tối đa 6 tùy chọn để đảm bảo giao diện hiển thị tốt nhất trên thiết bị di động.
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     if (type === 'menu-grid') {
         return (
             <div className="text-sm text-slate-500 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 flex items-start gap-3">
@@ -334,6 +631,7 @@ export default function DisplayConfigPage() {
     const [publishScope, setPublishScope] = useState<'brand' | 'specific'>('brand');
     const [availableRestaurants, setAvailableRestaurants] = useState<any[]>([]);
     const [selectedRestaurants, setSelectedRestaurants] = useState<string[]>([]);
+    const [allMenuItems, setAllMenuItems] = useState<any[]>([]);
 
     // Load available restaurants list for Target Modal
     useEffect(() => {
@@ -356,6 +654,13 @@ export default function DisplayConfigPage() {
                 if (dataDisplay.success) {
                     const draftBlocks = dataDisplay.data.draft;
                     const validBlocks = (draftBlocks || []).filter((b: any) => MODULE_DEFINITIONS[b.type as ModuleType]);
+                    // Tự động chuyển đổi tên cũ sang tên mới để đồng bộ
+                    validBlocks.forEach((b: any) => {
+                        if (b.type === 'for-you' && (b.title === 'Dành Cho Bạn' || b.title === 'Dành riêng cho bạn')) {
+                            b.title = 'Món Bạn Từng Gọi';
+                        }
+                    });
+
                     // Require the presence of 'for-you' or at least 5 blocks to consider it a valid new layout.
                     // Otherwise it's a legacy layout that just happened to have 'menu-grid'.
                     if (!validBlocks || validBlocks.length === 0 || !validBlocks.some((b: any) => b.type === 'for-you')) {
@@ -365,6 +670,13 @@ export default function DisplayConfigPage() {
                     } else {
                         setBlocks(validBlocks);
                         setActiveTemplateId('custom-db'); // Đánh dấu là đã lấy từ DB
+                    }
+
+                    // Fetch menu items for restaurant 100 (default)
+                    const resMenu = await fetch('/api/restaurants/100');
+                    const menuData = await resMenu.json();
+                    if (menuData && menuData.menu && menuData.menu.items) {
+                        setAllMenuItems(menuData.menu.items);
                     }
                 }
             } catch (error) {
@@ -685,6 +997,7 @@ export default function DisplayConfigPage() {
                                                         <ModuleConfigForm
                                                             block={block}
                                                             onChange={(newConfig: any) => handleUpdateBlockConfig(block.id, newConfig)}
+                                                            allMenuItems={allMenuItems}
                                                         />
                                                     </div>
                                                 </div>
@@ -730,6 +1043,7 @@ export default function DisplayConfigPage() {
                                                     <ModuleConfigForm
                                                         block={menuBlock as StorefrontBlock}
                                                         onChange={(newConfig: any) => handleUpdateBlockConfig(menuBlock.id, newConfig)}
+                                                        allMenuItems={allMenuItems}
                                                     />
                                                 </div>
                                             </div>
@@ -799,6 +1113,7 @@ export default function DisplayConfigPage() {
                                                         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5">
                                                             <ModuleConfigForm
                                                                 block={(activeBlock || { id: blockId, type, title: def.name, config: { isEnabled: true } }) as StorefrontBlock}
+                                                                allMenuItems={allMenuItems}
                                                                 onChange={(newConfig: any) => {
                                                                     if (!activeBlock) {
                                                                         setBlocks([...blocks, { id: blockId, type, title: def.name, config: { ...newConfig, isEnabled: true } }]);

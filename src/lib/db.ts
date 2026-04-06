@@ -149,6 +149,48 @@ async function initDb(database: DBWrapper) {
     );
     ALTER TABLE users ADD COLUMN IF NOT EXISTS visit_count INTEGER DEFAULT 1;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_visit_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences_history TEXT DEFAULT '[]';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'CUSTOMER';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS managed_chain_id TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
+
+    -- Restaurants (Cơ sở)
+    CREATE TABLE IF NOT EXISTS restaurants (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      address TEXT,
+      location_lat TEXT,
+      location_lng TEXT,
+      logo TEXT,
+      banner TEXT,
+      description TEXT,
+      wifi_ssid TEXT,
+      wifi_password TEXT,
+      chain_id TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- User_Restaurants (Phân quyền quản trị viên)
+    CREATE TABLE IF NOT EXISTS user_restaurants (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      restaurant_id TEXT NOT NULL,
+      assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, restaurant_id)
+    );
+
+    -- Subscriptions (Gói cước API)
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id TEXT PRIMARY KEY,
+      restaurant_id TEXT,
+      chain_id TEXT,
+      plan_type TEXT DEFAULT 'FREE',
+      status TEXT DEFAULT 'ACTIVE',
+      features_json TEXT DEFAULT '{}',
+      start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      expires_at TIMESTAMP
+    );
 
     -- User VAT Profiles
     CREATE TABLE IF NOT EXISTS user_vat_profiles (

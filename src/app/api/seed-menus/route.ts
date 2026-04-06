@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
-const categories = ["Khai vị", "Món chính", "Hải Sản", "Lẩu & Nướng", "Món ăn kèm", "Đồ uống", "Tráng miệng"];
+const categories = ["Khai vị", "Món chính", "Hải Sản", "Lẩu & Nướng", "Món ăn kèm", "Đồ uống", "Tráng miệng", "Combo"];
 
 const baseItems = {
     "Khai vị": [
@@ -87,6 +87,14 @@ const baseItems = {
         { name: "Socola Nóng Chảy Tan Cùng Marshmallow", price: 105000, img: "https://images.unsplash.com/photo-1541167760496-1628856ab772?w=600", desc: "Socola đắng 70% nướng tan marshmallow dành cho ai mê đắng ngọt.", tags: ["Sưởi ấm", "Ngọt đắng"], kidsFriendly: true, seafood: false, onionFree: true, status: "New" },
         { name: "Chè Thái Trái Cây Đậu Đỏ", price: 75000, img: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600", desc: "Phong cách nhiệt đới sầu riêng đậm đặc sữa dừa.", tags: ["Sầu riêng", "Nhiệt đới"], kidsFriendly: true, seafood: false, onionFree: true, status: "Hot" },
         { name: "Bánh Crepe Trà Xanh Ngàn Lớp", price: 110000, img: "https://images.unsplash.com/photo-1550617931-e17a7b70dce2?w=600", desc: "Mỏng nhẹ thanh cảnh matcha Nhật nguyên chất.", tags: ["Thanh tịnh", "Cake"], kidsFriendly: true, seafood: false, onionFree: true, status: "Chef Pick" }
+    ],
+    "Combo": [
+        { id: 701, name: "Combo Trưa Tiết Kiệm", price: 99000, originalPrice: 150000, img: "/food/combo-trua.jpg", desc: "Cơm chiên hải sản + Canh rong biển + 1 Trà đào cam sả.", tags: ["Giá tốt"], kidsFriendly: true, seafood: true, onionFree: false, status: "Lunch" },
+        { id: 702, name: "Combo Gia Đình 3-4 Người", price: 399000, originalPrice: 500000, img: "/food/combo-family.jpg", desc: "Cá chẽm hấp tương + Sườn nướng BBQ + Rau muống xào tỏi + Cơm niêu + Tặng Dessert.", tags: ["Gia đình", "No bụng"], kidsFriendly: true, seafood: true, onionFree: false, status: "Family" },
+        { id: 703, name: "Combo Couple Hẹn Hò", price: 599000, originalPrice: 750000, img: "/food/combo-couple.jpg", desc: "2 Bò Beefsteak + 1 Salad Rong Nho + 2 Rượu vang đỏ + 2 Panna Cotta dâu tây.", tags: ["Hẹn hò", "Cặp đôi"], kidsFriendly: false, seafood: false, onionFree: false, status: "Couple" },
+        { id: 704, name: "Combo Nhậu Sương Sương", price: 299000, originalPrice: 380000, img: "/food/combo-nhau.jpg", desc: "Đậu nành Nhật + Mực nướng sa tế + Bồ câu quay + 4 Bia Tiger bạc.", tags: ["Nhậu", "Say sưa"], kidsFriendly: false, seafood: true, onionFree: false, status: "Drink" },
+        { id: 705, name: "Combo Đôi Bạn Thân", price: 250000, originalPrice: 300000, img: "/food/combo-ban-than.jpg", desc: "2 Mì Carbonara + 1 Khoai chiên + 2 Sinh tố. Ăn sập quán cùng cạ cứng.", tags: ["Bạn thân"], kidsFriendly: true, seafood: false, onionFree: true, status: "Couple" },
+        { id: 706, name: "Combo Liên Hoan 4-6 Người", price: 890000, originalPrice: 990000, img: "/food/combo-lien-hoan.jpg", desc: "Set hải sản tổng hợp và bia lạnh cho nhóm bạn.", tags: ["Liên hoan"], kidsFriendly: false, seafood: true, onionFree: false, status: "Party" }
     ]
 };
 
@@ -96,32 +104,34 @@ const generateMoreItems = () => {
 
     categories.forEach(cat => {
         const catItems = baseItems[cat as keyof typeof baseItems] || [];
-        catItems.forEach(item => {
+        catItems.forEach((item: any) => {
             result.push({
-                id: ++idCounter,
+                id: item.id || ++idCounter,
                 category: cat,
                 ...item
             });
         });
 
-        for (let i = 0; i < 5; i++) {
-            const item = catItems[i % catItems.length];
-            const variations = ["Đặc biệt", "Size Lớn", "Hữu cơ", "Fusion", "Tự làm"];
-            const varWord = variations[Math.floor(Math.random() * variations.length)];
+        if (cat !== "Combo") {
+            for (let i = 0; i < 5; i++) {
+                const item: any = catItems[i % catItems.length];
+                const variations = ["Đặc biệt", "Size Lớn", "Hữu cơ", "Fusion", "Tự làm"];
+                const varWord = variations[Math.floor(Math.random() * variations.length)];
 
-            result.push({
-                id: ++idCounter,
-                category: cat,
-                name: `${item.name} ${varWord}`,
-                price: Math.floor(item.price * (Math.random() < 0.5 ? 1.2 : 0.8)),
-                img: item.img,
-                desc: `Phiên bản ${varWord.toLowerCase()} của món ${item.name}. ${item.desc}`,
-                tags: item.tags.filter(t => t !== "Signature"), // slight tag variation
-                kidsFriendly: item.kidsFriendly,
-                seafood: item.seafood,
-                onionFree: item.onionFree,
-                status: Math.random() < 0.3 ? "New" : ""
-            });
+                result.push({
+                    id: ++idCounter,
+                    category: cat,
+                    name: `${item.name} ${varWord}`,
+                    price: Math.floor(item.price * (Math.random() < 0.5 ? 1.2 : 0.8)),
+                    img: item.img,
+                    desc: `Phiên bản ${varWord.toLowerCase()} của món ${item.name}. ${item.desc}`,
+                    tags: item.tags.filter((t: string) => t !== "Signature"), // slight tag variation
+                    kidsFriendly: item.kidsFriendly,
+                    seafood: item.seafood,
+                    onionFree: item.onionFree,
+                    status: Math.random() < 0.3 ? "New" : ""
+                });
+            }
         }
     });
     return result;

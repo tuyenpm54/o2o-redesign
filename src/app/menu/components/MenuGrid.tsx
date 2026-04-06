@@ -41,8 +41,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({
     const categoriesToRender = filteredCategories.filter(
         c => c !== "Combo tiết kiệm" && 
              c !== "Combo Nhóm Ngon Nhất" && 
-             c !== "Lựa chọn dành cho bạn" && 
-             c !== "Siêu phẩm bán chạy"
+             c !== "Món bạn từng gọi" && 
+             c !== "Siêu phẩm bán chạy" &&
+             c !== "Món bán chạy"
     );
 
     return (

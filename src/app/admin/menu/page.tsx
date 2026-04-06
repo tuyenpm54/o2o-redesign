@@ -6,8 +6,7 @@ import {
     WifiOff, RefreshCw, Save, CheckCircle2, AlertTriangle, Clock,
     AlertCircle, Settings2, LayoutList, XCircle, X, Tags, Check
 } from 'lucide-react';
-
-const RESID = '100'; // TODO: dynamic per admin session
+import { useAuth } from '@/context/AuthContext';
 
 const ALL_SYNC_FIELDS: Array<{ key: string; label: string; description: string }> = [
     { key: 'price', label: 'Giá bán', description: 'Đồng bộ giá từ POS, field sẽ bị khoá trên O2O' },
@@ -104,6 +103,7 @@ function MenuSkeleton() {
 }
 
 export default function AdminMenuPage() {
+    const { user } = useAuth();
     const [items, setItems] = useState<MenuItem[]>([]);
     const [categories, setCategories] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -138,9 +138,10 @@ export default function AdminMenuPage() {
         setMenuError(false);
         setPosError(false);
         try {
+            const currentResId = user?.restaurant_id || '100'; // Fallback to 100 for safety if not linked
             const [menuRes, posRes] = await Promise.all([
-                fetch(`/api/admin/menu?resid=${RESID}`),
-                fetch(`/api/admin/menu/pos-sync?resid=${RESID}`),
+                fetch(`/api/admin/menu?resid=${currentResId}`),
+                fetch(`/api/admin/menu/pos-sync?resid=${currentResId}`),
             ]);
             const menuData = await menuRes.json();
 
@@ -187,10 +188,11 @@ export default function AdminMenuPage() {
         setSavingItemId(itemId);
         setItems(prev => prev.map(it => it.id === itemId ? { ...it, isActive } : it));
         try {
+            const currentResId = user?.restaurant_id || '100';
             await fetch('/api/admin/menu', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ resid: RESID, itemId, isActive }),
+                body: JSON.stringify({ resid: currentResId, itemId, isActive }),
             });
         } catch {}
         setSavingItemId(null);
@@ -200,10 +202,11 @@ export default function AdminMenuPage() {
         if (!editingItem) return;
         setIsUpdating(true);
         try {
+            const currentResId = user?.restaurant_id || '100';
             const res = await fetch('/api/admin/menu', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ resid: RESID, itemId: editingItem.id, ...updatedFields }),
+                body: JSON.stringify({ resid: currentResId, itemId: editingItem.id, ...updatedFields }),
             });
             if (res.ok) {
                 setItems(prev => prev.map(it => it.id === editingItem.id ? { ...it, ...updatedFields } : it));
@@ -219,10 +222,11 @@ export default function AdminMenuPage() {
     const savePosConfig = async () => {
         setIsSavingPOS(true);
         try {
+            const currentResId = user?.restaurant_id || '100';
             await fetch('/api/admin/menu/pos-sync', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ resid: RESID, ...posConfig }),
+                body: JSON.stringify({ resid: currentResId, ...posConfig }),
             });
             setPosSaveMsg('Đã lưu cấu hình POS!');
             setTimeout(() => setPosSaveMsg(''), 3000);

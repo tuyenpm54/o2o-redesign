@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { BellRing } from 'lucide-react';
 import styles from './OnboardingGuide.module.css';
+import { ServiceBellIcon } from '@/components/Icons/ServiceBellIcon';
 
 interface OnboardingGuideProps {
     visible: boolean;
@@ -44,7 +45,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ visible, onDis
                 {/* 2. The Cloned Button (Spotlight Target) */}
                 <div className={styles.fakeFab}>
                     <div className={styles.pulseRing}></div>
-                    <BellRing size={22} className={styles.staffIcon} />
+                    <ServiceBellIcon size={22} className={styles.staffIcon} />
                     <span className={styles.fakeLabel}>Hỗ trợ</span>
                 </div>
             </div>

@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    ShoppingBag, Users, Clock, AlertTriangle, XCircle, ChevronDown, TrendingUp,
-    BarChart3, Globe2, Store, Calendar, Banknote, Coffee, Table2, ShieldCheck,
-    Flame, BellRing, Utensils, AlertOctagon, Inbox, Siren, CheckCircle2,
-    CheckCircle, Activity, ArrowRight, Wifi
+    Clock, AlertTriangle, XCircle, ChevronDown, TrendingUp, Users,
+    BarChart3, Calendar, Banknote, ShoppingBag, Table2, ShieldCheck,
+    Flame, BellRing, Utensils, Inbox, Siren, CheckCircle2,
+    ArrowRight, Wifi
 } from 'lucide-react';
 import {
-    AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+    XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
     Legend, ComposedChart, Bar, Line, Cell, BarChart
 } from 'recharts';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -64,9 +65,11 @@ const SLA_STEPS = [
 // ────────────────────────────────────────────────────────────
 export default function DashboardPage() {
     const { t } = useLanguage();
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'realtime' | 'analytics'>('realtime');
-    const [restaurants, setRestaurants] = useState<any[]>([]);
-    const [selectedResId, setSelectedResId] = useState<string>('all');
+
+    // Restaurant Manager: dùng restaurant được assign cho user, không có option chọn
+    const resId = user?.restaurant_id || 'all';
 
     const [livePulse, setLivePulse] = useState<LivePulse>({
         kitchenLagCount: 0, neglectedTablesCount: 0,
@@ -79,31 +82,29 @@ export default function DashboardPage() {
     const [analyticRange, setAnalyticRange] = useState<'7d' | '30d'>('7d');
     const [analytics, setAnalytics] = useState<{
         trend: any[]; peakHours: any[];
-        summary: { doanhThu: number; soDon: number; aov: number; aovTable: number; cancellationRate: number; days: number; };
+        suggestedItems: {id: string, name: string, img: string, source: string, qty: number, revenue: number}[];
+        summary: { doanhThu: number; soDon: number; soKhach: number; soLuotGoiMon: number; doanhThuGoiY: number; aov: number; aovTable: number; cancellationRate: number; days: number; };
     }>({
-        trend: [], peakHours: [],
-        summary: { doanhThu: 0, soDon: 0, aov: 0, aovTable: 0, cancellationRate: 0, days: 7 }
+        trend: [], peakHours: [], suggestedItems: [],
+        summary: { doanhThu: 0, soDon: 0, soKhach: 0, soLuotGoiMon: 0, doanhThuGoiY: 0, aov: 0, aovTable: 0, cancellationRate: 0, days: 7 }
     });
 
-    // ── Fetchers ──
-    useEffect(() => {
-        fetch('/api/restaurants').then(r => r.json()).then(d => { if (Array.isArray(d)) setRestaurants(d); }).catch(console.error);
-    }, []);
+
 
     const fetchRealtime = useCallback(async () => {
         if (activeTab !== 'realtime') return;
         try {
             const [pulseRes, slaRes, occRes] = await Promise.all([
-                fetch(`/api/admin/dashboard/live-pulse?resid=${selectedResId}`),
-                fetch(`/api/admin/dashboard/sla-tracker?resid=${selectedResId}`),
-                fetch(`/api/admin/dashboard/table-occupancy?resid=${selectedResId}`),
+                fetch(`/api/admin/dashboard/live-pulse?resid=${resId}`),
+                fetch(`/api/admin/dashboard/sla-tracker?resid=${resId}`),
+                fetch(`/api/admin/dashboard/table-occupancy?resid=${resId}`),
             ]);
             const [pulse, sla, occ] = await Promise.all([pulseRes.json(), slaRes.json(), occRes.json()]);
             if (pulse.success) setLivePulse(pulse.data);
             if (sla.success) setSlaData(sla.data);
             if (occ.success) setOccupancy(occ.data);
         } catch (e) { console.error(e); }
-    }, [selectedResId, activeTab]);
+    }, [resId, activeTab]);
 
     useEffect(() => {
         if (activeTab !== 'realtime') return;
@@ -114,9 +115,9 @@ export default function DashboardPage() {
 
     useEffect(() => {
         if (activeTab !== 'analytics') return;
-        fetch(`/api/admin/dashboard/analytics?resid=${selectedResId}&range=${analyticRange}`)
+        fetch(`/api/admin/dashboard/analytics?resid=${resId}&range=${analyticRange}`)
             .then(r => r.json()).then(d => { if (d.success) setAnalytics(d.data); }).catch(console.error);
-    }, [activeTab, selectedResId, analyticRange]);
+    }, [activeTab, resId, analyticRange]);
 
     const formatVND = (v: number) => {
         if (!v || isNaN(v)) return '0 ₫';
@@ -166,17 +167,6 @@ export default function DashboardPage() {
                                 {tab === 'realtime' ? <><Wifi size={16} /> Thời gian thực</> : <><BarChart3 size={16} /> Báo cáo</>}
                             </button>
                         ))}
-                    </div>
-                    <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            {selectedResId === 'all' ? <Globe2 size={15} /> : <Store size={15} />}
-                        </div>
-                        <select value={selectedResId} onChange={e => setSelectedResId(e.target.value)}
-                            className="appearance-none w-52 bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-xl pl-9 pr-8 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#DF1B41] transition-all shadow-sm cursor-pointer">
-                            <option value="all">Toàn hệ thống</option>
-                            {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
                     </div>
                 </div>
             </div>
@@ -389,10 +379,10 @@ export default function DashboardPage() {
                     {/* KPI Summary Cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
-                            { title: 'Doanh thu Hóa đơn', value: formatVND(analytics.summary.doanhThu), icon: <Banknote size={18} />, trend: '+12%', positive: true },
-                            { title: 'Tổng số đơn', value: analytics.summary.soDon.toString(), icon: <ShoppingBag size={18} />, trend: '+5%', positive: true },
-                            { title: 'Giá trị TB / Hoá đơn', value: formatVND(analytics.summary.aov), icon: <TrendingUp size={18} />, trend: '+2%', positive: true },
-                            { title: 'Tỷ lệ hủy món', value: `${analytics.summary.cancellationRate.toFixed(1)}%`, icon: <XCircle size={18} />, trend: '-0.5%', positive: false, isDanger: analytics.summary.cancellationRate > 5 },
+                            { title: 'Doanh thu', value: formatVND(analytics.summary.doanhThu), icon: <Banknote size={18} />, trend: '+12%', positive: true },
+                            { title: 'Số lượt khách', value: analytics.summary.soKhach.toString(), icon: <Users size={18} />, trend: '+5%', positive: true },
+                            { title: 'Số lượt gọi món', value: analytics.summary.soLuotGoiMon.toString(), icon: <Utensils size={18} />, trend: '+2%', positive: true },
+                            { title: 'Doanh thu tới từ gợi ý', value: formatVND(analytics.summary.doanhThuGoiY), icon: <Flame size={18} />, trend: '+8%', positive: true },
                         ].map(card => (
                             <div key={card.title} className="bg-white dark:bg-[#13141A] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm">
                                 <div className="flex justify-between items-center mb-4">
@@ -400,7 +390,7 @@ export default function DashboardPage() {
                                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${card.positive ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600'}`}>{card.trend}</span>
                                 </div>
                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{card.title}</p>
-                                <p className={`text-xl font-black tracking-tight ${card.isDanger ? 'text-rose-500' : 'text-slate-900 dark:text-white'}`}>{card.value}</p>
+                                <p className="text-xl font-black tracking-tight text-slate-900 dark:text-white">{card.value}</p>
                             </div>
                         ))}
                     </div>
@@ -413,7 +403,7 @@ export default function DashboardPage() {
                                 Thống kê thời gian trung bình mỗi bước trong kỳ báo cáo. Bước nào vượt SLA nhiều → đó là điểm nghẽn cần cải thiện.
                             </p>
                         </div>
-                        <SlaStatsPipeline analyticRange={analyticRange} selectedResId={selectedResId} />
+                        <SlaStatsPipeline analyticRange={analyticRange} resId={resId} />
                     </div>
 
                     {/* Charts Row */}
@@ -459,6 +449,60 @@ export default function DashboardPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Suggested Items Revenue Table */}
+                    <div className="bg-white dark:bg-[#13141A] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm">
+                        <div className="mb-6">
+                            <h3 className="text-base font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                <Flame size={18} className="text-orange-500" /> Doanh thu từ gợi ý chọn món
+                            </h3>
+                            <p className="text-xs text-slate-400 font-semibold mt-1">
+                                Hiệu quả chuyển đổi của các chiến dịch gợi ý món bán chạy, món xem gần đây, combo, hoặc từ màn hình onboarding.
+                            </p>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[600px]">
+                                <thead>
+                                    <tr className="border-b border-slate-200 dark:border-white/10">
+                                        <th className="py-3 px-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest w-1/2">Món ăn</th>
+                                        <th className="py-3 px-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest">Nguồn gợi ý</th>
+                                        <th className="py-3 px-4 text-right text-xs font-black text-slate-400 uppercase tracking-widest">Số lượng</th>
+                                        <th className="py-3 px-4 text-right text-xs font-black text-slate-400 uppercase tracking-widest">Doanh thu</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {analytics.suggestedItems.length > 0 ? analytics.suggestedItems.map((item, idx) => (
+                                        <tr key={idx} className="border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                                            <td className="py-3 px-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-slate-100 dark:bg-white/10 flex items-center justify-center">
+                                                        {item.img ? <img src={item.img} alt={item.name} className="w-full h-full object-cover" /> : <Utensils size={18} className="text-slate-300" />}
+                                                    </div>
+                                                    <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 line-clamp-1">{item.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <span className="inline-flex px-2 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-bold border border-amber-200/50 dark:border-amber-500/20">
+                                                    {item.source === 'best_seller' ? 'Món bán chạy' : 
+                                                     item.source === 'history' ? 'Món từng gọi' : 
+                                                     item.source === 'combo' ? 'Combo tiết kiệm' : 
+                                                     item.source === 'onboarding' ? 'Gợi ý Onboarding' : 
+                                                     item.source === 'cart_recommend' ? 'Gợi ý lúc thanh toán' : 
+                                                     item.source}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 px-4 text-right font-semibold text-slate-700 dark:text-slate-300">{item.qty}</td>
+                                            <td className="py-3 px-4 text-right font-black text-[#DF1B41]">{formatVND(item.revenue)}</td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={4} className="py-8 text-center text-sm text-slate-400 font-medium">Chưa có dữ liệu gọi món từ gợi ý trong kỳ.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
@@ -468,13 +512,13 @@ export default function DashboardPage() {
 // ────────────────────────────────────────────────────────────
 // SLA Stats Pipeline — fetches its own data for the analytics tab
 // ────────────────────────────────────────────────────────────
-function SlaStatsPipeline({ analyticRange, selectedResId }: { analyticRange: string; selectedResId: string }) {
+function SlaStatsPipeline({ analyticRange, resId }: { analyticRange: string; resId: string }) {
     const [data, setData] = useState<SlaData | null>(null);
 
     useEffect(() => {
-        fetch(`/api/admin/dashboard/sla-tracker?resid=${selectedResId}`)
+        fetch(`/api/admin/dashboard/sla-tracker?resid=${resId}`)
             .then(r => r.json()).then(d => { if (d.success) setData(d.data); }).catch(console.error);
-    }, [selectedResId, analyticRange]);
+    }, [resId, analyticRange]);
 
     if (!data) return (
         <div className="flex items-center justify-center h-20 text-slate-400">

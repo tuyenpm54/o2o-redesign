@@ -267,7 +267,7 @@ export function MenuWizard({
                                                             <Sparkles size={12} fill="currentColor" />
                                                             <span>{t('Gợi ý thông minh').toUpperCase()}</span>
                                                         </div>
-                                                        <h3 className={styles.expertTitle} style={{ color: '#fff' }}>{t('Dành riêng cho bạn')}</h3>
+                                                        <h3 className={styles.expertTitle} style={{ color: '#fff' }}>{t('Món bạn từng gọi')}</h3>
                                                     </div>
                                                     <div className={styles.consultantNote}>
                                                         <button className={styles.noteConfigBtn} onClick={() => setOnboardingStep(0)}>

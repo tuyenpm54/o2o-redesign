@@ -4,16 +4,21 @@ import { ApiSuccess, ApiError } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
+import { MOCK_LIVE_PULSE } from '@/data/mock-dashboard';
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const reside = searchParams.get('resid') || 'all';
+    const resid = searchParams.get('resid') || 'all';
 
+    if (resid === 'demo-mock') {
+        return NextResponse.json(MOCK_LIVE_PULSE);
+    }
     try {
         const db = await getDb();
         const nowMs = Date.now();
         
-        let condition = reside === 'all' ? '1=1' : 'resid = ?';
-        let params: any[] = reside === 'all' ? [] : [reside];
+        let condition = resid === 'all' ? '1=1' : 'resid = ?';
+        let params: any[] = resid === 'all' ? [] : [resid];
 
         // 1. KITCHEN LAG: Orders pending/cooking for > 15 minutes (900,000 ms)
         const kitchenLagQuery = `

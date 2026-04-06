@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { ApiSuccess, ApiError } from '@/lib/api-response';
+import { MOCK_TABLE_OCCUPANCY } from '@/data/mock-dashboard';
 
 /**
  * GET /api/admin/dashboard/table-occupancy?resid=...
@@ -14,6 +15,10 @@ import { ApiSuccess, ApiError } from '@/lib/api-response';
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const resid = searchParams.get('resid') || 'all';
+
+    if (resid === 'demo-mock') {
+        return NextResponse.json(MOCK_TABLE_OCCUPANCY);
+    }
 
     try {
         const db = await getDb();

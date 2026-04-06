@@ -6,6 +6,8 @@
     bottom: 0;
     z-index: 3000;
     background: #000;
+    max-width: 480px;
+    margin: 0 auto;
 }
 
 .videoContainer {
@@ -82,14 +84,14 @@
 
 .bottomSheet {
     width: 100%;
-    min-height: 80vh;
+    max-height: 90vh;
     pointer-events: auto;
     /* Apple Vision Pro Glass effect */
-    background: rgba(30, 30, 35, 0.55);
+    background: rgba(30, 30, 35, 0.65);
     backdrop-filter: blur(48px) saturate(150%);
     -webkit-backdrop-filter: blur(48px) saturate(150%);
     border-top: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 40px 40px 0 0;
+    border-radius: 32px 32px 0 0;
     padding-bottom: env(safe-area-inset-bottom, 20px);
     display: flex;
     flex-direction: column;
@@ -103,7 +105,7 @@
 }
 
 .headerText {
-    padding: calc(env(safe-area-inset-top, 40px) + 60px) 24px 20px;
+    padding: calc(env(safe-area-inset-top, 24px) + 24px) 24px 16px;
 }
 
 .greeting {
@@ -140,7 +142,7 @@
 .scrollableContent::-webkit-scrollbar { display: none; }
 
 .sectionContainer {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 }
 
 .sectionHeader {
@@ -174,8 +176,8 @@
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    padding: 18px 12px;
+    border-radius: 16px;
+    padding: 14px 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -245,9 +247,9 @@
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: rgba(255,255,255,0.7);
-    padding: 10px 16px;
+    padding: 8px 14px;
     border-radius: 99px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -407,6 +409,7 @@
     display: flex;
     justify-content: space-between;
     gap: 12px;
+    z-index: 100;
 }
 
 /* ====== SCREEN 2 (SUGGESTIONS) GLASSMORPHIC STYLES ====== */
@@ -619,7 +622,7 @@
 
 /* ====== CART REVIEW (GLASSMORPHIC) ====== */
 .glassCartSection {
-    padding: 0 20px;
+    padding: 0 24px;
     margin-bottom: 40px;
 }
 
@@ -640,26 +643,33 @@
 .glassCartList {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 12px 20px 24px;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
 }
 
 .glassCartRow {
     display: flex;
     align-items: center;
-    gap: 12px;
-    background: rgba(30, 30, 35, 0.45);
-    padding: 12px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    gap: 16px;
+    background: transparent;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0;
+}
+.glassCartRow:last-child {
+    border-bottom: none;
 }
 
 .glassCartThumb {
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
     overflow: hidden;
+    background: rgba(255,255,255,0.05);
 }
 
 .glassCartThumb img {
@@ -672,56 +682,86 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
 .glassCartMeta h4 {
     margin: 0;
     color: white;
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    line-height: 1.3;
 }
 
 .glassCartMeta p {
     margin: 0;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85rem;
-    font-weight: 500;
+    color: #A0AEC0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.glassCartQty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 4px;
+    border-radius: 99px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glassCartQty button {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+}
+
+.glassCartQty button:active {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
 }
 
 .glassCartQty span {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    padding: 4px 10px;
-    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.95);
+    min-width: 16px;
+    text-align: center;
     font-size: 0.85rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
 
 .glassCartTotal {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    margin-top: 12px;
-    background: rgba(223, 27, 65, 0.15);
-    border: 1px solid rgba(223, 27, 65, 0.3);
-    border-radius: 16px;
-    color: white;
-    font-weight: 600;
-    font-size: 1.05rem;
+    padding: 24px 0 0;
+    margin-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.15);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    font-size: 1rem;
 }
 
 .glassCartTotalPrice {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #DF1B41;
-    text-shadow: 0 2px 12px rgba(223, 27, 65, 0.4);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
 }
 
 /* ====== V3 MAGAZINE CONCIERGE STYLES ====== */
