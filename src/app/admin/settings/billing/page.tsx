@@ -56,7 +56,7 @@ export default function BillingPage() {
                     <CreditCard size={16} /> Gói cước
                 </div>
                 <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-3">Nâng cấp để không giới hạn</h1>
-                <p className="text-slate-500 max-w-lg mx-auto">Chọn gói cước phù hợp với quy mô cửa hàng của bạn. Mở khóa POS, KDS và cấu hình giao diện nâng cao.</p>
+                <p className="text-slate-500 max-w-lg mx-auto">Chọn gói cước phù hợp với quy mô cửa hàng của bạn. Mở khóa POS, cấu hình giao diện nâng cao và tính năng độc quyền.</p>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -67,8 +67,9 @@ export default function BillingPage() {
                     
                     <ul className="space-y-4 mb-8">
                         <li className="flex items-start gap-3"><CheckCircle2 className="text-green-500 shrink-0" size={20}/> <span className="font-medium">Quản lý tối đa 10 bàn</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-green-500 shrink-0" size={20}/> <span className="font-medium">20 đơn hàng / ngày</span></li>
-                        <li className="flex items-start gap-3 text-slate-400"><Shield className="shrink-0" size={20}/> <span className="line-through">Tính năng KDS (Nhận bếp)</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-green-500 shrink-0" size={20}/> <span className="font-medium">300 lượt gọi O2O / tháng</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-green-500 shrink-0" size={20}/> <span className="font-medium">Giao diện O2O mặc định</span></li>
+                        <li className="flex items-start gap-3 text-slate-400"><Shield className="shrink-0" size={20}/> <span className="line-through">Tùy chỉnh giao diện nâng cao</span></li>
                     </ul>
 
                     {currentPlan === 'FREE' ? (
@@ -88,9 +89,9 @@ export default function BillingPage() {
                     
                     <ul className="space-y-4 mb-8 text-slate-700 dark:text-slate-300">
                         <li className="flex items-start gap-3"><CheckCircle2 className="text-blue-500 shrink-0" size={20}/> <span className="font-medium">Không giới hạn số bàn</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-blue-500 shrink-0" size={20}/> <span className="font-medium">Không giới hạn đơn hàng</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-blue-500 shrink-0" size={20}/> <span className="font-medium">Mở khóa KDS (Nhận bếp)</span></li>
-                        <li className="flex items-start gap-3 text-slate-400"><Shield className="shrink-0" size={20}/> <span className="line-through">Tùy biến nhãn trắng</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-blue-500 shrink-0" size={20}/> <span className="font-medium">Tối đa 3000 lượt gọi O2O / tháng</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-blue-500 shrink-0" size={20}/> <span className="font-medium">Tùy chỉnh màu sắc & thương hiệu</span></li>
+                        <li className="flex items-start gap-3 text-slate-400"><Shield className="shrink-0" size={20}/> <span className="line-through">Tính năng custom riêng biệt</span></li>
                     </ul>
 
                     {currentPlan === 'PRO_99' ? (
@@ -107,9 +108,9 @@ export default function BillingPage() {
                     
                     <ul className="space-y-4 mb-8 text-slate-700 dark:text-slate-300">
                         <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Mọi thứ của gói Pro</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Tùy biến giao diện nâng cao</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Export dữ liệu doanh thu</span></li>
-                        <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Tích hợp POS (iPOS, KiotViet)</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Không giới hạn lượt gọi O2O</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Mở khóa tính năng custom riêng</span></li>
+                        <li className="flex items-start gap-3"><CheckCircle2 className="text-orange-500 shrink-0" size={20}/> <span className="font-medium">Thiết kế tùy biến nhãn trắng</span></li>
                     </ul>
 
                     {currentPlan === 'PREMIUM_199' ? (
