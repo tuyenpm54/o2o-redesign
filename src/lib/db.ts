@@ -162,6 +162,7 @@ async function initDb(database: DBWrapper) {
       created_at BIGINT,
       FOREIGN KEY (system_user_id) REFERENCES system_users(id)
     );
+    ALTER TABLE system_sessions ADD COLUMN IF NOT EXISTS created_at BIGINT;
 
     -- Users
     CREATE TABLE IF NOT EXISTS users (
@@ -209,6 +210,7 @@ async function initDb(database: DBWrapper) {
       FOREIGN KEY (system_user_id) REFERENCES system_users(id),
       UNIQUE(system_user_id, restaurant_id)
     );
+    ALTER TABLE user_restaurants ADD COLUMN IF NOT EXISTS system_user_id TEXT;
 
 
 
@@ -253,6 +255,7 @@ async function initDb(database: DBWrapper) {
       payment_model TEXT DEFAULT 'POST_PAY_TABLE',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE qr_codes ADD COLUMN IF NOT EXISTS payment_model TEXT DEFAULT 'POST_PAY_TABLE';
 
     -- Orders
     CREATE TABLE IF NOT EXISTS orders (
@@ -500,9 +503,6 @@ async function initDb(database: DBWrapper) {
   // ── Seed data: batch into minimal calls ──
   try {
     await database.exec(`
-      -- Ensure column exists if table was created in an older version
-      ALTER TABLE user_restaurants ADD COLUMN IF NOT EXISTS system_user_id TEXT;
-      
       INSERT INTO tables (id, name) VALUES ('A-12', 'Bàn A-12') ON CONFLICT (id) DO NOTHING;
       INSERT INTO tables (id, name) VALUES ('T-1', 'Bàn 1') ON CONFLICT (id) DO NOTHING;
       INSERT INTO tables (id, name) VALUES ('COUNTER', 'Quầy thu ngân') ON CONFLICT (id) DO NOTHING;

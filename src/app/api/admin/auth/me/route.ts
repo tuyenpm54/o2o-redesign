@@ -49,7 +49,7 @@ export async function GET(request: Request) {
             // Auto-heal demo account: link to restaurant 100 if missing
             await db.run(
                 `INSERT INTO user_restaurants (id, system_user_id, restaurant_id)
-                 VALUES (?, ?, ?) ON CONFLICT DO NOTHING`,
+                 VALUES (?, ?, ?) ON CONFLICT (id) DO NOTHING`,
                 ['ur_SU1_100', user.id, '100']
             ).catch(console.error);
             user.restaurant_id = '100';
