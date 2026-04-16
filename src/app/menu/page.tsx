@@ -9,11 +9,32 @@ interface PageProps {
 export default async function MenuPage(props: PageProps) {
     const searchParams = await props.searchParams;
     const style = (searchParams.style as string) || 'menu';
-    const tableid = (searchParams.tableid || searchParams.tableId || 'A-12') as string;
+    const paytype = (searchParams.paytype as string);
+    const rawTableId = searchParams.tableid || searchParams.tableId;
+    
+    let tableid = rawTableId as string;
+    
+    // Strict Domain Logic
+    if (paytype === 'PREPAID') {
+        tableid = rawTableId ? (rawTableId as string) : 'COUNTER';
+    } else {
+        if (!rawTableId) {
+            return (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', padding: '24px', textAlign: 'center', background: '#f8fafc' }}>
+                    <div style={{ width: '80px', height: '80px', background: '#fee2e2', color: '#ef4444', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '32px', marginBottom: '16px' }}>⚠️</div>
+                    <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px', color: '#0f172a' }}>Lỗi truy cập</h1>
+                    <p style={{ marginBottom: '24px', color: '#64748b' }}>Bạn chưa định danh Bàn.<br />Vui lòng quét chuẩn mã QR tại bàn để hệ thống phục vụ.</p>
+                </div>
+            );
+        }
+    }
+
     const resid = (searchParams.resid || searchParams.resId || '100') as string;
 
     const db = await getDb();
-    const table = await db.get('SELECT id FROM tables WHERE id = ?', [tableid]);
+    const table = tableid === 'COUNTER' 
+        ? { id: 'COUNTER' } 
+        : await db.get('SELECT id FROM tables WHERE id = ?', [tableid]);
 
     if (!table) {
         return (

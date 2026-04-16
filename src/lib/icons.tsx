@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Utensils, Sparkles, CheckCircle2, Wallet, MoreHorizontal, Check, Clock, Users, BellRing,
   Coffee, CupSoda, Wine, IceCream, ChefHat, MessageSquare, AlertCircle, ShoppingBag, 
-  HelpCircle, Trash2, Heart, Star, ThumbsUp, Pizza
+  HelpCircle, Trash2, Heart, Star, ThumbsUp, Pizza, Wifi
 } from 'lucide-react';
 
 export const IconDictionary: Record<string, React.ElementType> = {
@@ -28,7 +28,8 @@ export const IconDictionary: Record<string, React.ElementType> = {
   Heart,
   Star,
   ThumbsUp,
-  Pizza
+  Pizza,
+  Wifi
 };
 
 export const getIconComponent = (iconName: string): React.ElementType => {

@@ -21,27 +21,41 @@ export async function POST(request: Request) {
         const now = Date.now();
 
         if (activeSession) {
-            const invoiceId = `inv_${crypto.randomUUID()}`;
-            
-            // Sum up subtotal from order_items matching the session
-            const items = await db.all('SELECT price, qty FROM order_items WHERE table_session_id = ? AND status != ? AND status != ?', [activeSession.id, 'Huỷ', 'Hủy']);
-            const subtotal = items.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.qty || 1)), 0);
-            const vat_amount = Math.round(subtotal * 0.08); // 8% Default VAT for Vietnam F&B
-            const final_total = subtotal + vat_amount;
-
-            // Generate Financial Invoice Document
-            await db.run(
-                `INSERT INTO invoices (id, table_session_id, resid, tableid, subtotal, vat_amount, total, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'PAID')`,
-                [invoiceId, activeSession.id, resid, tableid, subtotal, vat_amount, final_total]
+            // Filter UNPAID items only (no invoice_id yet)
+            const unpaidItems = await db.all(
+                'SELECT id, price, qty FROM order_items WHERE table_session_id = ? AND invoice_id IS NULL AND status != ? AND status != ?', 
+                [activeSession.id, 'Huỷ', 'Hủy']
             );
 
-            // Map all order_items under this session to the new invoice
-            await db.run(
-                'UPDATE order_items SET invoice_id = ? WHERE table_session_id = ?',
-                [invoiceId, activeSession.id]
-            );
+            let targetInvoiceId = null;
 
-            // Mark session as PAID
+            if (unpaidItems.length > 0) {
+                const invoiceId = `inv_${crypto.randomUUID()}`;
+                targetInvoiceId = invoiceId;
+                
+                // Sum up subtotal from unpaid order_items matching the session
+                const subtotal = unpaidItems.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.qty || 1)), 0);
+                const vat_amount = Math.round(subtotal * 0.08); // 8% Default VAT for Vietnam F&B
+                const final_total = subtotal + vat_amount;
+
+                // Generate Financial Invoice Document for remainder
+                await db.run(
+                    `INSERT INTO invoices (id, table_session_id, resid, tableid, subtotal, vat_amount, total, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'PAID')`,
+                    [invoiceId, activeSession.id, resid, tableid, subtotal, vat_amount, final_total]
+                );
+
+                // Map unpaid order_items under this session to the new invoice
+                await db.run(
+                    'UPDATE order_items SET invoice_id = ? WHERE table_session_id = ? AND invoice_id IS NULL',
+                    [invoiceId, activeSession.id]
+                );
+            } else {
+                // All items were prepaid. Try to find the latest invoice created for VAT/Reviews
+                const lastInvoice = await db.get('SELECT id FROM invoices WHERE table_session_id = ? ORDER BY id DESC LIMIT 1', [activeSession.id]);
+                targetInvoiceId = lastInvoice ? lastInvoice.id : `inv_dummy_${crypto.randomUUID()}`;
+            }
+
+            // Mark session as PAID (Completed)
             await db.run(
                 `UPDATE table_sessions SET status = 'PAID', ended_at = ? WHERE id = ?`,
                 [now, activeSession.id]
@@ -55,7 +69,7 @@ export async function POST(request: Request) {
                     const vatId = `vat_${crypto.randomUUID()}`;
                     await db.run(
                         `INSERT INTO invoice_vats (id, invoice_id, user_id, company_name, tax_code, company_address, email) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                        [vatId, invoiceId, vatData.userId, vatData.companyName, vatData.taxCode, vatData.address || vatData.companyAddress, vatData.email || null]
+                        [vatId, targetInvoiceId, vatData.userId, vatData.companyName, vatData.taxCode, vatData.address || vatData.companyAddress, vatData.email || null]
                     );
                     await db.run('DELETE FROM kv_store WHERE key = ?', [`vat_request_${resid}_${tableid}`]);
                 } catch (e) {
@@ -74,7 +88,7 @@ export async function POST(request: Request) {
                     
                     await db.run(
                         `INSERT INTO reviews (id, invoice_id, user_id, rating, comment) VALUES (?, ?, ?, ?, ?)`,
-                        [reviewId, invoiceId, userId, rvData.rating, commentText]
+                        [reviewId, targetInvoiceId, userId, rvData.rating, commentText]
                     );
                     await db.run('DELETE FROM kv_store WHERE key = ?', [rv.key]);
                 } catch (e) {
@@ -83,10 +97,12 @@ export async function POST(request: Request) {
             }
 
             // --- Background Worker: Update User Analytics ---
-            fetch(`${request.headers.get('origin') || 'http://localhost:3000'}/api/worker/user-analytics`, {
-                method: 'POST',
-                body: JSON.stringify({ invoiceId: invoiceId })
-            }).catch(err => console.error("Worker failed", err));
+            if (targetInvoiceId && !targetInvoiceId.startsWith('inv_dummy_')) {
+                fetch(`${request.headers.get('origin') || 'http://localhost:3000'}/api/worker/user-analytics`, {
+                    method: 'POST',
+                    body: JSON.stringify({ invoiceId: targetInvoiceId })
+                }).catch(err => console.error("Worker failed", err));
+            }
         }
         
         // 2. Clear transient draft items from this table

@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     const session = await getAuthenticatedUser();
     if (!session) return ApiError('Unauthorized', 401);
     const { userId, tableid: sessionTableId } = session;
-    const { resId, items: directItems, tableid: bodyTableId } = await request.json();
+    const { resId, items: directItems, tableid: bodyTableId, isPaidUpfront } = await request.json();
     if (!resId) return ApiError('Missing resId', 400);
 
     const activeTableId = bodyTableId || sessionTableId;
@@ -169,9 +169,25 @@ export async function POST(request: Request) {
                 `INSERT INTO order_items (id, user_id, resid, tableid, item_id, name, price, qty, status, selections, img, timestamp, status_updated_at, table_session_id, order_round_id, suggestion_source) VALUES ${valuesPlaceholder.join(', ')}`,
                 flatValues
             );
+
+            // ✅ For Pre-paid models (Trả trước), create a PAID invoice immediately for this round
+            if (isPaidUpfront) {
+                const totalAmount = itemsToOrder.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+                const invoiceId = `inv_${timestamp}_${Math.random().toString(36).substr(2, 5)}`;
+                await db.run(
+                    `INSERT INTO invoices (id, table_session_id, resid, tableid, subtotal, vat_amount, total, status) VALUES (?, ?, ?, ?, ?, 0, ?, 'PAID')`,
+                    [invoiceId, activeTableSessionId, resId, activeTableId, totalAmount, totalAmount]
+                );
+                
+                // CRITICAL FIX: Link the prepaid invoice to the order_items just created
+                await db.run(
+                    'UPDATE order_items SET invoice_id = ? WHERE order_round_id = ?',
+                    [invoiceId, roundId]
+                );
+            }
         }
 
-        await addChatMessage(userId, resId, activeTableId, "Yêu cầu gọi món đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận.");
+        await addChatMessage(userId, resId, activeTableId, isPaidUpfront ? "Đơn hàng đã được thanh toán trước. Vui lòng đợi thông báo nhận đồ." : "Yêu cầu gọi món đã được gửi tới nhân viên, vui lòng đợi nhân viên xác nhận.");
 
         // Bump table version to notify sync polling
         await db.run(

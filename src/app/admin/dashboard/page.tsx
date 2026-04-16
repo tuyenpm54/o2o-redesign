@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
+import { QrCode } from 'lucide-react';
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -50,14 +51,11 @@ interface LivePulse {
     timestamp: number;
 }
 
-// ────────────────────────────────────────────────────────────
-// SLA Step Config (shared between realtime summary + analytics)
-// ────────────────────────────────────────────────────────────
 const SLA_STEPS = [
-    { key: 'pending_to_confirmed', label: 'Tiếp nhận', icon: Inbox, color: 'slate' },
-    { key: 'confirmed_to_cooking', label: 'Chuẩn bị', icon: Flame, color: 'orange' },
-    { key: 'cooking_to_ready',    label: 'Chế biến',  icon: BellRing, color: 'amber' },
-    { key: 'ready_to_served',     label: 'Phục vụ',   icon: Utensils, color: 'emerald' },
+    { key: 'pending_to_confirmed', label: 'Tiếp nhận', icon: Inbox },
+    { key: 'confirmed_to_cooking', label: 'Chuẩn bị', icon: Flame },
+    { key: 'cooking_to_ready',    label: 'Chế biến',  icon: BellRing },
+    { key: 'ready_to_served',     label: 'Phục vụ',   icon: Utensils },
 ] as const;
 
 // ────────────────────────────────────────────────────────────
@@ -66,9 +64,6 @@ const SLA_STEPS = [
 export default function DashboardPage() {
     const { t } = useLanguage();
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState<'realtime' | 'analytics'>('realtime');
-
-    // Restaurant Manager: dùng restaurant được assign cho user, không có option chọn
     const resId = user?.restaurant_id || 'all';
 
     const [livePulse, setLivePulse] = useState<LivePulse>({
@@ -78,21 +73,17 @@ export default function DashboardPage() {
     const [slaData, setSlaData] = useState<SlaData | null>(null);
     const [occupancy, setOccupancy] = useState<OccupancyData | null>(null);
 
-    // Analytics tab
     const [analyticRange, setAnalyticRange] = useState<'7d' | '30d'>('7d');
     const [analytics, setAnalytics] = useState<{
         trend: any[]; peakHours: any[];
         suggestedItems: {id: string, name: string, img: string, source: string, qty: number, revenue: number}[];
-        summary: { doanhThu: number; soDon: number; soKhach: number; soLuotGoiMon: number; doanhThuGoiY: number; aov: number; aovTable: number; cancellationRate: number; days: number; };
+        summary: { doanhThu: number; soDon: number; soKhach: number; soLuotGoiMon: number; doanhThuGoiY: number; o2oRate: number; aov: number; aovTable: number; cancellationRate: number; days: number; };
     }>({
         trend: [], peakHours: [], suggestedItems: [],
-        summary: { doanhThu: 0, soDon: 0, soKhach: 0, soLuotGoiMon: 0, doanhThuGoiY: 0, aov: 0, aovTable: 0, cancellationRate: 0, days: 7 }
+        summary: { doanhThu: 0, soDon: 0, soKhach: 0, soLuotGoiMon: 0, doanhThuGoiY: 0, o2oRate: 0, aov: 0, aovTable: 0, cancellationRate: 0, days: 7 }
     });
 
-
-
     const fetchRealtime = useCallback(async () => {
-        if (activeTab !== 'realtime') return;
         try {
             const [pulseRes, slaRes, occRes] = await Promise.all([
                 fetch(`/api/admin/dashboard/live-pulse?resid=${resId}`),
@@ -104,27 +95,24 @@ export default function DashboardPage() {
             if (sla.success) setSlaData(sla.data);
             if (occ.success) setOccupancy(occ.data);
         } catch (e) { console.error(e); }
-    }, [resId, activeTab]);
+    }, [resId]);
 
     useEffect(() => {
-        if (activeTab !== 'realtime') return;
         fetchRealtime();
         const iv = setInterval(fetchRealtime, 15000);
         return () => clearInterval(iv);
-    }, [activeTab, fetchRealtime]);
+    }, [fetchRealtime]);
 
     useEffect(() => {
-        if (activeTab !== 'analytics') return;
         fetch(`/api/admin/dashboard/analytics?resid=${resId}&range=${analyticRange}`)
             .then(r => r.json()).then(d => { if (d.success) setAnalytics(d.data); }).catch(console.error);
-    }, [activeTab, resId, analyticRange]);
+    }, [resId, analyticRange]);
 
     const formatVND = (v: number) => {
         if (!v || isNaN(v)) return '0 ₫';
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
     };
 
-    // ── Compute SLA status for realtime card ──
     const totalViolations = slaData
         ? Object.values(slaData.violations).reduce((s, v) => s + v.count, 0)
         : 0;
@@ -142,287 +130,211 @@ export default function DashboardPage() {
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 dark:bg-black min-h-screen">
-
             {/* ── HEADER ── */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-4 border-b border-slate-200 dark:border-white/10">
+            <div className="pb-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-red-500/20 shrink-0">
-                        {activeTab === 'realtime' ? <Wifi size={22} strokeWidth={2.5} /> : <BarChart3 size={22} strokeWidth={2.5} />}
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 dark:from-white dark:to-slate-200 text-white dark:text-slate-900 flex items-center justify-center shadow-sm shrink-0">
+                        <Wifi size={24} strokeWidth={2} />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                            {activeTab === 'realtime' ? 'Giám sát Thời gian thực' : 'Báo cáo Thống kê'}
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                            Tổng quan Thực chiến
                         </h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-0.5 font-medium text-sm">
-                            {activeTab === 'realtime' ? 'Phát hiện sự cố & cảnh báo vượt SLA tức thì' : 'Phân tích hiệu suất vận hành theo khoảng thời gian'}
+                        <p className="text-slate-500 mt-0.5 font-medium text-sm">
+                            Giám sát sự cố tức thì & Phân tích hiệu suất vận hành toàn diện
                         </p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    {/* Quota Indicator for Store Manager */}
-                    <div className="hidden lg:flex flex-col items-end mr-4 group cursor-help relative">
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hạn mức lượt gọi món</span>
-                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded italic">Gói Pro</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs font-black text-slate-700 dark:text-slate-300">842 <span className="text-slate-400 font-medium">/ 1.000</span></span>
-                            <div className="w-24 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-1000" style={{ width: '84.2%' }} />
-                            </div>
-                        </div>
-                        
-                        {/* Tooltip on hover */}
-                        <div className="absolute top-full right-0 mt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                            <div className="bg-white dark:bg-[#1A1D27] border border-slate-200 dark:border-white/10 rounded-xl p-3 shadow-xl text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                                Bạn đã sử dụng <strong className="text-slate-900 dark:text-white">84%</strong> hạn mức tháng này. Nâng cấp lên <strong className="text-orange-500">Premium</strong> để không giới hạn.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="hidden lg:flex bg-slate-200/60 dark:bg-[#1A1D27] p-1 rounded-2xl border border-slate-300/50 dark:border-white/10">
-                        {(['realtime', 'analytics'] as const).map(tab => (
-                            <button key={tab} onClick={() => setActiveTab(tab)}
-                                className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${activeTab === tab ? 'bg-white dark:bg-[#2A2E3B] shadow text-[#DF1B41]' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
-                                {tab === 'realtime' ? <><Wifi size={16} /> Thời gian thực</> : <><BarChart3 size={16} /> Báo cáo</>}
-                            </button>
-                        ))}
                     </div>
                 </div>
             </div>
 
-            {/* ═══════════════════════════════════════
-                TAB 1: REALTIME — Giám sát tức thì
-                Chỉ hiển thị: SLA Status + Công suất bàn + Alerts
-                ═══════════════════════════════════════ */}
-            {activeTab === 'realtime' && (
-                <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-400">
-
-                    {/* ROW 1: SLA Status (hero card) + Table Occupancy */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-                        {/* SLA Status Card — simple & decisive */}
-                        <div className={`lg:col-span-1 rounded-3xl p-6 border shadow-sm relative overflow-hidden flex flex-col gap-5 transition-colors duration-500
-                            ${slaStatus === 'ok'
-                                ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/20'
-                                : slaStatus === 'warning'
-                                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-500/20'
-                                : 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-500/20'}`}>
-
-                            <div className={`absolute top-0 left-0 w-full h-1 ${slaStatus === 'ok' ? 'bg-emerald-400' : slaStatus === 'warning' ? 'bg-amber-400' : 'bg-rose-500'}`} />
-
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <ShieldCheck size={16} className={slaStatus === 'ok' ? 'text-emerald-600' : slaStatus === 'warning' ? 'text-amber-600' : 'text-rose-600'} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Trạng thái SLA</span>
-                                </div>
-                                <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full
-                                    ${slaStatus === 'ok' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                                    : slaStatus === 'warning' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
-                                    : 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400'}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${slaStatus === 'ok' ? 'bg-emerald-500 animate-pulse' : slaStatus === 'warning' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500 animate-pulse'}`} />
-                                    {slaStatus === 'ok' ? 'Ổn định' : slaStatus === 'warning' ? 'Chú ý' : 'Cảnh báo'}
-                                </div>
-                            </div>
-
-                            {/* Big status message */}
-                            <div>
-                                {slaStatus === 'ok' ? (
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <CheckCircle2 size={32} className="text-emerald-500 shrink-0" />
-                                            <p className="text-xl font-black text-emerald-800 dark:text-emerald-300 leading-tight">Vận hành ổn định</p>
-                                        </div>
-                                        <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
-                                            Không có đơn nào vượt SLA trong phiên hiện tại.
-                                        </p>
-                                    </div>
-                                ) : slaStatus === 'warning' ? (
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <AlertTriangle size={28} className="text-amber-500 shrink-0" />
-                                            <p className="text-xl font-black text-amber-800 dark:text-amber-300 leading-tight">Có {totalViolations} vi phạm nhỏ</p>
-                                        </div>
-                                        <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">Cần theo dõi thêm nhưng chưa cần can thiệp.</p>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <Siren size={28} className="text-rose-500 shrink-0" />
-                                            <p className="text-xl font-black text-rose-800 dark:text-rose-300 leading-tight">{totalViolations} đơn vượt SLA</p>
-                                        </div>
-                                        <p className="text-xs text-rose-700 dark:text-rose-400 font-semibold">Cần can thiệp ngay vào các bước bên dưới.</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Violating steps — only show if there are issues */}
-                            {violatingSteps.length > 0 && (
-                                <div className="space-y-2">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bước đang chậm</p>
-                                    {violatingSteps.map(step => {
-                                        const v = slaData!.violations[step.key];
-                                        const cfg = slaData!.slaConfig[step.key];
-                                        const Icon = step.icon;
-                                        return (
-                                            <div key={step.key} className="flex items-center justify-between bg-white/60 dark:bg-black/20 rounded-2xl px-3 py-2.5">
-                                                <div className="flex items-center gap-2">
-                                                    <Icon size={13} className="text-rose-500" />
-                                                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">{step.label}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-bold text-slate-500">{v.avg_time.toFixed(1)}ph</span>
-                                                    <ArrowRight size={10} className="text-slate-400" />
-                                                    <span className="text-[10px] font-black text-rose-500 bg-rose-100 dark:bg-rose-500/20 px-1.5 py-0.5 rounded">SLA {cfg.target}ph</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            {/* Footer: total orders today */}
-                            {slaData && (
-                                <div className="mt-auto pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Hôm nay</span>
-                                    <span className="text-[10px] font-black text-slate-500">{slaData.servedToday}/{slaData.totalOrdersToday} đơn hoàn thành</span>
-                                </div>
-                            )}
+            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* ═══════════════════════════════════════
+                    SECTION 1: REALTIME 
+                    ═══════════════════════════════════════ */}
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        
+                        {/* ── Left: Priority Action Alerts ── */}
+                        <div className="lg:col-span-3 flex flex-col justify-between gap-4">
+                            <RealtimeAlertCard
+                                icon={<Siren size={20} strokeWidth={2}/>}
+                                label="Bếp Tồn Đơn"
+                                count={livePulse.kitchenLagCount}
+                                desc="Quá 15p chưa ra món"
+                                isDanger={livePulse.kitchenLagCount > 0}
+                            />
+                            <RealtimeAlertCard
+                                icon={<AlertTriangle size={20} strokeWidth={2}/>}
+                                label="Bàn Bị Bỏ Quên"
+                                count={livePulse.neglectedTablesCount}
+                                desc="Khách đợi mòn râu"
+                                isDanger={livePulse.neglectedTablesCount > 0}
+                            />
+                            <RealtimeAlertCard
+                                icon={<XCircle size={20} strokeWidth={2}/>}
+                                label="Đồ Hết / Hủy"
+                                count={livePulse.stockoutCount}
+                                desc="Ghi nhận trong ngày"
+                                isDanger={false}
+                            />
                         </div>
 
-                        {/* Table Occupancy */}
-                        <div className="lg:col-span-2 bg-white dark:bg-[#13141A] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm">
-                            <div className="flex items-center justify-between mb-5">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-blue-50 dark:bg-blue-500/10 text-blue-600 rounded-xl"><Table2 size={17} /></div>
-                                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide">Công suất bàn</h3>
+                        {/* ── Center: Table Occupancy ── */}
+                        <div className="lg:col-span-6 bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 lg:p-8 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5 flex flex-col justify-between">
+                            <div className="flex items-start justify-between mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 flex items-center justify-center">
+                                        <Table2 size={20} strokeWidth={2} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Sức chứa Hiện tại</h3>
+                                        <p className="text-[13px] font-medium text-slate-500 mt-0.5">Theo dõi mật độ khách tức thì</p>
+                                    </div>
                                 </div>
                                 {occupancy && (
-                                    <p className="text-2xl font-black text-slate-900 dark:text-white">
-                                        {occupancy.occupancyRate}% <span className="text-xs font-bold text-slate-400">lấp đầy</span>
-                                    </p>
+                                    <div className="text-right flex items-baseline gap-1">
+                                        <p className="text-5xl font-bold text-slate-900 dark:text-white tracking-tight">{occupancy.occupancyRate}</p>
+                                        <span className="text-lg font-medium text-slate-400">%</span>
+                                    </div>
                                 )}
                             </div>
 
                             {occupancy ? (
-                                <>
-                                    <div className="w-full h-2.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-6">
-                                        <div className={`h-full rounded-full transition-all duration-1000 ${occupancy.occupancyRate > 80 ? 'bg-rose-500' : occupancy.occupancyRate > 50 ? 'bg-amber-500' : 'bg-blue-500'}`}
-                                            style={{ width: `${occupancy.occupancyRate}%` }} />
+                                <div>
+                                    <div className="w-full h-2 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-8">
+                                        <div className={`h-full rounded-full transition-all duration-1000 ${occupancy.occupancyRate > 80 ? 'bg-rose-500' : occupancy.occupancyRate > 50 ? 'bg-amber-500' : 'bg-slate-800 dark:bg-slate-200'}`}
+                                            style={{ width: `${occupancy.occupancyRate}%` }}>
+                                        </div>
                                     </div>
+                                    
                                     <div className="grid grid-cols-3 gap-4">
-                                        {[
-                                            { label: 'Bàn đang có khách', value: `${occupancy.active} / ${occupancy.total}`, sub: 'bàn' },
-                                            { label: 'Khách đang ở quán', value: occupancy.guestCount, sub: 'người' },
-                                            { label: 'Thời gian phiên TB', value: occupancy.avgSessionMinutes, sub: 'phút' },
-                                        ].map(item => (
-                                            <div key={item.label} className="bg-slate-50 dark:bg-white/5 rounded-2xl p-4">
-                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{item.label}</p>
-                                                <div className="flex items-baseline gap-1">
-                                                    <p className="text-2xl font-black text-slate-900 dark:text-white">{item.value}</p>
-                                                    <p className="text-[10px] font-bold text-slate-400">{item.sub}</p>
-                                                </div>
+                                        <div className="flex flex-col gap-1 pr-4">
+                                            <p className="text-[13px] font-medium text-slate-500">Bàn Đang Mở</p>
+                                            <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{occupancy.active} <span className="text-sm font-medium text-slate-400">/ {occupancy.total}</span></p>
+                                        </div>
+                                        <div className="flex flex-col gap-1 px-4 border-l border-slate-100 dark:border-white/5">
+                                            <p className="text-[13px] font-medium text-slate-500">Khách Ước Tính</p>
+                                            <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{occupancy.guestCount}</p>
+                                        </div>
+                                        <div className="flex flex-col gap-1 pl-4 border-l border-slate-100 dark:border-white/5">
+                                            <p className="text-[13px] font-medium text-slate-500">TG Lưu Trú</p>
+                                            <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{occupancy.avgSessionMinutes} <span className="text-sm font-medium text-slate-400">ph</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center flex-1 min-h-[140px]">
+                                    <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ── Right: SLA Overview ── */}
+                        <div className="lg:col-span-3 bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5 flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center justify-between mb-5">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 flex items-center justify-center">
+                                        <ShieldCheck size={20} />
+                                    </div>
+                                    <div className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 
+                                        ${slaStatus === 'ok' ? 'text-slate-600 bg-slate-100 dark:text-slate-400 dark:bg-white/5' 
+                                        : slaStatus === 'warning' ? 'text-amber-700 bg-amber-50' 
+                                        : 'text-rose-700 bg-rose-50'}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${slaStatus === 'ok' ? 'bg-slate-400' : slaStatus === 'warning' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                                        {slaStatus === 'ok' ? 'Ổn Định' : slaStatus === 'warning' ? 'Chú Ý Nhẹ' : 'Có Biến'}
+                                    </div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <p className="text-[13px] font-medium text-slate-500 mb-1">Báo cáo Nóng</p>
+                                    <h3 className={`text-lg font-bold tracking-tight leading-snug ${slaStatus === 'ok' ? 'text-slate-900 dark:text-white' : slaStatus === 'warning' ? 'text-amber-600' : 'text-rose-600'}`}>
+                                        {slaStatus === 'ok' ? 'Luồng phục vụ nhà bếp đang trơn tru.' : `Cảnh báo! Có ${totalViolations} tác vụ vượt ngưỡng.`}
+                                    </h3>
+                                </div>
+
+                                {violatingSteps.length > 0 ? (
+                                    <div className="flex flex-col gap-2">
+                                        {violatingSteps.slice(0,2).map(step => (
+                                            <div key={step.key} className="flex justify-between items-center text-[13px] px-3 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-800 dark:text-rose-300 font-medium">
+                                                <span>{step.label}</span>
+                                                <span className="font-bold">{slaData!.violations[step.key].avg_time.toFixed(1)}p</span>
                                             </div>
                                         ))}
                                     </div>
-                                </>
-                            ) : (
-                                <div className="flex items-center justify-center h-28">
-                                    <div className="w-5 h-5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <div className="flex items-start gap-3 p-3.5 bg-slate-50 dark:bg-white/5 rounded-xl">
+                                        <CheckCircle2 size={18} className="text-slate-400 mt-0.5 shrink-0" />
+                                        <p className="text-[13px] font-medium text-slate-600 dark:text-slate-400 leading-relaxed">Không ghi nhận điểm thắt cổ chai nào trong ca này.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {slaData && (
+                                <div className="mt-8 pt-4 border-t border-slate-100 dark:border-white/5">
+                                    <div className="flex items-end justify-between">
+                                        <span className="text-[13px] font-medium text-slate-500">Đơn Hoàn Thành</span>
+                                        <p className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                            {slaData.servedToday} <span className="text-sm text-slate-400 font-medium">/ {slaData.totalOrdersToday}</span>
+                                        </p>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
-
-                    {/* ROW 2: Alert Counters — compact horizontal */}
-                    <div className="bg-white dark:bg-[#13141A] border border-slate-200 dark:border-white/10 rounded-3xl p-5 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Sự cố tức thì</span>
-                                <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                                <span className="text-[9px] font-bold text-slate-400">Cập nhật mỗi 15 giây</span>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3">
-                            <RealtimeAlertCard
-                                icon={<Siren size={18} />}
-                                label="Bếp đang tồn đơn"
-                                count={livePulse.kitchenLagCount}
-                                desc="Đơn chờ quá 15 phút chưa ra món"
-                                isDanger={livePulse.kitchenLagCount > 0}
-                            />
-                            <RealtimeAlertCard
-                                icon={<AlertTriangle size={18} />}
-                                label="Khách chờ lâu"
-                                count={livePulse.neglectedTablesCount}
-                                desc="Yêu cầu chưa được phản hồi"
-                                isDanger={livePulse.neglectedTablesCount > 0}
-                            />
-                            <RealtimeAlertCard
-                                icon={<XCircle size={18} />}
-                                label="Món hết / bị hủy"
-                                count={livePulse.stockoutCount}
-                                desc="Tổng từ đầu phiên hôm nay"
-                                isDanger={false}
-                            />
-                        </div>
-                    </div>
                 </div>
-            )}
 
-            {/* ═══════════════════════════════════════
-                TAB 2: ANALYTICS — Báo cáo thống kê
-                SLA pipeline breakdown + revenue + O2O
-                ═══════════════════════════════════════ */}
-            {activeTab === 'analytics' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
+                <div className="w-full h-px bg-slate-200 dark:bg-white/10 my-8" />
 
-                    {/* Range Selector */}
-                    <div className="flex items-center justify-between bg-white dark:bg-[#13141A] p-4 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-blue-50 dark:bg-blue-500/10 text-blue-600 flex items-center justify-center rounded-xl"><Calendar size={18} /></div>
-                            <div>
-                                <h2 className="text-sm font-black text-slate-800 dark:text-slate-200">Báo cáo theo kỳ</h2>
-                                <p className="text-[10px] font-semibold text-slate-400">Tổng hợp từ dữ liệu Hoá đơn thực tế</p>
-                            </div>
+                {/* ═══════════════════════════════════════
+                    SECTION 2: ANALYTICS
+                    ═══════════════════════════════════════ */}
+                <div className="space-y-6">
+
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between pb-2">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Tổng quan Hiệu suất</h2>
+                            <p className="text-[13px] font-medium text-slate-500 mt-0.5">Dữ liệu tổng hợp từ các đơn hàng đã thanh toán.</p>
                         </div>
-                        <div className="relative">
+                        <div className="relative inline-block shrink-0">
                             <select value={analyticRange} onChange={e => setAnalyticRange(e.target.value as '7d' | '30d')}
-                                className="appearance-none bg-slate-100 dark:bg-[#2A2E3B] rounded-xl px-4 py-2 pr-8 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-[#DF1B41] cursor-pointer outline-none">
-                                <option value="7d">7 Ngày (1 Tuần)</option>
-                                <option value="30d">30 Ngày (1 Tháng)</option>
+                                className="appearance-none bg-white dark:bg-[#13141A] border-none shadow-[0_2px_10px_rgb(0,0,0,0.06)] dark:shadow-none dark:border dark:border-white/10 rounded-xl px-4 py-2.5 pr-10 text-[13px] font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-slate-900 outline-none cursor-pointer">
+                                <option value="7d">7 Ngày gần nhất</option>
+                                <option value="30d">30 Ngày qua</option>
                             </select>
-                            <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         </div>
                     </div>
 
                     {/* KPI Summary Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
-                            { title: 'Doanh thu', value: formatVND(analytics.summary.doanhThu), icon: <Banknote size={18} />, trend: '+12%', positive: true },
-                            { title: 'Số lượt khách', value: analytics.summary.soKhach.toString(), icon: <Users size={18} />, trend: '+5%', positive: true },
-                            { title: 'Số lượt gọi món', value: analytics.summary.soLuotGoiMon.toString(), icon: <Utensils size={18} />, trend: '+2%', positive: true },
-                            { title: 'Doanh thu tới từ gợi ý', value: formatVND(analytics.summary.doanhThuGoiY), icon: <Flame size={18} />, trend: '+8%', positive: true },
+                            { title: 'Doanh thu tổng', value: formatVND(analytics.summary.doanhThu), icon: <Banknote size={20} />, trend: '+12%', positive: true, primary: false },
+                            { title: 'Số lượt khách', value: analytics.summary.soKhach.toString(), icon: <Users size={20} />, trend: '+5%', positive: true, primary: false },
+                            { title: 'Số lượt gọi món', value: analytics.summary.soLuotGoiMon.toString(), icon: <Utensils size={20} />, trend: '+2%', positive: true, primary: false },
+                            { title: 'Tỉ lệ sử dụng O2O', value: `${analytics.summary.o2oRate ? analytics.summary.o2oRate.toFixed(1) : 0}%`, icon: <QrCode size={20} />, trend: '+3%', positive: true, primary: false },
                         ].map(card => (
-                            <div key={card.title} className="bg-white dark:bg-[#13141A] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm">
-                                <div className="flex justify-between items-center mb-4">
-                                    <div className="p-2 bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-xl">{card.icon}</div>
-                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${card.positive ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600'}`}>{card.trend}</span>
+                            <div key={card.title} className={`rounded-[20px] p-5 relative overflow-hidden bg-white dark:bg-[#0c0c0e] shadow-[0_2px_14px_rgb(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5`}>
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className={`p-2 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-500`}>
+                                        {card.icon}
+                                    </div>
+                                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${card.positive ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'}`}>
+                                        {card.trend}
+                                    </span>
                                 </div>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{card.title}</p>
-                                <p className="text-xl font-black tracking-tight text-slate-900 dark:text-white">{card.value}</p>
+                                <p className="text-[13px] font-medium mb-1.5 text-slate-500">{card.title}</p>
+                                <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{card.value}</p>
                             </div>
                         ))}
                     </div>
 
-                    {/* SLA Pipeline Breakdown — statistical, not realtime */}
-                    <div className="bg-white dark:bg-[#13141A] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm">
-                        <div className="mb-6">
-                            <h3 className="text-base font-black text-slate-800 dark:text-slate-200">Phân tích Hành trình Món ăn</h3>
-                            <p className="text-xs text-slate-400 font-semibold mt-1">
-                                Thống kê thời gian trung bình mỗi bước trong kỳ báo cáo. Bước nào vượt SLA nhiều → đó là điểm nghẽn cần cải thiện.
-                            </p>
+                    {/* SLA Pipeline Breakdown */}
+                    <div className="bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 lg:p-8 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
+                        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Hiệu suất Bếp & Phục vụ</h3>
+                                <p className="text-[13px] font-medium text-slate-500 mt-0.5">Phân tích thời gian lưu lại trung bình tại từng trạm.</p>
+                            </div>
                         </div>
                         <SlaStatsPipeline analyticRange={analyticRange} resId={resId} />
                     </div>
@@ -430,19 +342,19 @@ export default function DashboardPage() {
                     {/* Charts Row */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Peak Hours */}
-                        <div className="lg:col-span-1 bg-white dark:bg-[#13141A] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm flex flex-col">
-                            <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 mb-1">Giờ Vàng Doanh thu</h3>
-                            <p className="text-[10px] font-semibold text-slate-400 mb-5">Khung giờ có doanh thu trên mức trung bình.</p>
+                        <div className="lg:col-span-1 bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5 flex flex-col">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">Giờ Vàng Doanh thu</h3>
+                            <p className="text-[13px] font-medium text-slate-500 mb-6">Khung giờ có lượng khách đông nhất.</p>
                             <div className="flex-1 min-h-[240px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={analytics.peakHours} layout="vertical" margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} vertical={true} stroke="#333" opacity={0.08} />
+                                    <BarChart data={analytics.peakHours} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} vertical={true} stroke="#333" opacity={0.05} />
                                         <XAxis type="number" hide />
-                                        <YAxis dataKey="gio" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }} width={50} />
-                                        <Tooltip contentStyle={{ background: '#1A1D27', borderRadius: 12, border: 'none', color: '#fff', fontSize: 12 }} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                                        <Bar dataKey="doanhThu" radius={[0, 4, 4, 0]} maxBarSize={16}>
+                                        <YAxis dataKey="gio" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500, fill: '#64748b' }} width={50} />
+                                        <Tooltip contentStyle={{ background: '#0f172a', borderRadius: 12, border: 'none', color: '#fff', fontSize: 13, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+                                        <Bar dataKey="doanhThu" radius={[0, 4, 4, 0]} maxBarSize={20}>
                                             {analytics.peakHours.map((entry, i) => (
-                                                <Cell key={i} fill={entry.doanhThu > (analytics.summary.doanhThu / Math.max(analytics.peakHours.length, 1)) ? '#F9B208' : '#334155'} />
+                                                <Cell key={i} fill={entry.doanhThu > (analytics.summary.doanhThu / Math.max(analytics.peakHours.length, 1)) ? '#0f172a' : '#e2e8f0'} />
                                             ))}
                                         </Bar>
                                     </BarChart>
@@ -451,20 +363,19 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Revenue + Orders trend */}
-                        <div className="lg:col-span-2 bg-white dark:bg-[#13141A] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm">
-                            <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 mb-1">Doanh thu & Số đơn theo ngày</h3>
-                            <p className="text-[10px] font-semibold text-slate-400 mb-5">Tương quan giữa dòng tiền và tần suất gọi món.</p>
+                        <div className="lg:col-span-2 bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">Lưu lượng Giao dịch</h3>
+                            <p className="text-[13px] font-medium text-slate-500 mb-6">Diễn biến doanh thu & số đơn qua các ngày.</p>
                             <div className="h-[240px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <ComposedChart data={analytics.trend} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#333" opacity={0.12} />
-                                        <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 600, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                        <YAxis yAxisId="left" tick={{ fontSize: 11, fontWeight: 600, fill: '#64748b' }} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} axisLine={false} tickLine={false} />
+                                    <ComposedChart data={analytics.trend} margin={{ top: 0, right: 0, left: -15, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#333" opacity={0.05} />
+                                        <XAxis dataKey="date" tick={{ fontSize: 12, fontWeight: 500, fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
+                                        <YAxis yAxisId="left" tick={{ fontSize: 12, fontWeight: 500, fill: '#64748b' }} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} axisLine={false} tickLine={false} />
                                         <YAxis yAxisId="right" orientation="right" hide />
-                                        <Tooltip contentStyle={{ background: '#1A1D27', borderRadius: 12, border: 'none', color: '#fff', fontSize: 12 }} />
-                                        <Legend verticalAlign="top" height={36} formatter={v => <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{v === 'doanhThu' ? 'Doanh thu' : 'Số đơn'}</span>} />
-                                        <Bar yAxisId="right" dataKey="soDon" name="soDon" fill="#e2e8f0" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                                        <Line yAxisId="left" type="monotone" dataKey="doanhThu" name="doanhThu" stroke="#DF1B41" strokeWidth={3} dot={{ r: 3, fill: '#fff', stroke: '#DF1B41', strokeWidth: 2 }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                                        <Tooltip contentStyle={{ background: '#0f172a', borderRadius: 12, border: 'none', color: '#fff', fontSize: 13, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }} />
+                                        <Bar yAxisId="right" dataKey="soDon" name="Số đơn" fill="#f1f5f9" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                                        <Line yAxisId="left" type="monotone" dataKey="doanhThu" name="Doanh thu" stroke="#0f172a" strokeWidth={3} dot={{ r: 4, fill: '#fff', stroke: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 6, strokeWidth: 0 }} />
                                     </ComposedChart>
                                 </ResponsiveContainer>
                             </div>
@@ -472,52 +383,59 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Suggested Items Revenue Table */}
-                    <div className="bg-white dark:bg-[#13141A] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm">
+                    <div className="bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
                         <div className="mb-6">
-                            <h3 className="text-base font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                                <Flame size={18} className="text-orange-500" /> Doanh thu từ gợi ý chọn món
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                                Bảng xếp hạng Gợi ý O2O
                             </h3>
-                            <p className="text-xs text-slate-400 font-semibold mt-1">
-                                Hiệu quả chuyển đổi của các chiến dịch gợi ý món bán chạy, món xem gần đây, combo, hoặc từ màn hình onboarding.
+                            <p className="text-[13px] font-medium text-slate-500 mt-1">
+                                Các món đem lại doanh thu cao nhất nhờ chiến lược Cross-sell & Up-sell tự động.
                             </p>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[600px]">
+                            <table className="w-full min-w-[600px] text-left">
                                 <thead>
-                                    <tr className="border-b border-slate-200 dark:border-white/10">
-                                        <th className="py-3 px-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest w-1/2">Món ăn</th>
-                                        <th className="py-3 px-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest">Nguồn gợi ý</th>
-                                        <th className="py-3 px-4 text-right text-xs font-black text-slate-400 uppercase tracking-widest">Số lượng</th>
-                                        <th className="py-3 px-4 text-right text-xs font-black text-slate-400 uppercase tracking-widest">Doanh thu</th>
+                                    <tr className="border-b border-slate-100 dark:border-white/5">
+                                        <th className="pb-3 px-2 text-[12px] font-semibold text-slate-500 w-1/2">Sản phẩm</th>
+                                        <th className="pb-3 px-2 text-[12px] font-semibold text-slate-500">Phễu tiếp cận</th>
+                                        <th className="pb-3 px-2 text-right text-[12px] font-semibold text-slate-500">Đã bán</th>
+                                        <th className="pb-3 px-2 text-right text-[12px] font-semibold text-slate-500">Thực thu</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {analytics.suggestedItems.length > 0 ? analytics.suggestedItems.map((item, idx) => (
-                                        <tr key={idx} className="border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                            <td className="py-3 px-4">
+                                        <tr key={idx} className="border-b border-slate-50 dark:border-white/[0.02] last:border-0 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                                            <td className="py-3 px-2">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-slate-100 dark:bg-white/10 flex items-center justify-center">
-                                                        {item.img ? <img src={item.img} alt={item.name} className="w-full h-full object-cover" /> : <Utensils size={18} className="text-slate-300" />}
+                                                    <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-slate-100 dark:bg-white/5 flex items-center justify-center">
+                                                        {item.img ? <img src={item.img} alt={item.name} className="w-full h-full object-cover" /> : <Utensils size={16} className="text-slate-400" />}
                                                     </div>
-                                                    <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 line-clamp-1">{item.name}</span>
+                                                    <span className="font-semibold text-[13px] text-slate-900 dark:text-slate-200 line-clamp-1">{item.name}</span>
                                                 </div>
                                             </td>
-                                            <td className="py-3 px-4">
-                                                <span className="inline-flex px-2 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-bold border border-amber-200/50 dark:border-amber-500/20">
-                                                    {item.source === 'best_seller' ? 'Món bán chạy' : 
-                                                     item.source === 'history' ? 'Món từng gọi' : 
-                                                     item.source === 'combo' ? 'Combo tiết kiệm' : 
-                                                     item.source === 'onboarding' ? 'Gợi ý Onboarding' : 
-                                                     item.source === 'cart_recommend' ? 'Gợi ý lúc thanh toán' : 
+                                            <td className="py-3 px-2">
+                                                <span className="inline-flex px-2.5 py-1 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 rounded-md text-[11px] font-medium">
+                                                    {item.source === 'best_seller' ? 'Top Bán chạy' : 
+                                                     item.source === 'history' ? 'Lịch sử ăn uống' : 
+                                                     item.source === 'combo' ? 'Combo thông minh' : 
+                                                     item.source === 'onboarding' ? 'Màn hình Onboard' : 
+                                                     item.source === 'cart_recommend' ? 'Gợi ý thanh toán' : 
                                                      item.source}
                                                 </span>
                                             </td>
-                                            <td className="py-3 px-4 text-right font-semibold text-slate-700 dark:text-slate-300">{item.qty}</td>
-                                            <td className="py-3 px-4 text-right font-black text-[#DF1B41]">{formatVND(item.revenue)}</td>
+                                            <td className="py-3 px-2 text-right font-medium text-[13px] text-slate-600 dark:text-slate-400">{item.qty} <span className="text-xs text-slate-400">phần</span></td>
+                                            <td className="py-3 px-2 text-right">
+                                                <div className="flex flex-col items-end gap-1.5">
+                                                    <span className="font-bold text-[13px] text-slate-900 dark:text-white">{formatVND(item.revenue)}</span>
+                                                    <div className="w-20 h-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-slate-800 dark:bg-slate-400" style={{ width: `${Math.min((item.revenue / (analytics.summary.doanhThuGoiY || 1)) * 100 * 3, 100)}%` }}></div>
+                                                    </div>
+                                                </div>
+                                            </td>
                                         </tr>
                                     )) : (
                                         <tr>
-                                            <td colSpan={4} className="py-8 text-center text-sm text-slate-400 font-medium">Chưa có dữ liệu gọi món từ gợi ý trong kỳ.</td>
+                                            <td colSpan={4} className="py-8 text-center text-[13px] text-slate-400 font-medium">Chưa có dữ liệu giao dịch từ AI/Gợi ý.</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -525,13 +443,13 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
 
 // ────────────────────────────────────────────────────────────
-// SLA Stats Pipeline — fetches its own data for the analytics tab
+// SLA Stats Pipeline
 // ────────────────────────────────────────────────────────────
 function SlaStatsPipeline({ analyticRange, resId }: { analyticRange: string; resId: string }) {
     const [data, setData] = useState<SlaData | null>(null);
@@ -543,29 +461,29 @@ function SlaStatsPipeline({ analyticRange, resId }: { analyticRange: string; res
 
     if (!data) return (
         <div className="flex items-center justify-center h-20 text-slate-400">
-            <div className="w-5 h-5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
         </div>
     );
 
     const steps = [
-        { key: 'pending_to_confirmed', label: 'Tiếp nhận', icon: Inbox, desc: 'Từ lúc khách đặt đến khi nhà bếp xác nhận' },
-        { key: 'confirmed_to_cooking', label: 'Chuẩn bị', icon: Flame, desc: 'Từ xác nhận đến khi bắt đầu chế biến' },
-        { key: 'cooking_to_ready',    label: 'Chế biến',  icon: BellRing, desc: 'Thời gian thực tế nấu món' },
-        { key: 'ready_to_served',     label: 'Phục vụ',   icon: Utensils, desc: 'Từ khi món sẵn đến khi lên bàn' },
+        { key: 'pending_to_confirmed', label: 'Tiếp nhận', icon: Inbox },
+        { key: 'confirmed_to_cooking', label: 'Chuẩn bị', icon: Flame },
+        { key: 'cooking_to_ready',    label: 'Chế biến',  icon: BellRing },
+        { key: 'ready_to_served',     label: 'Phục vụ',   icon: Utensils },
     ];
 
     return (
         <div className="space-y-4">
-            {/* E2E summary */}
-            <div className={`flex items-center gap-3 p-4 rounded-2xl border text-sm font-bold ${data.endToEnd.isWithinSla ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400'}`}>
-                <Clock size={16} />
-                <span>Tổng thời gian phục vụ trung bình: <strong>{data.endToEnd.avg} phút</strong></span>
-                <span className="text-slate-400 font-normal">/ Mục tiêu: {data.endToEnd.target} phút</span>
-                {data.endToEnd.worst > 0 && <span className="ml-auto text-[10px] uppercase tracking-wide">Lâu nhất: {data.endToEnd.worst} ph</span>}
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border-l-4 bg-slate-50 dark:bg-white/5 text-[13px] font-medium
+                ${data.endToEnd.isWithinSla ? 'border-slate-800 dark:border-slate-300 text-slate-700 dark:text-slate-300' : 'border-rose-500 text-slate-900 dark:text-white'}`}>
+                <Clock size={16} className={data.endToEnd.isWithinSla ? 'text-slate-500' : 'text-rose-500'} />
+                <span>Hoàn thành 1 order trung bình: <strong className="font-bold">{data.endToEnd.avg} phút</strong></span>
+                <span className="text-slate-300 dark:text-slate-600">|</span>
+                <span className="text-slate-500">Mục tiêu: {data.endToEnd.target} phút</span>
+                {data.endToEnd.worst > 0 && <span className="ml-auto text-rose-500 font-bold">Worst: {data.endToEnd.worst} ph</span>}
             </div>
 
-            {/* Step breakdown */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-100 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl overflow-hidden">
                 {steps.map(step => {
                     const v = data.violations[step.key];
                     const cfg = data.slaConfig[step.key];
@@ -576,24 +494,24 @@ function SlaStatsPipeline({ analyticRange, resId }: { analyticRange: string; res
                     const Icon = step.icon;
 
                     return (
-                        <div key={step.key} className={`p-4 rounded-2xl border transition-colors ${isCritical ? 'bg-rose-50 dark:bg-rose-500/5 border-rose-200 dark:border-rose-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'}`}>
-                            <div className="flex items-center gap-2 mb-3">
-                                <div className={`p-1.5 rounded-lg ${isCritical ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-600' : 'bg-slate-200 dark:bg-white/10 text-slate-500'}`}>
-                                    <Icon size={13} />
+                        <div key={step.key} className="bg-white dark:bg-[#0c0c0e] p-5 relative">
+                            {isCritical && <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />}
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Icon size={16} className={isCritical ? 'text-rose-500' : 'text-slate-400'} />
+                                    <span className={`text-[13px] font-semibold ${isCritical ? 'text-slate-900 dark:text-white' : 'text-slate-500'}`}>{step.label}</span>
                                 </div>
-                                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{step.label}</span>
+                                <span className="text-[11px] font-medium text-slate-400 bg-slate-50 dark:bg-white/5 rounded px-1.5 py-0.5">SLA {cfg.target}p</span>
                             </div>
-                            <p className="text-[9px] text-slate-400 font-medium mb-3 leading-relaxed">{step.desc}</p>
-                            <div className="flex items-baseline justify-between mb-1.5">
-                                <span className={`text-2xl font-black tracking-tight ${isCritical ? 'text-rose-600' : 'text-slate-900 dark:text-white'}`}>{avgTime.toFixed(1)}</span>
-                                <span className="text-[9px] font-bold text-slate-400">/ {cfg.target} ph</span>
+                            
+                            <div className="flex items-baseline gap-1 mb-3">
+                                <span className={`text-2xl font-bold tracking-tight ${isCritical ? 'text-rose-600' : 'text-slate-900 dark:text-white'}`}>{avgTime.toFixed(1)}</span>
+                                <span className="text-xs font-medium text-slate-500">phút</span>
                             </div>
-                            <div className="w-full h-1 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full transition-all duration-700 ${isCritical ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${ratio}%` }} />
+
+                            <div className="w-full h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full transition-all duration-700 ${isCritical ? 'bg-rose-500' : 'bg-slate-800 dark:bg-slate-400'}`} style={{ width: `${ratio}%` }} />
                             </div>
-                            {v.count > 0 && (
-                                <p className="mt-2 text-[9px] font-black text-rose-500">{v.count}/{v.total} đơn vượt SLA</p>
-                            )}
                         </div>
                     );
                 })}
@@ -603,23 +521,35 @@ function SlaStatsPipeline({ analyticRange, resId }: { analyticRange: string; res
 }
 
 // ────────────────────────────────────────────────────────────
-// Realtime Alert Card
+// Realtime Alert Card Component
 // ────────────────────────────────────────────────────────────
 function RealtimeAlertCard({ icon, label, count, desc, isDanger }: {
     icon: React.ReactNode; label: string; count: number; desc: string; isDanger: boolean;
 }) {
     return (
-        <div className={`rounded-2xl p-4 border transition-all duration-300 ${isDanger
-            ? 'bg-rose-50 dark:bg-rose-500/5 border-rose-200 dark:border-rose-500/20'
-            : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'}`}>
-            <div className="flex items-center justify-between mb-3">
-                <div className={`p-2 rounded-xl ${isDanger ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-600' : 'bg-slate-200 dark:bg-white/10 text-slate-400'}`}>
+        <div className={`rounded-3xl p-5 transition-all duration-300 flex items-center justify-between relative overflow-hidden flex-1 ${isDanger
+            ? 'bg-rose-500'
+            : 'bg-white dark:bg-[#0c0c0e] shadow-[0_2px_14px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5'}`}>
+            
+            <div className="flex items-center gap-4 relative z-10">
+                <div className={`p-3 rounded-2xl flex items-center justify-center shrink-0 ${isDanger ? 'bg-white/20 text-white' : 'bg-slate-50 dark:bg-white/5 text-slate-500'}`}>
                     {icon}
                 </div>
-                <span className={`text-3xl font-black tracking-tight ${isDanger ? 'text-rose-600 dark:text-rose-400' : 'text-slate-300 dark:text-slate-600'}`}>{count}</span>
+                <div>
+                    <h4 className={`text-[13px] font-bold ${isDanger ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{label}</h4>
+                    <p className={`text-[12px] font-medium mt-0.5 ${isDanger ? 'text-rose-100' : 'text-slate-500'}`}>{desc}</p>
+                </div>
             </div>
-            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isDanger ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>{label}</p>
-            <p className="text-[9px] font-medium text-slate-400 leading-relaxed">{desc}</p>
+            
+            <div className="flex flex-col items-end relative z-10 shrink-0">
+                <span className={`text-4xl font-bold tracking-tight leading-none ${isDanger ? 'text-white' : 'text-slate-400'}`}>{count}</span>
+                {isDanger && (
+                    <span className="flex h-2.5 w-2.5 relative mt-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-70"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                    </span>
+                )}
+            </div>
         </div>
     );
 }

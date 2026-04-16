@@ -102,11 +102,18 @@ export async function POST(request: Request) {
         }
         const activeTableSessionId = activeSession.id;
 
-        // Check if item with SAME selections AND table_session_id exists
-        const existingItem = await db.get(
-            'SELECT id, qty FROM cart_items WHERE user_id = ? AND item_id = ? AND table_session_id = ? AND (selections = ? OR (selections IS NULL AND CAST(? AS TEXT) IS NULL))',
-            [userId, item.id, activeTableSessionId, selectionsStr, selectionsStr]
-        );
+        let existingItem;
+        if (selectionsStr === null) {
+            existingItem = await db.get(
+                'SELECT id, qty FROM cart_items WHERE user_id = ? AND item_id = ? AND table_session_id = ? AND selections IS NULL',
+                [userId, item.id, activeTableSessionId]
+            );
+        } else {
+            existingItem = await db.get(
+                'SELECT id, qty FROM cart_items WHERE user_id = ? AND item_id = ? AND table_session_id = ? AND selections = ?',
+                [userId, item.id, activeTableSessionId, selectionsStr]
+            );
+        }
 
         if (existingItem) {
             const newQty = existingItem.qty + quantity;
@@ -143,8 +150,8 @@ export async function POST(request: Request) {
         );
 
         return ApiSuccess({ items: formattedItems, total });
-    } catch (e) {
+    } catch (e: any) {
         console.error("Cart POST Error:", e);
-        return ApiError('Failed', 500);
+        return ApiError(`Failed: ${e.message}`, 500);
     }
 }

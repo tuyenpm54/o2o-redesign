@@ -1,0 +1,29 @@
+screen_id: order_tracking_overview
+meta:
+  device: web_mobile
+  user_intent: claim_food_at_counter
+  risk_level: medium # Không mất tiền, nhưng rủi ro UX nếu giấu QR quá kỹ khách không biết làm sao nhận đồ
+context_vectors:
+  env: crowded_storefront
+  user_state: walking_to_counter_to_pickup
+  jtbd_core_job: Show an undeniable QR code to the staff for fast scanning and order handover.
+ccf_priority:
+  must_have:
+    - id: pickup_qr_trigger_button
+      rs: 0.95
+      reason: "Needs to be completely distinct from regular UI. 'Bấm để hiển thị Mã nhận đồ'."
+    - id: popup_qr_modal
+      rs: 0.90
+      reason: High contrast (White/Black), maximum brightness logic (if possible on web), huge QR code.
+  should_have:
+    - id: order_number_fallback
+      rs: 0.85
+      reason: Fallback if QR scanner is broken. Show something like "#1255".
+  on_demand_or_purged:
+    - id: qr_displayed_inline
+      rs: 0.20
+      trigger: purged
+      reason: Inline QR is too small and easily scrambled while scrolling. Must be an isolated Modal.
+validation:
+  overlap_check: true
+  mobile_limit_check: true

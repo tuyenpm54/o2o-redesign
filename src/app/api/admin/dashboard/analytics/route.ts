@@ -210,6 +210,7 @@ export async function GET(request: Request) {
                 doanhThuGoiY: doanhThuGoiY,
                 aov: aov,
                 aovTable: aovTable,
+                o2oRate: 84.5 + Math.random() * 5, // Mocked O2O Adoption Rate %
                 cancellationRate: cancellationRate,
                 cancellationsCount: cancellationsCount,
                 days: days

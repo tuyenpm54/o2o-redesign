@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Info, User as UserIcon, X, ChevronDown, Search, CheckCircle2 } from "lucide-react";
+import { Info, User as UserIcon, X, ChevronDown, Search, CheckCircle2, ShoppingBag, Globe } from "lucide-react";
 import styles from "../page.module.css";
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { RestaurantInfoModal } from './RestaurantInfoModal';
 
 interface MenuHeaderProps {
     restaurant: any;
@@ -41,7 +42,9 @@ export function MenuHeader({
     const [phone, setPhone] = useState("");
     const [otp, setOtp] = useState("");
     const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+    const [showLanguageMenu, setShowLanguageMenu] = useState(false);
     const [isSearchActive, setIsSearchActive] = useState(false);
+    const [showInfoModal, setShowInfoModal] = useState(false);
 
     const [isSubBarSearchActive, setIsSubBarSearchActive] = useState(false);
 
@@ -69,28 +72,82 @@ export function MenuHeader({
             {/* 1. Static Store Info (Scrolls away naturally) */}
             <header className={styles.staticStoreInfoComponent}>
                 <div className={styles.storeInfoCompact}>
-                    <div className={styles.titleRow}>
+                    <div className={styles.titleRow} onClick={() => setShowInfoModal(true)} style={{ cursor: 'pointer' }}>
                         <h1 className={styles.storeNameCompact}>{restaurant?.name || t("Đang tải...")}</h1>
                         <Info size={16} className={styles.infoIconStore} />
                     </div>
                     
                     <div className={styles.tableTitleRow}>
-                        <div className={styles.tableBadge} style={{ color: theme?.accent || '#ea580c' }}>
-                            <span>{t('Bàn')} {tableid || restaurant?.table || "--"}</span>
+                        <div className={styles.tableBadge} style={{ color: tableid === 'COUNTER' ? 'transparent' : (theme?.accent || '#ea580c') }}>
+                            {tableid === 'COUNTER' ? (
+                                <span style={{ 
+                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                    background: theme?.accent || '#ea580c', color: '#fff',
+                                    padding: '6px 12px', borderRadius: '100px',
+                                    fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.02em',
+                                    boxShadow: `0 4px 12px ${theme?.accent || '#ea580c'}40`
+                                }}>
+                                    <ShoppingBag size={14} strokeWidth={2.5} />
+                                    {t('Nhận tại quầy')}
+                                </span>
+                            ) : (
+                                <span>{t('Bàn')} {tableid || restaurant?.table || "--"}</span>
+                            )}
                         </div>
-                        <div className={styles.langSwitcher}>
-                            <button
-                                className={`${styles.langBtn} ${language === 'vi' ? styles.langActive : ''}`}
-                                onClick={() => setLanguage('vi')}
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <button 
+                                onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                    background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: '100px',
+                                    padding: '6px 10px', fontSize: '0.8rem', fontWeight: 600,
+                                    color: 'inherit', cursor: 'pointer', transition: 'all 0.2s'
+                                }}
                             >
-                                VN
+                                <Globe size={14} />
+                                {language.toUpperCase()}
+                                <ChevronDown size={14} style={{ opacity: 0.5, transform: showLanguageMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                             </button>
-                            <button
-                                className={`${styles.langBtn} ${language === 'en' ? styles.langActive : ''}`}
-                                onClick={() => setLanguage('en')}
-                            >
-                                EN
-                            </button>
+                            
+                            {showLanguageMenu && (
+                                <>
+                                    <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowLanguageMenu(false)} />
+                                    <div style={{
+                                        position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 100,
+                                        background: theme?.bg || '#ffffff', borderRadius: '16px',
+                                        boxShadow: '0 10px 40px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.05)',
+                                        display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: '160px',
+                                        animation: 'fadeIn 0.2s ease-out'
+                                    }}>
+                                        {[
+                                            { code: 'vi', label: 'Tiếng Việt' },
+                                            { code: 'en', label: 'English (US)' },
+                                            { code: 'ko', label: '한국어 (Korean)' },
+                                            { code: 'ja', label: '日本語 (Japanese)' },
+                                            { code: 'zh', label: '中文 (Chinese)' },
+                                        ].map(lang => (
+                                            <button
+                                                key={lang.code}
+                                                onClick={() => {
+                                                    setLanguage(lang.code);
+                                                    setShowLanguageMenu(false);
+                                                }}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                    padding: '12px 16px', background: language === lang.code ? 'rgba(0,0,0,0.03)' : 'transparent',
+                                                    border: 'none', cursor: 'pointer', textAlign: 'left',
+                                                    fontSize: '0.9rem', fontWeight: language === lang.code ? 700 : 500,
+                                                    color: language === lang.code ? (theme?.accent || '#ea580c') : 'inherit',
+                                                    borderBottom: '1px solid rgba(0,0,0,0.03)', transition: 'background 0.2s'
+                                                }}
+                                            >
+                                                {lang.label}
+                                                {language === lang.code && <CheckCircle2 size={16} />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -269,6 +326,14 @@ export function MenuHeader({
                     </div>
                 </div>
             )}
+
+            <RestaurantInfoModal 
+                isOpen={showInfoModal} 
+                onClose={() => setShowInfoModal(false)}
+                restaurant={restaurant}
+                theme={theme}
+                t={t}
+            />
         </div>
     );
 }

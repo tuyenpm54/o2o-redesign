@@ -12,9 +12,10 @@ interface OrderLoginModalProps {
     onClose: () => void;
     onSuccess: () => void;
     onSkip: () => void;
+    allowOtpSkip?: boolean;
 }
 
-export function OrderLoginModal({ isOpen, onClose, onSuccess, onSkip }: OrderLoginModalProps) {
+export function OrderLoginModal({ isOpen, onClose, onSuccess, onSkip, allowOtpSkip = true }: OrderLoginModalProps) {
     const { login } = useAuth();
     const { t } = useLanguage();
     const { theme, timeOfDay } = useMenuContext();
@@ -60,6 +61,9 @@ export function OrderLoginModal({ isOpen, onClose, onSuccess, onSkip }: OrderLog
                     boxShadow: theme.cardShadow
                 }}
             >
+                {/* Drag Handle Indicator */}
+                <div style={{ width: 40, height: 4, borderRadius: 2, background: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)', margin: '0 auto 20px' }} />
+
                 <div className={styles.header}>
                     <h3 className={styles.title} style={{ color: theme.textPrimary }}>
                         {t('Đăng nhập để tích điểm')}
@@ -102,12 +106,14 @@ export function OrderLoginModal({ isOpen, onClose, onSuccess, onSkip }: OrderLog
                         >
                             {t('Tiếp tục')}
                         </button>
-                        <button 
-                            className={styles.skipBtn} 
-                            onClick={onSkip}
-                        >
-                            {t('Bỏ qua & Yêu cầu gọi món')}
-                        </button>
+                        {allowOtpSkip && (
+                            <button 
+                                className={styles.skipBtn} 
+                                onClick={onSkip}
+                            >
+                                {t('Bỏ qua & Yêu cầu gọi món')}
+                            </button>
+                        )}
                     </>
                 ) : (
                     <>

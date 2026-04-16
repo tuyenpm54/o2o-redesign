@@ -27,23 +27,25 @@ function BillContent() {
     const tableid = searchParams.get('tableid') || 'A-12';
     const from = searchParams.get('from') || `/menu?resid=${resid}&tableid=${tableid}`;
 
+    const router = useRouter();
+    const feedbackRef = React.useRef<HTMLDivElement>(null);
+    const paytype = searchParams.get('paytype');
+    const isAlreadyPaid = paytype === 'PREPAID' || tableid.toUpperCase() === 'COUNTER';
+
     const [billItems, setBillItems] = React.useState<any[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isVoucherSheetOpen, setIsVoucherSheetOpen] = React.useState(false);
     const [selectedVoucher, setSelectedVoucher] = React.useState<any>(null);
-    const [paymentStatus, setPaymentStatus] = React.useState<'IDLE' | 'SENDING' | 'SUCCESS'>('IDLE');
+    const [paymentStatus, setPaymentStatus] = React.useState<'IDLE' | 'SENDING' | 'SUCCESS'>(isAlreadyPaid ? 'SUCCESS' : 'IDLE');
     const [isFeedbackSubmitted, setIsFeedbackSubmitted] = React.useState(false);
     const [showToast, setShowToast] = React.useState(false);
-    const [isBillCollapsed, setIsBillCollapsed] = React.useState(false);
+    const [isBillCollapsed, setIsBillCollapsed] = React.useState(isAlreadyPaid);
     const [wantsVat, setWantsVat] = React.useState(false);
     const [selectedVatId, setSelectedVatId] = React.useState<string | 'new'>('vat1');
     const [vatCompanyName, setVatCompanyName] = React.useState('');
     const [vatTaxCode, setVatTaxCode] = React.useState('');
     const [vatEmail, setVatEmail] = React.useState('');
     const [vatAddress, setVatAddress] = React.useState('');
-
-    const router = useRouter();
-    const feedbackRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
         const fetchBill = async () => {
@@ -83,10 +85,15 @@ function BillContent() {
                 console.error("Failed to fetch bill data:", err);
             } finally {
                 setIsLoading(false);
+                if (isAlreadyPaid) {
+                    setTimeout(() => {
+                        feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 500);
+                }
             }
         };
         fetchBill();
-    }, [resid, tableid]);
+    }, [resid, tableid, isAlreadyPaid]);
 
     // Feedback State
     const [rating, setRating] = React.useState<'HAPPY' | 'SAD' | null>(null);
@@ -309,13 +316,13 @@ function BillContent() {
                     {paymentStatus === 'SUCCESS' && (
                         <div className={styles.paymentConfirmedBadge}>
                             <Check size={16} />
-                            <span>{t('Đã gửi yêu cầu thanh toán')}</span>
+                            <span>{isAlreadyPaid ? t('Đã thanh toán thành công') : t('Đã gửi yêu cầu thanh toán')}</span>
                         </div>
                     )}
 
                     {paymentStatus === 'SUCCESS' && (
                         <div className={styles.staffNote}>
-                            {t('Nhân viên sẽ ra kiểm đồ và thanh toán tại bàn')}
+                            {isAlreadyPaid ? t('Cảm ơn bạn đã dùng bữa') : t('Nhân viên sẽ ra kiểm đồ và thanh toán tại bàn')}
                         </div>
                     )}
 

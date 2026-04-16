@@ -14,7 +14,6 @@ export async function GET() {
             FROM order_items oi
             JOIN table_sessions ts ON oi.table_session_id = ts.id AND ts.status = 'ACTIVE'
             LEFT JOIN users u ON oi.user_id = u.id
-            WHERE oi.status != 'Chờ xác nhận'
             ORDER BY oi.timestamp ASC
         `);
 

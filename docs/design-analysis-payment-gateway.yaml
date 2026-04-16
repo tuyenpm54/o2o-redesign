@@ -1,0 +1,35 @@
+screen_id: awaiting_payment_layer & bank_selection
+meta:
+  device: web_mobile
+  user_intent: execute_payment_and_wait_for_confirmation
+  risk_level: critical # Giao dịch thật, mất tiền, rủi ro timeout
+context_vectors:
+  env: payment_gateway_bridge
+  user_state: anxious_waiting_for_app_switch
+  jtbd_core_job: Instruct user to leave app to pay, return, and wait for async confirmation without panic.
+ccf_priority:
+  must_have:
+    - id: countdown_timer_15m
+      rs: 0.95
+      reason: Scarcity and system sync lock. Must be highly visible.
+    - id: active_polling_indicator
+      rs: 0.90
+      reason: Reassure user "Hệ thống đang kiểm tra (mỗi 10s)". Visual pulsing sync.
+    - id: bank_selection_list
+      rs: 0.85
+      reason: Needs at least 3-4 popular VN banks (VCB, TCB, MB, BIDV) easily identifiable by logos.
+  should_have:
+    - id: cancel_transaction_button
+      rs: 0.70
+      reason: Provide escape hatch if user changes mind or payment app failed.
+  on_demand_or_purged:
+    - id: cart_items_in_waiting_room
+      rs: 0.30
+      trigger: purged
+      reason: Trong lúc chờ thanh toán, việc hiển thị lại cồng kềnh giỏ hàng là gây xao nhãng. Chuyển sang Focus Mode (Chỉ hiển thị trạng thái).
+validation:
+  overlap_check: true
+  mobile_limit_check: true
+open_questions:
+  - "XÁC NHẬN CCF: Giao diện 'Chờ thanh toán' sẽ được thiết kế dạng Modal toàn màn hình đè lên Checkout để khóa tương tác giỏ hàng, tránh user nhấn bậy bạ. Bạn duyệt plan này chứ?"
+  - "UX Flow cho Bank: Trong PaymentDrawer, bấm 'Chuyển khoản' sẽ trượt sang danh sách Ngân hàng luôn ở bên trong Drawer (Giống chọn phường/xã), hay tạo Drawer riêng?"

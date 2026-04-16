@@ -46,6 +46,8 @@ import { ComboSection } from "./components/ComboSection";
 import { MenuGrid } from "./components/MenuGrid";
 import { FeaturedSections } from "./components/FeaturedSections";
 import { SupportModal } from "./components/SupportModal";
+import { CheckoutSheet } from "./components/CheckoutSheet";
+import { RestaurantInfoModal } from "./components/RestaurantInfoModal";
 
 import { useUserState } from "./hooks/useUserState";
 import { useMenuContext } from "./hooks/useMenuContext";
@@ -75,13 +77,21 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
   const router = useRouter();
   const searchParams = useSearchParams();
   const resid = searchParams.get("resid") || searchParams.get("resId") || "100";
-  const tableid = searchParams.get("tableid") || searchParams.get("tableId") || "A-12";
+  const rawTableId = searchParams.get("tableid") || searchParams.get("tableId");
+  const paytype = searchParams.get("paytype");
+  
+  let tableid = rawTableId as string;
+  if (!rawTableId && paytype === 'PREPAID') {
+      tableid = 'COUNTER';
+  }
+  
   const pathname = usePathname();
   const { isLoggedIn, user, isLoadingAuth, loginAsGuest, logout } = useAuth();
   const { t, language } = useLanguage();
   // 1. UI States
   const ui = useMenuUI();
   const [supportRequests, setSupportRequests] = useState<any[]>([]);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Hydration Fix
   const [isMounted, setIsMounted] = useState(false);
@@ -149,6 +159,8 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
     onError: ui.setErrorHeader
   });
 
+  const [isWifiModalOpen, setIsWifiModalOpen] = useState(false);
+
   // Bind the table runtime object to the API ref for Cart to use lazily
   tableAPI.current = {
     tableMembers: table.tableMembers,
@@ -205,6 +217,8 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
 
   const onboardingBlock = displayConfig?.find(b => b.type === 'onboarding-wizard');
   const supportOptionsBlock = displayConfig?.find(b => b.type === 'support-options');
+  const checkoutAuthBlock = displayConfig?.find(b => b.type === 'checkout-auth');
+  const allowOtpSkip = checkoutAuthBlock?.config?.isEnabled === false ? true : (checkoutAuthBlock?.config?.allowSkip !== false);
   const isWizardEnabled = onboardingBlock?.config?.isEnabled !== false;
   const wizardStyle = onboardingBlock?.config?.wizardStyle || 'v2';
   const WizardComponent = wizardStyle === 'v2' ? MenuWizardV2 : MenuWizard;
@@ -298,17 +312,33 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
     }
     prevReadyCountRef.current = currentReady;
   }, [activeOrders, t, ui]);
+  const { timeOfDay, userHistory, isGroup, greeting, theme } = useMenuContext(table.tableMembers.length);
 
   // --- Typewriter Effect for Search Placeholder ---
   const [animatedPlaceholder, setAnimatedPlaceholder] = useState("");
-  const searchPhrases = useMemo(() => [
-    t("Hôm nay bạn muốn ăn gì?"),
-    t("Pizza phô mai béo ngậy..."),
-    t("Trà đào cam sả giải nhiệt..."),
-    t("Combo trưa tiết kiệm..."),
-    t("Tìm món bò lúc lắc...")
-  ], [t]);
+  const searchPhrases = useMemo(() => {
+    const timeStr = timeOfDay === 'morning' ? 'Sáng' : timeOfDay === 'noon' ? 'Trưa' : timeOfDay === 'afternoon' ? 'Chiều' : 'Tối';
 
+    if (user && userHistory && userHistory.length > 0) {
+      const topItem = userHistory[0].name;
+      const firstName = user.name ? user.name.split(' ')[0] : 'bạn';
+      return [
+        `Chào mừng ${firstName} đã quay lại...`,
+        `${timeStr} nay bạn muốn ăn gì?`,
+        `Vẫn ăn ${topItem} như mọi khi chứ?`,
+        t("Pizza phô mai béo ngậy..."),
+        t("Combo trưa tiết kiệm...")
+      ];
+    }
+    
+    return [
+      t("Hôm nay bạn muốn ăn gì?"),
+      t("Pizza phô mai béo ngậy..."),
+      t("Trà đào cam sả giải nhiệt..."),
+      t("Combo trưa tiết kiệm..."),
+      t("Tìm món bò lúc lắc...")
+    ];
+  }, [t, user, userHistory, timeOfDay]);
   useEffect(() => {
     if (activeOrders.length > 0) return;
     let i = 0;
@@ -346,7 +376,6 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
     return () => clearTimeout(timer);
   }, [activeOrders.length, searchPhrases]);
 
-  const { timeOfDay, userHistory, isGroup, greeting, theme } = useMenuContext(table.tableMembers.length);
 
   const manualBestSaleIds = useMemo(() => {
     const block = displayConfig?.find(b => b.type === 'best-sale' && b.config?.isEnabled !== false);
@@ -626,6 +655,9 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
     ui.setToast({ message: t('Đã gửi yêu cầu!'), submessage: t('Nhân viên sẽ có mặt ngay sếp nhé.') });
     setTimeout(() => ui.setToast(null), 3000);
   };
+
+
+
   return (
     <div className={styles.container}>
       <WizardComponent
@@ -808,25 +840,27 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
         <MenuFooter />
       </main>
 
-      <div className={`${styles.fabSupportWrapper} ${showCategoryBar && !hasLateOrders && !isCheckoutRequested && !(isInactive && cartItems.length === 0) ? styles.scrolled : ''} ${(isCartDrawerOpen || cartItems.length > 0) ? styles.withCart : ''}`}>
-          <button 
-              className={`${styles.fabSupportAction} ${hasLateOrders ? styles.danger : ''} ${isCheckoutRequested ? styles.success : ''} ${isInactive && cartItems.length === 0 && !hasLateOrders && !isCheckoutRequested ? styles.highlighted : ''}`} 
-              onClick={() => setIsStaffModalOpen(true)}
-          >
-              {isCheckoutRequested ? (
-                  <Headset size={22} className={styles.fabSupportIcon} />
-              ) : hasLateOrders ? (
-                  <Flame size={22} className={styles.fabSupportIcon} />
-              ) : (
-                  <>
-                      {isInactive && cartItems.length === 0 && !hasLateOrders && !isCheckoutRequested && (
-                          <span className={styles.supportText}>Bạn cần hỗ trợ?</span>
-                      )}
-                      <ServiceBellIcon size={22} className={styles.fabSupportIcon} />
-                  </>
-              )}
-          </button>
-      </div>
+      {(!isCartDrawerOpen || paytype !== 'PREPAID') && (
+          <div className={`${styles.fabSupportWrapper} ${showCategoryBar && !hasLateOrders && !isCheckoutRequested && !(isInactive && cartItems.length === 0) ? styles.scrolled : ''} ${(cartItems.length > 0) ? styles.withCart : ''}`}>
+              <button 
+                  className={`${styles.fabSupportAction} ${hasLateOrders ? styles.danger : ''} ${isCheckoutRequested ? styles.success : ''} ${isInactive && cartItems.length === 0 && !hasLateOrders && !isCheckoutRequested ? styles.highlighted : ''}`} 
+                  onClick={() => setIsStaffModalOpen(true)}
+              >
+                  {isCheckoutRequested ? (
+                      <Headset size={22} className={styles.fabSupportIcon} />
+                  ) : hasLateOrders ? (
+                      <Flame size={22} className={styles.fabSupportIcon} />
+                  ) : (
+                      <>
+                          {isInactive && cartItems.length === 0 && !hasLateOrders && !isCheckoutRequested && (
+                              <span className={styles.supportText}>Bạn cần hỗ trợ?</span>
+                          )}
+                          <ServiceBellIcon size={22} className={styles.fabSupportIcon} />
+                      </>
+                  )}
+              </button>
+          </div>
+      )}
 
       {/* Staff Action Modal */}
       <SupportModal
@@ -843,23 +877,55 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
         resid={resid as string}
         tableid={tableid as string}
         user={user}
+        onShowWifi={() => {
+            setIsStaffModalOpen(false);
+            setIsWifiModalOpen(true);
+        }}
         setToast={setToast as any}
         fetchLiveTableData={fetchLiveTableData}
         supportOptionsConfig={supportOptionsBlock?.config?.options}
       />
 
-      <CartDrawer
-        isOpen={isCartDrawerOpen}
-        onClose={() => setIsCartDrawerOpen(false)}
-        cartItems={cartItems}
-        total={total}
-        isCheckoutRequested={isCheckoutRequested}
-        onPlaceOrder={handlePlaceOrder}
-        onEditItem={handleEditCartItem}
-        onRemoveItem={handleRemoveFromCart}
-        onIncrementItem={handleIncrementCartItem}
-        onDecrementItem={handleDecrementCartItem}
-      />
+      {paytype === 'PREPAID' ? (
+          <CheckoutSheet
+            isOpen={isCartDrawerOpen}
+            onClose={() => setIsCartDrawerOpen(false)}
+            total={total}
+            cartItems={cartItems}
+            suggestedItems={finalTopItems.slice(0, 6)}
+            allowOtpSkip={allowOtpSkip}
+            onIncrementItem={handleIncrementCartItem}
+            onDecrementItem={handleDecrementCartItem}
+            onRemoveItem={handleRemoveFromCart}
+            onEditItem={(cartEntry: any) => {
+              setSelectedItem(cartEntry.item);
+              setEditInitialSelections(cartEntry.selections || null);
+              setEditCurrentQty(cartEntry.quantity);
+            }}
+            onAddSuggestedItem={(item: any) => proceedAddToCart(item, 1, {})}
+            isProcessing={isProcessingPayment}
+            onConfirmPayment={async (method, voucher) => {
+                setIsProcessingPayment(true);
+                await handlePlaceOrder({ paymentMethod: method, voucherCode: voucher, isPaidUpfront: true });
+                setIsProcessingPayment(false);
+                setIsCartDrawerOpen(false);
+            }}
+          />
+      ) : (
+          <CartDrawer
+            isOpen={isCartDrawerOpen}
+            onClose={() => setIsCartDrawerOpen(false)}
+            cartItems={cartItems}
+            total={total}
+            isCheckoutRequested={isCheckoutRequested}
+            allowOtpSkip={allowOtpSkip}
+            onPlaceOrder={handlePlaceOrder}
+            onEditItem={handleEditCartItem}
+            onRemoveItem={handleRemoveFromCart}
+            onIncrementItem={handleIncrementCartItem}
+            onDecrementItem={handleDecrementCartItem}
+          />
+      )}
 
       {isPaidModalOpen && (
         <div className={styles.modalOverlay} style={{ zIndex: 10000, alignItems: 'center' }}>
@@ -875,6 +941,14 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
           </div>
         </div>
       )}
+
+      <RestaurantInfoModal 
+          isOpen={isWifiModalOpen} 
+          onClose={() => setIsWifiModalOpen(false)}
+          restaurant={restaurant}
+          theme={theme}
+          t={t}
+      />
 
       {/* OrderStatusModal removed from here, moving to unified bottom view section */}
 

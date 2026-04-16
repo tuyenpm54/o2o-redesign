@@ -9,9 +9,10 @@ export interface StyleConfig {
 interface StyleConfiguratorProps {
     config: StyleConfig;
     setConfig: Dispatch<SetStateAction<StyleConfig>>;
+    isLocked?: boolean;
 }
 
-export function StyleConfigurator({ config, setConfig }: StyleConfiguratorProps) {
+export function StyleConfigurator({ config, setConfig, isLocked }: StyleConfiguratorProps) {
     const primaryColors = [
         { label: 'Đỏ', value: '#ef4444' },
         { label: 'Cam', value: '#f97316' },
@@ -45,8 +46,9 @@ export function StyleConfigurator({ config, setConfig }: StyleConfiguratorProps)
                         {primaryColors.map(color => (
                             <button
                                 key={color.value}
-                                onClick={() => setConfig({ ...config, primaryColor: color.value })}
-                                className={`w-10 h-10 rounded-full transition-all duration-300 ${config.primaryColor === color.value ? 'ring-4 ring-offset-2 ring-offset-slate-50 dark:ring-offset-[#050510] ring-blue-500 scale-110 shadow-lg' : 'hover:scale-110 shadow-sm border border-slate-200 dark:border-white/10'}`}
+                                onClick={() => !isLocked && setConfig({ ...config, primaryColor: color.value })}
+                                disabled={isLocked}
+                                className={`w-10 h-10 rounded-full transition-all duration-300 ${config.primaryColor === color.value ? 'ring-4 ring-offset-2 ring-offset-slate-50 dark:ring-offset-[#050510] ring-blue-500 scale-110 shadow-lg' : 'hover:scale-110 shadow-sm border border-slate-200 dark:border-white/10'} ${isLocked ? 'cursor-not-allowed opacity-80' : ''}`}
                                 style={{ backgroundColor: color.value }}
                                 title={color.label}
                             />
@@ -60,8 +62,9 @@ export function StyleConfigurator({ config, setConfig }: StyleConfiguratorProps)
                         {borderRadii.map(radius => (
                             <button
                                 key={radius.value}
-                                onClick={() => setConfig({ ...config, borderRadius: radius.value })}
-                                className={`px-4 py-2.5 text-sm rounded-xl border transition-all duration-300 ${config.borderRadius === radius.value ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400 font-bold shadow-sm' : 'bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-white/10 font-medium'}`}
+                                onClick={() => !isLocked && setConfig({ ...config, borderRadius: radius.value })}
+                                disabled={isLocked}
+                                className={`px-4 py-2.5 text-sm rounded-xl border transition-all duration-300 ${config.borderRadius === radius.value ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400 font-bold shadow-sm' : 'bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-white/10 font-medium'} ${isLocked ? 'cursor-not-allowed' : ''}`}
                             >
                                 {radius.label}
                             </button>
@@ -75,8 +78,9 @@ export function StyleConfigurator({ config, setConfig }: StyleConfiguratorProps)
                         {fonts.map(font => (
                             <button
                                 key={font.value}
-                                onClick={() => setConfig({ ...config, fontFamily: font.value })}
-                                className={`w-full text-left px-5 py-3.5 text-sm rounded-xl border transition-all duration-300 ${config.fontFamily === font.value ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400 font-bold shadow-sm' : 'bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-white/10 font-medium'}`}
+                                onClick={() => !isLocked && setConfig({ ...config, fontFamily: font.value })}
+                                disabled={isLocked}
+                                className={`w-full text-left px-5 py-3.5 text-sm rounded-xl border transition-all duration-300 ${config.fontFamily === font.value ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400 font-bold shadow-sm' : 'bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-white/10 font-medium'} ${isLocked ? 'cursor-not-allowed' : ''}`}
                                 style={{ fontFamily: font.value }}
                             >
                                 {font.label}

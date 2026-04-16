@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, QrCode, Lightbulb, ArrowRight } from 'lucide-react';
 import styles from '../page.module.css';
+import { PickupQRModal } from './PickupQRModal';
+import { ReviewBottomSheet } from './ReviewBottomSheet';
 
 import { TableMember, User, OrderItem, CartItem } from '@/types';
 
@@ -45,6 +47,9 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
   const router = useRouter();
   const [hasReminded, setHasReminded] = useState(false);
   const [isReminding, setIsReminding] = useState(false);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isReviewSheetOpen, setIsReviewSheetOpen] = useState(false);
+  const [hasAutoOpenedReview, setHasAutoOpenedReview] = useState(false);
 
   // Only count members who have placed orders
   const orderedMembers = useMemo(() => 
@@ -54,7 +59,10 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
   const memberCount = orderedMembers.length || tableMembers.length;
   const displayMembers = orderedMembers.length > 0 ? orderedMembers : tableMembers;
   const colors = ["#3B82F6", "#EF4444", "#EC4899", "#F59E0B", "#8B5CF6", "#10B981"];
-  const tableLink = `/table-orders?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(pathname + '?' + searchParams.toString())}`;
+  const isPrepaid = searchParams.get('paytype') === 'PREPAID';
+  const tableLink = isPrepaid 
+      ? `/prepaid-order?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(pathname + '?' + searchParams.toString())}`
+      : `/table-orders?resid=${resid}&tableid=${tableid}&from=${encodeURIComponent(pathname + '?' + searchParams.toString())}`;
   
   // Avatar row renderer
   const renderAvatarRow = (compact: boolean) => (
@@ -230,6 +238,18 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
     ? Date.now() - groupedRounds[roundKeys[roundKeys.length - 1]].timestamp < 8000 
     : false;
 
+  React.useEffect(() => {
+    if (!groupedRounds || roundKeys.length === 0) return;
+    const latestKey = roundKeys[roundKeys.length - 1]; // or you can check all rounds
+    const r = groupedRounds[latestKey];
+    if (!r || r.total === 0) return;
+    const allServed = r.served === r.total;
+    if (allServed && tableid?.toUpperCase() === 'COUNTER' && !hasAutoOpenedReview) {
+      setHasAutoOpenedReview(true);
+      setIsReviewSheetOpen(true);
+    }
+  }, [groupedRounds, roundKeys, tableid, hasAutoOpenedReview]);
+
   return (
     <>
       <style>{`
@@ -314,15 +334,27 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
           if (allServed) {
             statusGif = "/images/status/done.gif";
             contextIcon = <img src="/icons/status_served.png" alt="Served" style={{ width: 16, height: 16, verticalAlign: 'middle', borderRadius: '50%' }} />;
-            contextColor = "#10b981";
-            statusText = t("Đủ món rồi! ✨");
-            statusSubText = t("Chúc cả nhà ngon miệng");
+            if (tableid?.toUpperCase() === 'COUNTER') {
+              contextColor = "#10b981";
+              statusText = t("Giao thành công");
+              statusSubText = t("Đánh giá đơn hàng");
+            } else {
+              contextColor = "#10b981";
+              statusText = t("Đủ món rồi! ✨");
+              statusSubText = t("Chúc cả nhà ngon miệng");
+            }
           } else if (hasReady) {
             statusGif = "/images/status/done.gif";
             contextIcon = <img src="/icons/status_ready.png" alt="Ready" style={{ width: 16, height: 16, verticalAlign: 'middle', borderRadius: '50%' }} />;
-            contextColor = "#3b82f6";
-            statusText = t("Sắp mang ra bàn");
-            statusSubText = `${r.ready}/${r.total} ${t('món đã xong')}`;
+            if (tableid?.toUpperCase() === 'COUNTER') {
+              contextColor = "#3b82f6";
+              statusText = t("Mời ra quầy lấy đồ");
+              statusSubText = t("Chạm để hiển thị Mã QR nhận đồ");
+            } else {
+              contextColor = "#3b82f6";
+              statusText = t("Sắp mang ra bàn");
+              statusSubText = `${r.ready}/${r.total} ${t('món đã xong')}`;
+            }
           } else if (hasServed && hasCooking) {
             statusGif = "/images/status/cooking.gif";
             contextIcon = <img src="/icons/status_cooking.png" alt="Cooking" style={{ width: 16, height: 16, verticalAlign: 'middle', borderRadius: '50%' }} />;
@@ -406,18 +438,7 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
             }
           }
 
-          let bottomLineContent = null;
-          const newCartItemsCount = cartItems.reduce((acc, c) => acc + (c.quantity || 1), 0);
-          
-          if (newCartItemsCount > 0) {
-            bottomLineContent = (
-              <div className={styles.notifyLine} onClick={() => setIsCartDrawerOpen(true)}>
-                <div className={styles.redDot}></div>
-                <span>{t('Có')} {newCartItemsCount} {t('món mới trong giỏ hàng chờ gửi order!')}</span>
-              </div>
-            );
-          }
-          
+
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {renderAvatarRow(true)}
@@ -442,7 +463,10 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
                   })()}
                   <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <span style={{ fontWeight: 800 }}>
-                      {orderedMembers.length > 1 && r.roundNumber > 0 ? `${r.userName?.split(' ')[0] || 'Khách'} ${t('gọi lúc')} ${r.time}` : `${t('Đơn lúc')} ${r.time}`}
+                      {isPrepaid && r.key !== 'legacy'
+                        ? `Mã đơn #${r.key.toString().slice(-5).toUpperCase()} - ${r.time}`
+                        : (orderedMembers.length > 1 && r.roundNumber > 0 ? `${r.userName?.split(' ')[0] || 'Khách'} ${t('gọi lúc')} ${r.time}` : `${t('Đơn lúc')} ${r.time}`)
+                      }
                     </span>
                     <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--menu-text-secondary)', marginLeft: '4px' }}>
                       {r.total ? `• ${r.total} ${t('món')}` : ''}
@@ -481,54 +505,82 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
               </div>
 
               {/* Prominent Status Banner */}
-              <div 
-                className={`${styles.prominentStatusBanner} ${isDelay && !hasReminded ? styles.blinkAttention : ''}`} 
-                style={{ 
-                  backgroundColor: `${contextColor}15`, 
-                  border: `1px solid ${contextColor}30`, 
-                  cursor: isDelay && !hasReminded ? 'pointer' : 'default',
-                  borderRadius: isDelay ? '16px' : undefined,
-                  opacity: isReminding ? 0.7 : 1,
-                  pointerEvents: isReminding || hasReminded ? 'none' : 'auto'
-                }}
-                onClick={isDelay && !hasReminded ? async () => {
-                  try {
-                    setIsReminding(true);
-                    await fetch('/api/chat', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        resid, 
-                        tableid, 
-                        user_id: user?.id || null,
-                        content: t('Xác nhận quá lâu'),
-                        type: 'SUPPORT'
-                      })
-                    });
-                    setHasReminded(true);
-                  } catch (e) {
-                    console.error("Failed to send support request", e);
-                  } finally {
-                    setIsReminding(false);
-                  }
-                } : undefined}
-              >
-                <div className={styles.prominentStatusGif}>
-                   <img src={statusGif} alt={statusText} />
-                </div>
-                <div className={styles.prominentStatusInfo}>
-                   <div className={styles.prominentStatusTitle} style={{ color: contextColor }}>
-                      <div>{statusText}</div>
-                      {statusSubText && (
-                        <div style={{ fontSize: '0.82rem', fontWeight: 600, opacity: 0.85, marginTop: '2px' }}>
-                          {statusSubText}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div 
+                  className={`${styles.prominentStatusBanner} ${(isDelay && !hasReminded) || (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') || (allServed && tableid?.toUpperCase() === 'COUNTER') ? styles.interactiveBanner : ''} ${isDelay && !hasReminded && !(hasReady && tableid?.toUpperCase() === 'COUNTER') ? styles.blinkAttention : ''}`} 
+                  style={{ 
+                    backgroundColor: `${contextColor}10`, 
+                    border: `1px solid ${contextColor}30`, 
+                    cursor: (isDelay && !hasReminded) || (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') || (allServed && tableid?.toUpperCase() === 'COUNTER') ? 'pointer' : 'default',
+                    borderRadius: (isDelay || (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') || (allServed && tableid?.toUpperCase() === 'COUNTER')) ? '16px' : undefined,
+                    opacity: isReminding ? 0.7 : 1,
+                    pointerEvents: isReminding || (hasReminded && !hasReady && !allServed) ? 'none' : 'auto'
+                  }}
+                  onClick={async () => {
+                    if (allServed && tableid?.toUpperCase() === 'COUNTER') {
+                      setIsReviewSheetOpen(true);
+                      return;
+                    }
+                    if (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') {
+                      setIsQRModalOpen(true);
+                      return;
+                    }
+                    if (isDelay && !hasReminded) {
+                      try {
+                        setIsReminding(true);
+                        await fetch('/api/chat', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            resid, 
+                            tableid, 
+                            user_id: user?.id || null,
+                            content: t('Xác nhận quá lâu'),
+                            type: 'SUPPORT'
+                          })
+                        });
+                        setHasReminded(true);
+                      } catch (e) {
+                        console.error("Failed to send support request", e);
+                      } finally {
+                        setIsReminding(false);
+                      }
+                    }
+                  }}
+                >
+                  <div className={styles.prominentStatusGif}>
+                     <img src={statusGif} alt={statusText} />
+                  </div>
+                  <div className={styles.prominentStatusInfo}>
+                     <div className={styles.prominentStatusTitle} style={{ color: contextColor }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {statusText}
+                          {hasReady && tableid?.toUpperCase() === 'COUNTER' && <QrCode size={16} />}
                         </div>
-                      )}
-                   </div>
+                        {statusSubText && (
+                          <div style={{ fontSize: '0.82rem', fontWeight: 600, opacity: 0.85, marginTop: '2px' }}>
+                            {statusSubText}
+                          </div>
+                        )}
+                     </div>
+                  </div>
                 </div>
               </div>
 
-              {bottomLineContent}
+
+              <PickupQRModal 
+                isOpen={isQRModalOpen} 
+                onClose={() => setIsQRModalOpen(false)} 
+                orderNumber={r.key !== 'legacy' ? r.key.toString().slice(-4) : "1255"} 
+              />
+              
+              <ReviewBottomSheet
+                isOpen={isReviewSheetOpen}
+                onClose={() => setIsReviewSheetOpen(false)}
+                resid={resid}
+                tableid={tableid}
+                isPrepaid={isPrepaid}
+              />
             </div>
           );
         })()

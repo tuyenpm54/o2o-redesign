@@ -9,54 +9,73 @@ export async function POST() {
     try {
         const db = await getDb();
         const cookieStore = await cookies();
-        const existingSessionId = cookieStore.get('session_id')?.value;
+        const deviceId = cookieStore.get('device_id')?.value;
+        let guestUser = null;
 
-        const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
-        const guestId = `g_${Date.now()}`;
-        const randomAvatar = `https://api.dicebear.com/7.x/miniavs/svg?seed=${guestId}`;
-
-        const guestUser = {
-            id: guestId,
-            phone: 'Guest',
-            name: `${randomColor} Guest`,
-            points: 0,
-            tier: 'Guest',
-            avatar: randomAvatar,
-            preferences: '[]',
-            isGuest: 1
-        };
-
-        await db.run(
-            'INSERT INTO users (id, phone, name, points, tier, avatar, preferences, isguest) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [guestUser.id, guestUser.phone, guestUser.name, guestUser.points, guestUser.tier, guestUser.avatar, guestUser.preferences, guestUser.isGuest]
-        );
-
-        const guestExpires = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year
-
-        if (existingSessionId) {
-            // ✅ Keep the same session — just switch user_id to the new guest
-            const existingSession = await db.get('SELECT * FROM sessions WHERE id = ?', [existingSessionId]);
-            if (existingSession) {
-                await db.run(
-                    'UPDATE sessions SET user_id = ?, expires = ?, lastactive = ? WHERE id = ?',
-                    [guestId, guestExpires, Date.now(), existingSessionId]
-                );
-
-                const responseUser = {
-                    ...guestUser,
-                    preferences: [],
-                    isGuest: true
-                };
-                return ApiSuccess({ user: responseUser });
+        // Try to recover guest from device_id
+        if (deviceId) {
+            const rawUser = await db.get('SELECT * FROM users WHERE id = ? AND isGuest = 1', [deviceId]);
+            if (rawUser) {
+                guestUser = rawUser;
+                // Since this guest is still unverified, we can use it
             }
         }
 
-        // No existing session — create a fresh one
-        const sessionId = crypto.randomUUID();
-        await db.run(
-            'INSERT INTO sessions (id, user_id, expires, lastactive, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
-            [sessionId, guestUser.id, guestExpires, Date.now()]
-        );
+        if (!guestUser) {
+            const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+            const guestId = `g_${Date.now()}`;
+            const randomAvatar = `https://api.dicebear.com/7.x/miniavs/svg?seed=${guestId}`;
+
+            guestUser = {
+                id: guestId,
+                phone: 'Guest',
+                name: `${randomColor} Guest`,
+                points: 0,
+                tier: 'Guest',
+                avatar: randomAvatar,
+                preferences: '[]',
+                isGuest: 1
+            };
+
+            await db.run(
+                'INSERT INTO users (id, phone, name, points, tier, avatar, preferences, isGuest) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [guestUser.id, guestUser.phone, guestUser.name, guestUser.points, guestUser.tier, guestUser.avatar, guestUser.preferences, 1]
+            );
+
+            // Plant new device_id cookie (3 years)
+            cookieStore.set('device_id', guestId, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 3 * 365 * 24 * 60 * 60,
+                path: '/',
+            });
+        }
+
+        const guestExpires = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year
+        let sessionId = cookieStore.get('session_id')?.value;
+
+        if (sessionId) {
+            // ✅ Fix existing session to point to this guest
+            const existingSession = await db.get('SELECT * FROM sessions WHERE id = ?', [sessionId]);
+            if (existingSession) {
+                await db.run(
+                    'UPDATE sessions SET user_id = ?, expires = ?, lastActive = ? WHERE id = ?',
+                    [guestUser.id, guestExpires, Date.now(), sessionId]
+                );
+            } else {
+                sessionId = undefined;
+            }
+        }
+
+        if (!sessionId) {
+            // No existing session — create a fresh one
+            sessionId = crypto.randomUUID();
+            await db.run(
+                'INSERT INTO sessions (id, user_id, expires, lastActive, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
+                [sessionId, guestUser.id, guestExpires, Date.now()]
+            );
+        }
 
         cookieStore.set('session_id', sessionId, {
             httpOnly: true,

@@ -4,7 +4,6 @@ import { getDb } from '@/lib/db';
 
 export async function POST(request: Request) {
     try {
-        // Allow passing 'identifier' or 'phone' for backward compatibility
         const body = await request.json();
         const identifier = body.identifier || body.phone;
         const name = body.name;
@@ -15,15 +14,16 @@ export async function POST(request: Request) {
 
         const db = await getDb();
         const cookieStore = await cookies();
-        const existingSessionId = cookieStore.get('session_id')?.value;
+        let existingSessionId = cookieStore.get('session_id')?.value;
+        const deviceId = cookieStore.get('device_id')?.value;
 
-        // Find or create the real user account by checking either phone or email
+        // Find existing verified user
         let user = await db.get('SELECT * FROM users WHERE phone = ? OR email = ?', [identifier, identifier]);
+        const isEmail = identifier.includes('@');
         let userId: string;
 
-        const isEmail = identifier.includes('@');
-        
         if (user) {
+            // Scenario B: User exists -> Switch session to this user.
             userId = user.id;
             const updateProps = [name || user.name];
             let sql = 'UPDATE users SET name = COALESCE(NULLIF(?, \'\'), name), isGuest = 0';
@@ -37,29 +37,33 @@ export async function POST(request: Request) {
             sql += ' WHERE id = ?';
             updateProps.push(userId);
             await db.run(sql, updateProps);
-        } else {
-            // New user: create account (reuse guest user id so cart data is preserved)
-            const existingSession = existingSessionId
-                ? await db.get('SELECT * FROM sessions WHERE id = ?', [existingSessionId])
-                : null;
-            const existingGuestUser = existingSession
-                ? await db.get('SELECT * FROM users WHERE id = ? AND isGuest = 1', [existingSession.user_id])
-                : null;
 
-            if (existingGuestUser) {
-                // Upgrade guest user in-place
-                userId = existingGuestUser.id;
-                await db.run(
-                    'UPDATE users SET phone = COALESCE(phone, ?), email = COALESCE(email, ?), name = ?, isGuest = 0, avatar = ? WHERE id = ?',
-                    [
-                        isEmail ? null : identifier,
-                        isEmail ? identifier : null,
-                        name || 'Khách hàng mới',
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${identifier}`,
-                        userId
-                    ]
-                );
-            } else {
+        } else {
+            // Scenario A: User is New -> Upgrade current device identity OR create new.
+            let guestFound = false;
+            
+            if (deviceId) {
+                const guestUser = await db.get('SELECT * FROM users WHERE id = ? AND isGuest = 1', [deviceId]);
+                if (guestUser) {
+                    // Upgrade guest in-place (keeps device_id the same)
+                    userId = guestUser.id;
+                    await db.run(
+                        'UPDATE users SET phone = ?, email = ?, name = ?, tier = ?, isGuest = 0, avatar = ? WHERE id = ?',
+                        [
+                            isEmail ? null : identifier,
+                            isEmail ? identifier : null,
+                            name || 'Khách hàng mới',
+                            'Thành viên',
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${identifier}`,
+                            userId
+                        ]
+                    );
+                    guestFound = true;
+                }
+            }
+
+            if (!guestFound) {
+                // Failsafe: create new user
                 userId = `u${Date.now()}`;
                 await db.run(
                     'INSERT INTO users (id, phone, email, name, tier, role, avatar, isGuest) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -77,42 +81,24 @@ export async function POST(request: Request) {
             }
         }
 
-        // ── Data Stitching: Migrate guest data to the real user ──
-        // When the session was pointing to a different guest_id, all orders/cart/chat
-        // placed by that guest must be transferred to the real userId.
-        if (existingSessionId) {
-            const currentSession = await db.get('SELECT user_id FROM sessions WHERE id = ?', [existingSessionId]);
-            const oldGuestId = currentSession?.user_id;
-
-            if (oldGuestId && oldGuestId !== userId) {
-                console.log(`[Login] Data Stitching: migrating data from ${oldGuestId} → ${userId}`);
-                await Promise.all([
-                    db.run('UPDATE order_items SET user_id = ? WHERE user_id = ?', [userId, oldGuestId]),
-                    db.run('UPDATE order_rounds SET user_id = ? WHERE user_id = ?', [userId, oldGuestId]),
-                    db.run('UPDATE cart_items SET user_id = ? WHERE user_id = ?', [userId, oldGuestId]),
-                    db.run("UPDATE chat_messages SET user_id = ? WHERE user_id = ? AND sender = 'user'", [userId, oldGuestId]),
-                ]);
-            }
-        }
-
         user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
 
         const expires = Date.now() + (365 * 24 * 60 * 60 * 1000); // 1 year
 
         if (existingSessionId) {
-            // ✅ Keep same session — just update user_id and extend expiry
+            // Switch current session to point to the authorized user
             await db.run(
                 'UPDATE sessions SET user_id = ?, expires = ?, lastActive = ? WHERE id = ?',
                 [userId, expires, Date.now(), existingSessionId]
             );
         } else {
             // No existing session — create a new one
-            const sessionId = crypto.randomUUID();
+            existingSessionId = crypto.randomUUID();
             await db.run(
-                'INSERT INTO sessions (id, user_id, expires, lastActive) VALUES (?, ?, ?, ?)',
-                [sessionId, userId, expires, Date.now()]
+                'INSERT INTO sessions (id, user_id, expires, lastActive, created_at) VALUES (?, ?, ?, ?, ?)',
+                [existingSessionId, userId, expires, Date.now(), Date.now()]
             );
-            cookieStore.set('session_id', sessionId, {
+            cookieStore.set('session_id', existingSessionId, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',

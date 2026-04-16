@@ -2,6 +2,7 @@ import React from 'react';
 import { Utensils, Sparkles, CheckCircle2, Wallet, MoreHorizontal, Check, Clock, Users, BellRing } from 'lucide-react';
 import { getIconComponent } from '@/lib/icons';
 import { ServiceBellIcon } from '@/components/Icons/ServiceBellIcon';
+import { shopConfig } from '@/config/shopConfig';
 
 interface SupportModalProps {
   isStaffModalOpen: boolean;
@@ -20,6 +21,7 @@ interface SupportModalProps {
   setToast: (toast: { message: string, submessage?: string }) => void;
   fetchLiveTableData: () => void;
   supportOptionsConfig?: any[] | null;
+  onShowWifi?: () => void;
 }
 
 export const SupportModal: React.FC<SupportModalProps> = ({
@@ -39,18 +41,45 @@ export const SupportModal: React.FC<SupportModalProps> = ({
   setToast,
   fetchLiveTableData,
   supportOptionsConfig,
+  onShowWifi,
 }) => {
   if (!isStaffModalOpen) return null;
 
-  const defaultOptions = [
-    { id: 'cutlery', icon: 'Utensils', label: t('Thêm bát đũa') },
-    { id: 'napkin', icon: 'Sparkles', label: t('Khăn giấy') },
-    { id: 'clean', icon: 'CheckCircle2', label: t('Dọn bàn') },
-    { id: 'bill', icon: 'Wallet', label: t('Thanh toán') },
-    { id: 'other', icon: 'MoreHorizontal', label: t('Yêu cầu khác'), isOther: true },
-  ];
+  const isCounter = tableid === 'COUNTER';
   
-  const optionsToRender = supportOptionsConfig && supportOptionsConfig.length > 0 ? supportOptionsConfig : defaultOptions;
+  // Template 1: Trả sau (Model A) - Đầy đủ dịch vụ bàn và thanh toán
+  const templatePostPaidTable = [
+    { id: 'cutlery', icon: 'Utensils', label: t('Thêm bát đũa'), requiresTable: true },
+    { id: 'napkin', icon: 'Sparkles', label: t('Khăn giấy'), requiresTable: true },
+    { id: 'clean', icon: 'CheckCircle2', label: t('Dọn bàn'), requiresTable: true },
+    { id: 'bill', icon: 'Wallet', label: t('Thanh toán'), requiresTable: false },
+    { id: 'wifi', icon: 'Wifi', label: t('Hỏi wifi'), action: 'show_wifi', requiresTable: false },
+    { id: 'other', icon: 'MoreHorizontal', label: t('Yêu cầu khác'), isOther: true, requiresTable: false },
+  ];
+
+  // Template 2: Trả trước tại bàn (Model B) - Dịch vụ bàn nhưng không có thu tiền
+  const templatePrePaidTable = [
+    { id: 'cutlery', icon: 'Utensils', label: t('Thêm bát đũa'), requiresTable: true },
+    { id: 'napkin', icon: 'Sparkles', label: t('Khăn giấy'), requiresTable: true },
+    { id: 'clean', icon: 'CheckCircle2', label: t('Dọn bàn'), requiresTable: true },
+    { id: 'wifi', icon: 'Wifi', label: t('Hỏi wifi'), action: 'show_wifi', requiresTable: false },
+    { id: 'other', icon: 'MoreHorizontal', label: t('Yêu cầu khác'), isOther: true, requiresTable: false },
+  ];
+
+  // Template 3: Trả trước tại quầy (Model C / COUNTER) - Không cần bàn, không có thu tiền
+  const templateCounter = [
+    { id: 'wifi', icon: 'Wifi', label: t('Hỏi wifi'), action: 'show_wifi', requiresTable: false },
+    { id: 'other', icon: 'MoreHorizontal', label: t('Yêu cầu khác'), isOther: true, requiresTable: false },
+  ];
+
+  let resolvedTemplate = templatePostPaidTable;
+  if (isCounter || shopConfig.model === 'C') {
+    resolvedTemplate = templateCounter;
+  } else if (shopConfig.model === 'B') {
+    resolvedTemplate = templatePrePaidTable;
+  }
+  
+  const optionsToRender = supportOptionsConfig && supportOptionsConfig.length > 0 ? supportOptionsConfig : resolvedTemplate;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => { setIsStaffModalOpen(false); setSelectedSupportOptions([]); setCustomSupportText(''); }} style={{ zIndex: 11000 }}>
@@ -98,10 +127,15 @@ export const SupportModal: React.FC<SupportModalProps> = ({
             {supportTab === 'request' && (
               <div className="flex flex-col gap-4 pt-1 animate-in fade-in duration-300">
                 <p className="text-[0.85rem] text-slate-500 dark:text-slate-400 text-center font-medium">
-                  {t('Quý khách có thể chọn nhiều yêu cầu cùng lúc')}
+                  {isCounter 
+                    ? t('Một số yêu cầu chỉ khả dụng khi ngồi tại bàn') 
+                    : t('Quý khách có thể chọn nhiều yêu cầu cùng lúc')}
                 </p>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  {optionsToRender.map(action => {
+                  {optionsToRender
+                    // Extra safety check to prevent table requirements from sneaking in
+                    .filter(action => !(isCounter && action.requiresTable))
+                    .map(action => {
                     const isSelected = selectedSupportOptions.includes(action.label);
                     const isOther = action.isOther === true || action.id === 'other';
                     const DynamicIcon = getIconComponent(action.icon);
@@ -121,10 +155,10 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                         if (!isCompleted) {
                           if (latestRelevantReq.status === 'Đã gửi') {
                             isDisabled = true;
-                            reqStatus = "Đã gửi";
+                            reqStatus = t('Đã gửi');
                           } else if (latestRelevantReq.status === 'Đã nhận' && elapsedMin < 5) {
                             isDisabled = true;
-                            reqStatus = "Đang xử lý"; 
+                            reqStatus = t('Đang xử lý'); 
                           }
                         }
                       }
@@ -151,6 +185,10 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                           className={`${cardClass} w-full`}
                           disabled={isDisabled}
                           onClick={() => {
+                            if ((action as any).action === 'show_wifi') {
+                                if (onShowWifi) onShowWifi();
+                                return;
+                            }
                             setSelectedSupportOptions(prev => 
                               prev.includes(action.label) 
                                 ? prev.filter(l => l !== action.label) 

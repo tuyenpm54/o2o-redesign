@@ -8181,6 +8181,15 @@
   background-blend-mode: overlay;
 }
 
+.interactiveBanner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06), inset 0 2px 4px rgba(255,255,255,0.6);
+}
+
+.interactiveBanner:active {
+  transform: scale(0.98);
+}
+
 .blinkAttention {
   animation: pulseAttention 1.8s ease-in-out infinite;
   cursor: pointer;
@@ -8247,9 +8256,7 @@
   transition: all 0.2s ease;
 }
 
-.notifyLine:active {
-  transform: scale(0.98);
-}
+
 
 .redDot {
   width: 6px;

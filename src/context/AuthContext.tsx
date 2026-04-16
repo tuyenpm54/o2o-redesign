@@ -40,7 +40,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await fetch('/api/auth/me');
+                const isAdminApp = window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/hq') || window.location.pathname.startsWith('/login');
+                const res = await fetch(isAdminApp ? '/api/admin/auth/me' : '/api/auth/me');
                 if (res.ok) {
                     const data = await res.json();
                     const userData = data.data?.user || data.user;
@@ -61,7 +62,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const login = React.useCallback(async (phone: string) => {
         try {
-            const res = await fetch('/api/auth/login', {
+            const isAdminApp = window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/hq') || window.location.pathname.startsWith('/login');
+            const res = await fetch(isAdminApp ? '/api/admin/auth/login' : '/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone }),
@@ -105,9 +107,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const logout = React.useCallback(async (redirectTo?: string) => {
-        const destination = redirectTo || '/menu';
+        const isAdminApp = window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/hq') || window.location.pathname.startsWith('/login');
+        const destination = redirectTo || (isAdminApp ? '/login' : '/menu');
         try {
-            const res = await fetch('/api/auth/logout', { method: 'POST' });
+            const res = await fetch(isAdminApp ? '/api/admin/auth/logout' : '/api/auth/logout', { method: 'POST' });
             if (res.ok) {
                 const data = await res.json();
                 const userData = data.data?.user || data.user;
@@ -161,6 +164,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
+        if (typeof window === 'undefined') {
+            return {
+                isLoggedIn: false,
+                isGuest: false,
+                user: null,
+                isLoadingAuth: true,
+                login: async () => null,
+                loginAsGuest: async () => null,
+                logout: () => {},
+                updateUser: async () => {}
+            } as AuthContextType;
+        }
         throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;

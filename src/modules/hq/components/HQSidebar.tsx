@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Building2, Users, CreditCard, LogOut, Settings, UserCog, User } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, CreditCard, LogOut, Settings, UserCog, User, MessageSquare } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { UserTierBadge } from '@/components/UserTierBadge';
 import { useAuth } from '@/context/AuthContext';
@@ -42,6 +42,10 @@ export function HQSidebar() {
                 <Link href="/hq/restaurants" className={navLink('/hq/restaurants')}>
                     <Building2 size={20} />
                     <span>Danh sách cửa hàng</span>
+                </Link>
+                <Link href="/hq/reviews" className={navLink('/hq/reviews')}>
+                    <MessageSquare size={20} />
+                    <span>Quản lý Đánh giá</span>
                 </Link>
                 <Link href="/hq/accounts" className={navLink('/hq/accounts')}>
                     <Users size={20} />

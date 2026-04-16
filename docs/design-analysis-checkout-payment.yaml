@@ -1,0 +1,31 @@
+screen_id: checkout_payment_block
+meta:
+  device: mobile
+  user_intent: finalize_payment_swiftly
+  risk_level: high # Tiền bạc, tỉ lệ rớt đơn
+context_vectors:
+  env: restaurant_checkout
+  user_state: ready_to_pay_but_might_drop_if_confusing
+  jtbd_core_job: Select payment method and confirm with optimal touch efficiency.
+ccf_priority:
+  must_have:
+    - id: selected_payment_method
+      rs: 0.95
+      reason: Current chosen method must be unambiguous.
+    - id: payment_options_list
+      rs: 0.85
+      reason: Options must be visible and selectable with a single tap (fat-finger friendly).
+  should_have:
+    - id: method_icons
+      rs: 0.70
+      reason: Visual cognitive anchors (Wallet, Card, Cash).
+  on_demand_or_purged:
+    - id: duplicate_header_dropdown
+      rs: 0.20
+      trigger: purged
+      reason: "Hành vi lặp (Header hiển thị ZaloPay xong List cũng hiển thị ZaloPay) cực kỳ tốn diện tích và tạo cảm giác 'Desktop' nhồi nhét."
+validation:
+  overlap_check: true # Currently violating overlap check due to inline accordion duplication!
+  mobile_limit_check: true
+open_questions:
+  - "XÁC NHẬN CCF: Bạn có đồng ý huỷ bỏ hoàn toàn cấu trúc 'Header Dropdown' và chuyển sang UI Radio List Button nội tuyến không? Nghĩa là 3 nút trải thẳng ra (chọn 1), không dư thừa Header, tốn ít Click hơn và cực kỳ Pro Max ở Mobile. Bạn đồng ý chứ?"

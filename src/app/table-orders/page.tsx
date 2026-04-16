@@ -7,7 +7,8 @@ import {
     ArrowLeft, History, Users, CheckCircle2, Crown, ReceiptText, ChevronRight, Send, Filter, ListOrdered, List, ClockAlert, BellRing, AlertCircle
 } from 'lucide-react';
 import styles from './page.module.css';
-import CheckoutSheet from './CheckoutSheet';
+import FeedbackSheet from './FeedbackSheet';
+import { PrepaidReviewModal } from './PrepaidReviewModal';
 
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -35,7 +36,7 @@ function TableOrdersContent() {
     const [isSortModalOpen, setIsSortModalOpen] = useState(false);
     const [isTableClosed, setIsTableClosed] = useState(false);
     const [viewMode, setViewMode] = useState<'summary' | 'timeline'>('timeline');
-    const [isCheckoutSheetOpen, setIsCheckoutSheetOpen] = useState(false);
+    const [isFeedbackSheetOpen, setIsFeedbackSheetOpen] = useState(false);
     const [isRequestingPayment, setIsRequestingPayment] = useState(false);
     const [hasRequestedPayment, setHasRequestedPayment] = useState(false);
     const [now, setNow] = useState(Date.now());
@@ -79,6 +80,17 @@ function TableOrdersContent() {
     }, []);
 
     const localVersionRef = useRef<number>(0);
+    const [shopModel, setShopModel] = useState<string>('SHOP_A');
+
+    useEffect(() => {
+        try {
+            const configStr = localStorage.getItem('preview_storefront_config');
+            if (configStr) {
+                const config = JSON.parse(configStr);
+                setShopModel(config.shop_model || 'SHOP_A');
+            }
+        } catch (e) {}
+    }, []);
 
     useEffect(() => {
         const fetchData = async (force=false) => {
@@ -449,6 +461,13 @@ function TableOrdersContent() {
             || s.includes('mang ra') || ['confirmed', 'cooking', 'ready', 'served'].includes(s);
     });
 
+    const isPrepaidModel = shopModel === 'SHOP_B' || shopModel === 'SHOP_C' || tableid.toUpperCase() === 'COUNTER';
+    const allConfirmedServed = confirmedOrders.length > 0 && confirmedOrders.every((o: any) => {
+        const s = (o.status || '').toLowerCase();
+        return s === 'served' || s === 'đã phục vụ';
+    });
+    const shouldShowReviewModal = isPrepaidModel && allConfirmedServed && !isTableClosed;
+
 
     if (isLoading) {
         return (
@@ -589,7 +608,7 @@ function TableOrdersContent() {
                                     });
                                     if (res.ok) {
                                         setHasRequestedPayment(true);
-                                        setIsCheckoutSheetOpen(true);
+                                        setIsFeedbackSheetOpen(true);
                                     } else {
                                         alert(t('Có lỗi xảy ra khi gửi yêu cầu'));
                                     }
@@ -607,9 +626,9 @@ function TableOrdersContent() {
                 </div>
             )}
 
-            <CheckoutSheet
-                isOpen={isCheckoutSheetOpen}
-                onClose={() => setIsCheckoutSheetOpen(false)}
+            <FeedbackSheet
+                isOpen={isFeedbackSheetOpen}
+                onClose={() => setIsFeedbackSheetOpen(false)}
                 totalAmount={totalAmount}
                 resid={resid}
                 tableid={tableid}
@@ -731,6 +750,13 @@ function TableOrdersContent() {
                 </div>
             </div>
         )}
+
+        <PrepaidReviewModal 
+            isOpen={shouldShowReviewModal}
+            resid={resid}
+            tableid={tableid}
+            userId={user?.id}
+        />
         </div>
     );
 }

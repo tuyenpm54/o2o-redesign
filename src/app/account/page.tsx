@@ -56,13 +56,16 @@ const UserAccountContent = () => {
             });
             
             // Check if we ACTUALLY need onboarding
+            const initialView = searchParams.get('view') as ViewState;
             if (isSetup && (user.name === 'Khách hàng mới' || !user.name)) {
                 setView('ONBOARDING');
+            } else if (initialView && VIEW_TITLES[initialView]) {
+                setView(initialView);
             } else {
                 setView('OVERVIEW');
             }
         }
-    }, [user, isSetup]);
+    }, [user, isSetup, searchParams]);
 
     const [membershipData] = useState({
         nextTierPoints: 2000,

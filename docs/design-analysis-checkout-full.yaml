@@ -1,0 +1,35 @@
+screen_id: checkout_full_sheet
+meta:
+  device: web_mobile
+  user_intent: final_review_and_payment_confirmation
+  risk_level: high # Last step before conversion
+context_vectors:
+  env: restaurant_checkout_layer
+  user_state: high_cognitive_load_checking_order
+  jtbd_core_job: Validate what is being consumed, how to get it, adjust incentives, and commit payment.
+ccf_priority:
+  must_have:
+    - id: order_items_summary
+      rs: 0.95
+      reason: The core payload. Must be instantly verifiable without heavy scrolling.
+    - id: sticky_checkout_cta
+      rs: 0.90
+      reason: The conversion action. Must remain accessible (fat-finger friendly) globally.
+    - id: settings_group_incentives
+      rs: 0.85
+      reason: "Voucher + Payment Method are modifiers to the CTA. They belong in a tight cognitive group."
+  should_have:
+    - id: pickup_delivery_status
+      rs: 0.70
+      reason: Establishes context of service, but doesn't need to dominate the visual hierarchy.
+  on_demand_or_purged:
+    - id: cross_sell_slider
+      rs: 0.40
+      trigger: on_expand_or_bottom
+      reason: "At the 99% conversion intent stage, aggressive cross-selling introduces friction and scroll fatigue. Limit prominence."
+validation:
+  overlap_check: false # Cảnh báo: Hiện tại đang dàn trải dọc quá đà (Fragmentation).
+  mobile_limit_check: false # Giao diện hiện tại thiếu sự Gom nhóm (Grouping design).
+open_questions:
+  - "XÁC NHẬN CCF: Khối lượng hiển thị đang bị loãng vì không Gom nhóm (Group) tốt. Bạn có chấp thuận việc Gom [Voucher] và [Payment] vào cùng 1 block Settings-Style iOS không?"
+  - "Visual Upgrade: Thêm Backdrop Blur vào thanh Header tĩnh và Footer CTA để tăng cảm giác 3D Depth (Glassmorphism). Bạn đồng ý chứ?"

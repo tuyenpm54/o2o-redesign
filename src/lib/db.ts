@@ -133,6 +133,29 @@ async function initDb(database: DBWrapper) {
   // ── DDL: Batch ALL table creation + migrations into a SINGLE round-trip ──
   // This reduces cold-start from ~42 sequential network calls to just 1.
   await database.exec(`
+    -- System Users
+    CREATE TABLE IF NOT EXISTS system_users (
+      id TEXT PRIMARY KEY,
+      phone TEXT,
+      email TEXT,
+      name TEXT,
+      password TEXT,
+      role TEXT DEFAULT 'ADMIN',
+      managed_chain_id TEXT,
+      avatar TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- System Sessions
+    CREATE TABLE IF NOT EXISTS system_sessions (
+      id TEXT PRIMARY KEY,
+      system_user_id TEXT,
+      expires BIGINT,
+      lastActive BIGINT,
+      created_at BIGINT,
+      FOREIGN KEY (system_user_id) REFERENCES system_users(id)
+    );
+
     -- Users
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -173,12 +196,14 @@ async function initDb(database: DBWrapper) {
     -- User_Restaurants (Phân quyền quản trị viên)
     CREATE TABLE IF NOT EXISTS user_restaurants (
       id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
+      system_user_id TEXT NOT NULL,
       restaurant_id TEXT NOT NULL,
       assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id),
-      UNIQUE(user_id, restaurant_id)
+      FOREIGN KEY (system_user_id) REFERENCES system_users(id),
+      UNIQUE(system_user_id, restaurant_id)
     );
+
+
 
     -- Subscriptions (Gói cước API)
     CREATE TABLE IF NOT EXISTS subscriptions (
@@ -210,6 +235,15 @@ async function initDb(database: DBWrapper) {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       qr_code TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- QR Codes
+    CREATE TABLE IF NOT EXISTS qr_codes (
+      id TEXT PRIMARY KEY,
+      resid TEXT NOT NULL,
+      tableid TEXT,
+      payment_model TEXT DEFAULT 'POST_PAY_TABLE',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -449,6 +483,7 @@ async function initDb(database: DBWrapper) {
 
   // ── Index (separate — partial unique index) ──
   try {
+    await database.exec(`DROP INDEX IF EXISTS unique_active_table_session`);
     await database.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_active_table_session ON table_sessions (resid, tableid) WHERE status = 'ACTIVE'`);
   } catch (e) { }
   try {
@@ -456,10 +491,28 @@ async function initDb(database: DBWrapper) {
   } catch (e) { }
 
   // ── Seed data: batch into minimal calls ──
-  await database.exec(`
-    INSERT INTO tables (id, name) VALUES ('A-12', 'Bàn A-12') ON CONFLICT (id) DO NOTHING;
-    INSERT INTO tables (id, name) VALUES ('T-1', 'Bàn 1') ON CONFLICT (id) DO NOTHING;
-  `);
+  try {
+    await database.exec(`
+      -- Ensure column exists if table was created in an older version
+      ALTER TABLE user_restaurants ADD COLUMN IF NOT EXISTS system_user_id TEXT;
+      
+      INSERT INTO tables (id, name) VALUES ('A-12', 'Bàn A-12') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO tables (id, name) VALUES ('T-1', 'Bàn 1') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO tables (id, name) VALUES ('COUNTER', 'Quầy thu ngân') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO system_users (id, phone, email, name, role) VALUES ('SU1', '0981112222', 'admin@o2o.vn', 'Quản lý Nhà hàng', 'ADMIN') ON CONFLICT DO NOTHING;
+      INSERT INTO system_users (id, phone, email, name, role) VALUES ('SU2', '0988888888', 'hq@o2o.vn', 'Quản lý Chuỗi', 'CHAIN_MANAGER') ON CONFLICT DO NOTHING;
+      INSERT INTO restaurants (id, name, address) VALUES ('100', 'Nhà hàng O2O Demo', '123 Nguyễn Trãi, Q.1, TP.HCM') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO user_restaurants (id, system_user_id, restaurant_id) VALUES ('ur_SU1_100', 'SU1', '100') ON CONFLICT DO NOTHING;
+      INSERT INTO qr_codes (id, resid, tableid, payment_model) VALUES ('qr_a12', '100', 'A-12', 'POST_PAY_TABLE') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO qr_codes (id, resid, tableid, payment_model) VALUES ('qr_t1', '100', 'T-1', 'POST_PAY_TABLE') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO qr_codes (id, resid, tableid, payment_model) VALUES ('qr_counter', '100', 'COUNTER', 'PRE_PAY_COUNTER') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO qr_codes (id, resid, tableid, payment_model) VALUES ('qr_vacant_1', '100', NULL, 'POST_PAY_TABLE') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO qr_codes (id, resid, tableid, payment_model) VALUES ('qr_vacant_2', '100', NULL, 'PRE_PAY_TABLE') ON CONFLICT (id) DO NOTHING;
+    `);
+  } catch (seedError) {
+    console.warn("[DB] Seeding failed but continuing:", seedError);
+  }
+
 
   // Seed users from JSON (if exists)
   const usersJsonPath = path.join(process.cwd(), 'src/data/users.json');

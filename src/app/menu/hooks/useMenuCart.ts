@@ -196,7 +196,7 @@ export function useMenuCart({
     }
   }, [cartItems, proceedAddToCart]);
 
-  const handlePlaceOrder = useCallback(async () => {
+  const handlePlaceOrder = useCallback(async (metadata: any = {}) => {
     const previousCartItems = [...cartItems];
     const previousTotal = total;
 
@@ -208,7 +208,7 @@ export function useMenuCart({
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resId: resid, tableid: tableid })
+        body: JSON.stringify({ resId: resid, tableid: tableid, ...metadata })
       });
 
       if (res.ok) {

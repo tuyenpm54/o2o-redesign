@@ -5,6 +5,9 @@ import styles from "./CartDrawer.module.css";
 import { useLanguage } from "@/context/LanguageContext";
 import { useMenuContext } from "../hooks/useMenuContext";
 import { useAuth } from "@/context/AuthContext";
+import { useSearchParams } from "next/navigation";
+import { CheckoutSheet } from "./CheckoutSheet";
+import { OrderAuthBlock } from "./OrderAuthBlock";
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -12,7 +15,8 @@ interface CartDrawerProps {
     cartItems: { id?: number; item: any; quantity: number; selections?: any }[];
     total: number;
     isCheckoutRequested?: boolean;
-    onPlaceOrder: () => void;
+    allowOtpSkip?: boolean;
+    onPlaceOrder: (metadata?: any) => void;
     onEditItem: (cartEntry: any) => void;
     onRemoveItem: (cartEntry: any) => void;
     onIncrementItem: (cartEntry: any) => void;
@@ -25,6 +29,7 @@ export function CartDrawer({
     cartItems,
     total,
     isCheckoutRequested,
+    allowOtpSkip = false,
     onPlaceOrder,
     onEditItem,
     onRemoveItem,
@@ -36,30 +41,22 @@ export function CartDrawer({
     const { isGuest, login } = useAuth();
     const isDark = timeOfDay === 'evening';
 
+    const searchParams = useSearchParams();
+    const paytype = searchParams?.get('paytype') || 'POSTPAID';
+
     const [isLoginView, setIsLoginView] = React.useState(false);
-    const [phone, setPhone] = React.useState('');
-    const [otp, setOtp] = React.useState('');
-    const [isOtpSent, setIsOtpSent] = React.useState(false);
-    const [isLoadingAuth, setIsLoadingAuth] = React.useState(false);
-    const [otpCountdown, setOtpCountdown] = React.useState(0);
+    const [isCheckoutSheetOpen, setIsCheckoutSheetOpen] = React.useState(false);
+    const [isProcessingPayment, setIsProcessingPayment] = React.useState(false);
+
 
     React.useEffect(() => {
         if (!isOpen) {
             setIsLoginView(false);
-            setPhone('');
-            setOtp('');
-            setIsOtpSent(false);
-            setOtpCountdown(0);
+
         }
     }, [isOpen]);
 
-    React.useEffect(() => {
-        let timer: NodeJS.Timeout;
-        if (otpCountdown > 0) {
-            timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
-        }
-        return () => clearTimeout(timer);
-    }, [otpCountdown]);
+
 
     if (!isOpen) return null;
 
@@ -136,112 +133,29 @@ export function CartDrawer({
 
                 {/* Body Content */}
                 {isLoginView ? (
-                    <div className={styles.itemList} style={{ position: 'relative', padding: '24px 20px 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        
-                        {/* Absolute Close Button */}
-                        <button 
-                            className={styles.closeBtn} 
-                            onClick={onClose}
-                            style={{ position: 'absolute', top: 16, right: 20, zIndex: 10, background: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6', color: theme.textSecondary }}
-                        >
-                            <X size={18} strokeWidth={2.5} />
-                        </button>
-                        
-                        {/* Artwork and Title */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                            <div style={{ width: 100, height: 100, marginBottom: 12, position: 'relative' }}>
-                                <div style={{ position: 'absolute', inset: 10, background: `${theme.accent}30`, borderRadius: '30%', filter: 'blur(20px)', zIndex: 0 }}></div>
-                                <img src="/images/loyalty_welcome_flat.png" alt="Loyalty VIP" style={{ width: '100%', height: '100%', objectFit: 'contain', position: 'relative', zIndex: 1, borderRadius: '24px' }} />
-                            </div>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: theme.textPrimary, marginBottom: 8, letterSpacing: '-0.01em' }}>
-                                {t('Trở thành khách hàng thân thiết')}
-                            </h3>
-                            <p style={{ fontSize: '0.9rem', color: theme.textSecondary, lineHeight: 1.5, padding: '0 10px', maxWidth: 280, opacity: 0.9 }}>
-                                {t('Đăng nhập chỉ 5s, tích điểm và mở khoá ưu đãi')}
-                            </p>
+                    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                            <button 
+                                className={styles.closeBtn} 
+                                onClick={onClose}
+                                style={{ position: 'absolute', top: 16, right: 20, zIndex: 10, background: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6', color: theme.textSecondary }}
+                            >
+                                <X size={18} strokeWidth={2.5} />
+                            </button>
+                            <OrderAuthBlock 
+                                allowOtpSkip={paytype !== 'PREPAID' || allowOtpSkip}
+                                onSuccess={() => {
+                                    setIsLoginView(false);
+                                    if (paytype === 'PREPAID') setIsCheckoutSheetOpen(true);
+                                    else onPlaceOrder();
+                                }}
+                                onSkip={() => {
+                                    sessionStorage.setItem('skip_guest_login', 'true');
+                                    setIsLoginView(false);
+                                    if (paytype === 'PREPAID') setIsCheckoutSheetOpen(true);
+                                    else onPlaceOrder();
+                                }}
+                            />
                         </div>
-
-                        {/* Phone Input Row */}
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', borderRadius: '16px', border: `1.5px solid ${interactiveBorder}`, padding: '0 8px 0 16px', position: 'relative' }}>
-                                <span style={{ fontSize: '1.05rem', color: theme.textPrimary, fontWeight: 600, marginRight: 12 }}>+84</span>
-                                <div style={{ width: 1, height: 24, background: interactiveBorder, marginRight: 12 }}></div>
-                                <input 
-                                    type="tel"
-                                    placeholder={t('Nhập số điện thoại')}
-                                    value={phone}
-                                    onChange={e => { setPhone(e.target.value.replace(/\D/g, '')); setOtpCountdown(0); }}
-                                    style={{ width: '100%', padding: '16px 0', background: 'transparent', border: 'none', color: theme.textPrimary, outline: 'none', fontSize: '1.1rem', fontWeight: 600, letterSpacing: '0.5px', paddingRight: '100px' }}
-                                />
-                                <button
-                                    disabled={phone.length < 9 || otpCountdown > 0}
-                                    onClick={() => setOtpCountdown(60)}
-                                    style={{
-                                        position: 'absolute',
-                                        right: 8,
-                                        background: (phone.length < 9 || otpCountdown > 0) ? 'transparent' : `${theme.accent}15`,
-                                        color: (phone.length < 9 || otpCountdown > 0) ? theme.textSecondary : theme.accent,
-                                        border: 'none',
-                                        padding: '8px 12px',
-                                        borderRadius: '12px',
-                                        fontSize: '0.85rem',
-                                        fontWeight: 700,
-                                        cursor: (phone.length < 9 || otpCountdown > 0) ? 'default' : 'pointer',
-                                        transition: 'all 0.2s',
-                                    }}
-                                >
-                                    {otpCountdown > 0 ? t(`Gửi lại (${otpCountdown}s)`) : t('Gửi OTP')}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* OTP Section ALWAYS VISIBLE */}
-                        <div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
-                                <span style={{ fontSize: '0.95rem', fontWeight: 600, color: theme.textPrimary }}>
-                                    {t('Nhập mã xác thực (OTP)')}
-                                </span>
-                            </div>
-                            
-                            <div style={{ position: 'relative', width: '100%', height: '56px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                                <input 
-                                    type="tel" 
-                                    value={otp} 
-                                    onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} 
-                                    maxLength={6} 
-                                    style={{ position: 'absolute', opacity: 0, inset: 0, width: '100%', height: '100%', cursor: 'text', zIndex: 10 }}
-                                />
-                                {[0, 1, 2, 3, 4, 5].map((i) => (
-                                    <div key={i} style={{ 
-                                        flex: 1, 
-                                        height: '100%', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        justifyContent: 'center',
-                                        fontSize: '1.5rem', 
-                                        fontWeight: 800,
-                                        background: isDark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', 
-                                        border: `2px solid ${otp.length === i ? theme.accent : interactiveBorder}`,
-                                        borderRadius: '12px', 
-                                        color: theme.textPrimary,
-                                        transition: 'all 0.2s ease',
-                                        boxShadow: otp.length === i ? `0 0 0 4px ${theme.accent}20` : 'none'
-                                    }}>
-                                        {otp[i] ? <span style={{ animation: 'popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>{otp[i]}</span> : ''}
-                                    </div>
-                                ))}
-                            </div>
-                            <p style={{ fontSize: '0.85rem', color: theme.textSecondary, marginTop: 12, textAlign: 'center' }}>
-                                {t('Mã OTP test mặc định: 123456')}
-                            </p>
-                        </div>
-                        <style>{`
-                            @keyframes popIn {
-                                0% { transform: scale(0.5); opacity: 0; }
-                                100% { transform: scale(1); opacity: 1; }
-                            }
-                        `}</style>
-                    </div>
                 ) : (
                     <div className={styles.itemList}>
                         {cartItems.map((entry, idx) => (
@@ -336,58 +250,7 @@ export function CartDrawer({
                 )}
 
                 {/* Footer */}
-                {isLoginView ? (
-                    <div 
-                        className={styles.footer}
-                        style={{ background: theme.bg, borderColor: interactiveBorder, padding: '16px 20px 24px' }}
-                    >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
-                            <button 
-                                disabled={phone.length < 9 || otp.length < 6}
-                                onClick={async () => {
-                                    if (otp === '123456') {
-                                        setIsLoadingAuth(true);
-                                        await login(phone);
-                                        setIsLoadingAuth(false);
-                                        setIsLoginView(false);
-                                        onPlaceOrder();
-                                    } else {
-                                        alert(t('OTP không đúng (thử 123456)'));
-                                    }
-                                }}
-                                style={{ 
-                                    width: '100%', padding: '14px', borderRadius: '12px', 
-                                    fontWeight: 700, fontSize: '1rem', 
-                                    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-                                    border: 'none',
-                                    background: (phone.length < 9 || otp.length < 6) ? disabledBg : theme.accent, 
-                                    color: '#fff',
-                                    cursor: (phone.length < 9 || otp.length < 6) ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    boxShadow: (phone.length < 9 || otp.length < 6) ? 'none' : `0 4px 14px ${theme.accent}50`
-                                }}
-                            >
-                                {isLoadingAuth ? t('Đang xử lý...') : t('Đăng nhập')}
-                            </button>
-                            <button 
-                                onClick={() => { 
-                                    sessionStorage.setItem('skip_guest_login', 'true');
-                                    setIsLoginView(false); 
-                                    onPlaceOrder(); 
-                                }}
-                                style={{ 
-                                    width: '100%', padding: '10px', background: 'transparent', 
-                                    color: theme.textSecondary, border: 'none', 
-                                    textDecoration: 'underline',
-                                    fontWeight: 600, fontSize: '0.95rem', 
-                                    display: 'flex', justifyContent: 'center', cursor: 'pointer'
-                                }}
-                            >
-                                {t('Bỏ qua & tiếp tục gọi món')}
-                            </button>
-                        </div>
-                    </div>
-                ) : (
+                {!isLoginView && (
                     <div 
                         className={styles.footer}
                         style={{ 
@@ -423,8 +286,22 @@ export function CartDrawer({
                                 <button 
                                     className={styles.primaryBtn} 
                                     onClick={() => {
-                                        const hasSkipped = sessionStorage.getItem('skip_guest_login');
-                                        if (isGuest && !hasSkipped) setIsLoginView(true);
+                                        if (isGuest) {
+                                            const hasSkipped = sessionStorage.getItem('skip_guest_login');
+                                            if (paytype === 'PREPAID') {
+                                                if (!allowOtpSkip || !hasSkipped) {
+                                                    setIsLoginView(true);
+                                                    return;
+                                                }
+                                            } else {
+                                                if (!hasSkipped) {
+                                                    setIsLoginView(true);
+                                                    return;
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (paytype === 'PREPAID') setIsCheckoutSheetOpen(true);
                                         else onPlaceOrder();
                                     }}
                                     style={{ 
@@ -433,13 +310,30 @@ export function CartDrawer({
                                         boxShadow: `0 8px 24px ${theme.accentLight}`
                                     }}
                                 >
-                                    {t('Gửi gọi món')} <ChevronRight size={18} strokeWidth={2.5} />
+                                    {paytype === 'PREPAID' ? t(`Thanh toán (${total.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}đ)`) : t('Gửi gọi món')} <ChevronRight size={18} strokeWidth={2.5} />
                                 </button>
                             )}
                         </div>
                     </div>
                 )}
             </div>
+            
+            {isCheckoutSheetOpen && (
+                <CheckoutSheet 
+                    isOpen={isCheckoutSheetOpen}
+                    onClose={() => setIsCheckoutSheetOpen(false)}
+                    total={total}
+                    isProcessing={isProcessingPayment}
+                    onConfirmPayment={async (method, voucher) => {
+                        setIsProcessingPayment(true);
+                        // metadata for the order call
+                        await onPlaceOrder({ paymentMethod: method, voucherCode: voucher, isPaidUpfront: true });
+                        setIsProcessingPayment(false);
+                        setIsCheckoutSheetOpen(false);
+                        onClose();
+                    }}
+                />
+            )}
         </div>
     );
 }
