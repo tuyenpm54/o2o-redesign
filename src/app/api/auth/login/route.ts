@@ -20,7 +20,7 @@ export async function POST(request: Request) {
         // Find existing verified user
         let user = await db.get('SELECT * FROM users WHERE phone = ? OR email = ?', [identifier, identifier]);
         const isEmail = identifier.includes('@');
-        let userId: string;
+        let userId: string = '';
 
         if (user) {
             // Scenario B: User exists -> Switch session to this user.

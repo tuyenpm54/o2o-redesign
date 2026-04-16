@@ -129,7 +129,7 @@ export function MenuHeader({
                                             <button
                                                 key={lang.code}
                                                 onClick={() => {
-                                                    setLanguage(lang.code);
+                                                    setLanguage(lang.code as 'vi' | 'en');
                                                     setShowLanguageMenu(false);
                                                 }}
                                                 style={{

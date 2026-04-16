@@ -13,9 +13,10 @@ interface OrderAuthBlockProps {
 
 export function OrderAuthBlock({ onSuccess, onSkip, allowOtpSkip }: OrderAuthBlockProps) {
     const { t } = useLanguage();
-    const { theme, timeOfDay, interactiveBorder } = useMenuContext();
+    const { theme, timeOfDay } = useMenuContext();
     const isDark = timeOfDay === 'evening';
     const disabledBg = isDark ? '#334155' : '#94A3B8';
+    const interactiveBorder = isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0';
     
     const { login } = useAuth();
     

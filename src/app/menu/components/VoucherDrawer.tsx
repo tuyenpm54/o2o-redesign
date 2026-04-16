@@ -137,7 +137,7 @@ export function VoucherDrawer({ isOpen, onClose, onSelectVoucher, selectedVouche
                                 <div style={{ 
                                     width: '100px', background: selectedVoucher === v.code ? theme.accent : interactiveBg,
                                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                    color: selectedVoucher === v.code ? '#fff' : theme.accent, pading: 12
+                                    color: selectedVoucher === v.code ? '#fff' : theme.accent, padding: 12
                                 }}>
                                     <Ticket size={28} strokeWidth={2} style={{ marginBottom: 4 }} />
                                     <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{v.code}</span>

@@ -33,7 +33,7 @@ export async function POST(request: Request) {
                 await db.run('UPDATE system_sessions SET system_user_id = ?, expires = ?, lastActive = ? WHERE id = ?',
                     [userId, expires, Date.now(), existingSessionId]);
             } else {
-                sessionId = null;
+                sessionId = undefined;
             }
         }
         

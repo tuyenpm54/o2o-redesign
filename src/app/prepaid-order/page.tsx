@@ -6,7 +6,7 @@ import { useMenuContext } from '../menu/hooks/useMenuContext';
 
 type OrderStatus = 'pending' | 'cooking' | 'ready' | 'completed';
 
-export default function PrepaidOrderDetail() {
+function PrepaidOrderDetailContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const fromUrl = searchParams.get('from') || '/menu';
@@ -331,5 +331,13 @@ export default function PrepaidOrderDetail() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function PrepaidOrderDetail() {
+    return (
+        <React.Suspense fallback={<div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Đang tải...</div>}>
+            <PrepaidOrderDetailContent />
+        </React.Suspense>
     );
 }

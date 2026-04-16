@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { ApiSuccess, ApiError } from '@/lib/api-response';
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const id = params.id;
+        const id = (await params).id;
         const { tableid, payment_model } = await request.json();
         
         const db = await getDb();
@@ -22,9 +22,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const id = params.id;
+        const id = (await params).id;
         const db = await getDb();
         
         await db.run(`DELETE FROM qr_codes WHERE id = ?`, [id]);

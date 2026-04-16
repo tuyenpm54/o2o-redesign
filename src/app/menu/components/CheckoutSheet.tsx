@@ -45,8 +45,11 @@ export function CheckoutSheet({
     allowOtpSkip = true 
 }: CheckoutSheetProps) {
     const { t, language } = useLanguage();
-    const { theme, timeOfDay, interactiveBg, interactiveBorder } = useMenuContext(); 
+    const { theme, timeOfDay } = useMenuContext(); 
     const isDark = timeOfDay === 'evening';
+    const interactiveBg = isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC';
+    const interactiveBorder = isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0';
+
     const searchParams = useSearchParams();
     const tableid = searchParams?.get('tableid');
     const { isGuest, login } = useAuth();
@@ -519,12 +522,11 @@ export function CheckoutSheet({
                 <VoucherDrawer 
                     isOpen={isVoucherDrawerOpen}
                     onClose={() => setIsVoucherDrawerOpen(false)}
-                    totalAmount={total}
-                    onApplyVoucher={(code) => {
-                        setVoucherCode(code);
+                    onSelectVoucher={(code) => {
+                        setVoucherCode(code ?? "");
                         setIsVoucherDrawerOpen(false);
                     }}
-                    appliedVoucher={voucherCode}
+                    selectedVoucher={voucherCode}
                 />
 
                 <PaymentMethodDrawer

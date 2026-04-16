@@ -172,7 +172,7 @@ export async function POST(request: Request) {
 
             // ✅ For Pre-paid models (Trả trước), create a PAID invoice immediately for this round
             if (isPaidUpfront) {
-                const totalAmount = itemsToOrder.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+                const totalAmount = itemsToOrder.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
                 const invoiceId = `inv_${timestamp}_${Math.random().toString(36).substr(2, 5)}`;
                 await db.run(
                     `INSERT INTO invoices (id, table_session_id, resid, tableid, subtotal, vat_amount, total, status) VALUES (?, ?, ?, ?, ?, 0, ?, 'PAID')`,
