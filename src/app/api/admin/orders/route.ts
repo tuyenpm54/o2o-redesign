@@ -7,13 +7,14 @@ export async function GET() {
     try {
         const db = await getDb();
 
-        // ✅ Only fetch order items from ACTIVE table sessions (current invoices)
-        // ✅ Only fetch items that have been CONFIRMED (not 'Chờ xác nhận') — KDS only sees confirmed items
+        // ✅ Fetch order items from ACTIVE table sessions OR items that are still incomplete in PAID prepaid sessions
         const allOrderItems = await db.all(`
             SELECT oi.*, u.name as user_name
             FROM order_items oi
-            JOIN table_sessions ts ON oi.table_session_id = ts.id AND ts.status = 'ACTIVE'
+            JOIN table_sessions ts ON oi.table_session_id = ts.id
             LEFT JOIN users u ON oi.user_id = u.id
+            WHERE ts.status = 'ACTIVE' 
+               OR (ts.status = 'PAID' AND oi.status IN ('Chờ xác nhận', 'Đã xác nhận', 'Đang chế biến', 'Chờ phục vụ'))
             ORDER BY oi.timestamp ASC
         `);
 
@@ -21,13 +22,15 @@ export async function GET() {
             return NextResponse.json({ tables: [] });
         }
 
-        // Fetch rounds for context
         const activeRounds = await db.all(`
             SELECT r.*, u.name as user_name
             FROM order_rounds r
-            JOIN table_sessions ts ON r.table_session_id = ts.id AND ts.status = 'ACTIVE'
+            JOIN table_sessions ts ON r.table_session_id = ts.id
             LEFT JOIN users u ON r.user_id = u.id
-            WHERE r.status = 'Đã xác nhận'
+            WHERE (ts.status = 'ACTIVE' OR r.id IN (
+                SELECT DISTINCT order_round_id FROM order_items WHERE status IN ('Chờ xác nhận', 'Đã xác nhận', 'Đang chế biến', 'Chờ phục vụ')
+            ))
+            AND r.status = 'Đã xác nhận'
             ORDER BY r.created_at ASC
         `);
 
