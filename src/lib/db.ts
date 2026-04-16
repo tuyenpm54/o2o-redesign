@@ -147,6 +147,13 @@ async function initDb(database: DBWrapper) {
     );
 
     -- System Sessions
+    ALTER TABLE system_users ADD COLUMN IF NOT EXISTS email TEXT;
+    ALTER TABLE system_users ADD COLUMN IF NOT EXISTS phone TEXT;
+    ALTER TABLE system_users ADD COLUMN IF NOT EXISTS name TEXT;
+    ALTER TABLE system_users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'ADMIN';
+    ALTER TABLE system_users ADD COLUMN IF NOT EXISTS managed_chain_id TEXT;
+    ALTER TABLE system_users ADD COLUMN IF NOT EXISTS avatar TEXT;
+
     CREATE TABLE IF NOT EXISTS system_sessions (
       id TEXT PRIMARY KEY,
       system_user_id TEXT,
@@ -499,10 +506,10 @@ async function initDb(database: DBWrapper) {
       INSERT INTO tables (id, name) VALUES ('A-12', 'Bàn A-12') ON CONFLICT (id) DO NOTHING;
       INSERT INTO tables (id, name) VALUES ('T-1', 'Bàn 1') ON CONFLICT (id) DO NOTHING;
       INSERT INTO tables (id, name) VALUES ('COUNTER', 'Quầy thu ngân') ON CONFLICT (id) DO NOTHING;
-      INSERT INTO system_users (id, phone, email, name, role) VALUES ('SU1', '0981112222', 'admin@o2o.vn', 'Quản lý Nhà hàng', 'ADMIN') ON CONFLICT DO NOTHING;
-      INSERT INTO system_users (id, phone, email, name, role) VALUES ('SU2', '0988888888', 'hq@o2o.vn', 'Quản lý Chuỗi', 'CHAIN_MANAGER') ON CONFLICT DO NOTHING;
+      INSERT INTO system_users (id, phone, email, name, role) VALUES ('SU1', '0981112222', 'admin@o2o.vn', 'Quản lý Nhà hàng', 'ADMIN') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO system_users (id, phone, email, name, role) VALUES ('SU2', '0988888888', 'hq@o2o.vn', 'Quản lý Chuỗi', 'CHAIN_MANAGER') ON CONFLICT (id) DO NOTHING;
       INSERT INTO restaurants (id, name, address) VALUES ('100', 'Nhà hàng O2O Demo', '123 Nguyễn Trãi, Q.1, TP.HCM') ON CONFLICT (id) DO NOTHING;
-      INSERT INTO user_restaurants (id, system_user_id, restaurant_id) VALUES ('ur_SU1_100', 'SU1', '100') ON CONFLICT DO NOTHING;
+      INSERT INTO user_restaurants (id, system_user_id, restaurant_id) VALUES ('ur_SU1_100', 'SU1', '100') ON CONFLICT (id) DO NOTHING;
       INSERT INTO qr_codes (id, resid, tableid, payment_model) VALUES ('qr_a12', '100', 'A-12', 'POST_PAY_TABLE') ON CONFLICT (id) DO NOTHING;
       INSERT INTO qr_codes (id, resid, tableid, payment_model) VALUES ('qr_t1', '100', 'T-1', 'POST_PAY_TABLE') ON CONFLICT (id) DO NOTHING;
       INSERT INTO qr_codes (id, resid, tableid, payment_model) VALUES ('qr_counter', '100', 'COUNTER', 'PRE_PAY_COUNTER') ON CONFLICT (id) DO NOTHING;
