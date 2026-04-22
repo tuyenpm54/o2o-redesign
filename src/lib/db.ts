@@ -511,6 +511,7 @@ async function initDb(database: DBWrapper) {
       INSERT INTO tables (id, name) VALUES ('COUNTER', 'Quầy thu ngân') ON CONFLICT (id) DO NOTHING;
       INSERT INTO system_users (id, phone, email, name, role) VALUES ('SU1', '0981112222', 'admin@o2o.vn', 'Quản lý Nhà hàng', 'ADMIN') ON CONFLICT (id) DO NOTHING;
       INSERT INTO system_users (id, phone, email, name, role) VALUES ('SU2', '0988888888', 'hq@o2o.vn', 'Quản lý Chuỗi', 'CHAIN_MANAGER') ON CONFLICT (id) DO NOTHING;
+      INSERT INTO system_users (id, phone, email, name, role) VALUES ('SU_MOCK', 'demo-mock', 'demo@o2o.vn', 'Reviewer (Mock Data)', 'ADMIN') ON CONFLICT (id) DO NOTHING;
       INSERT INTO restaurants (id, name, address) VALUES ('100', 'Nhà hàng O2O Demo', '123 Nguyễn Trãi, Q.1, TP.HCM') ON CONFLICT (id) DO NOTHING;
       INSERT INTO user_restaurants (id, system_user_id, restaurant_id) VALUES ('ur_SU1_100', 'SU1', '100') ON CONFLICT (id) DO NOTHING;
       INSERT INTO qr_codes (id, resid, tableid, payment_model) VALUES ('qr_a12', '100', 'A-12', 'POST_PAY_TABLE') ON CONFLICT (id) DO NOTHING;
