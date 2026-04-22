@@ -11,12 +11,13 @@ export default async function MenuPage(props: PageProps) {
     const style = (searchParams.style as string) || 'menu';
     const paytype = (searchParams.paytype as string);
     const rawTableId = searchParams.tableid || searchParams.tableId;
+    const isPreview = searchParams.preview === '1';
     
     let tableid = rawTableId as string;
     
     // Strict Domain Logic
-    if (paytype === 'PREPAID') {
-        tableid = rawTableId ? (rawTableId as string) : 'COUNTER';
+    if (paytype === 'PREPAID' || isPreview) {
+        tableid = rawTableId ? (rawTableId as string) : (isPreview ? 'PREVIEW_TABLE' : 'COUNTER');
     } else {
         if (!rawTableId) {
             return (
@@ -32,9 +33,15 @@ export default async function MenuPage(props: PageProps) {
     const resid = (searchParams.resid || searchParams.resId || '100') as string;
 
     const db = await getDb();
-    const table = tableid === 'COUNTER' 
-        ? { id: 'COUNTER' } 
-        : await db.get('SELECT id FROM tables WHERE id = ?', [tableid]);
+    let table = null;
+    
+    if (isPreview) {
+        table = { id: 'PREVIEW_TABLE' };
+    } else {
+        table = tableid === 'COUNTER' 
+            ? { id: 'COUNTER' } 
+            : await db.get('SELECT id FROM tables WHERE id = ?', [tableid]);
+    }
 
     if (!table) {
         return (
@@ -47,20 +54,25 @@ export default async function MenuPage(props: PageProps) {
     }
 
     let configData = null;
-    const configRow = await db.get('SELECT published_blocks FROM restaurant_display_configs WHERE res_id = ?', [resid]);
-    if (configRow && configRow.published_blocks && configRow.published_blocks !== '[]') {
-        const parsed = JSON.parse(configRow.published_blocks);
-        const validTypes = ['for-you', 'combo', 'best-sale', 'custom', 'menu-grid', 'onboarding-wizard'];
-        const validBlocks = parsed.filter((b: any) => validTypes.includes(b.type));
-        if (validBlocks.length > 0 && validBlocks.some((b: any) => b.type === 'for-you')) {
-            configData = validBlocks;
-        } else {
-            // Rỗng do toàn bộ block cũ (ví dụ: smart-suggestions) bị deprecated
-            configData = null; 
-        }
-    } 
+    if (isPreview) {
+        // Provide a stub config for preview mode, actual config will be fed via postMessage in ClientWrapper
+        configData = [];
+    } else {
+        const configRow = await db.get('SELECT published_blocks FROM restaurant_display_configs WHERE res_id = ?', [resid]);
+        if (configRow && configRow.published_blocks && configRow.published_blocks !== '[]') {
+            const parsed = JSON.parse(configRow.published_blocks);
+            const validTypes = ['for-you', 'combo', 'best-sale', 'custom', 'menu-grid', 'onboarding-wizard'];
+            const validBlocks = parsed.filter((b: any) => validTypes.includes(b.type));
+            if (validBlocks.length > 0 && validBlocks.some((b: any) => b.type === 'for-you')) {
+                configData = validBlocks;
+            } else {
+                // Rỗng do toàn bộ block cũ (ví dụ: smart-suggestions) bị deprecated
+                configData = null; 
+            }
+        } 
+    }
     
-    if (!configData) {
+    if (!configData && !isPreview) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', padding: '24px', textAlign: 'center', background: '#f8fafc' }}>
                 <div style={{ width: '80px', height: '80px', background: '#e0e7ff', color: '#4f46e5', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '32px', marginBottom: '16px' }}>⚙️</div>
@@ -72,7 +84,7 @@ export default async function MenuPage(props: PageProps) {
 
     return (
         <Suspense fallback={<div>Đang tải giao diện...</div>}>
-            <ClientWrapper style={style} tableid={tableid} resid={resid} displayConfig={configData} />
+            <ClientWrapper style={style} tableid={tableid} resid={resid} displayConfig={configData} isPreview={isPreview} />
         </Suspense>
     );
 }

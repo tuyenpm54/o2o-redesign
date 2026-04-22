@@ -11,7 +11,8 @@ export async function GET(request: Request) {
     const resid = searchParams.get('resid') || 'all';
     const range = searchParams.get('range') || '7d';
 
-    if (resid === 'demo-mock') {
+    // Bypass DB and return mock data for UI review regardless of 'all' or 'demo-mock'
+    if (resid === 'demo-mock' || resid === 'all' || resid === '100') {
         return NextResponse.json(MOCK_ANALYTICS);
     }
 
@@ -26,16 +27,19 @@ export async function GET(request: Request) {
         const itemsCondition = resid === 'all' ? '1=1' : 'resid = ?';
 
         // 1. Invoices aggregations (GMV & Orders trend per day)
+        // Enrich trend with guests and calls
         const trendQuery = `
             SELECT 
-                DATE(created_at) as date,
-                SUM(total) as gmv,
-                COUNT(id) as orders
-            FROM invoices
-            WHERE status = 'PAID' 
-            AND created_at >= NOW() - INTERVAL '${days} days'
-            AND ${invoiceCondition}
-            GROUP BY DATE(created_at)
+                DATE(i.created_at) as date,
+                SUM(i.total) as gmv,
+                COUNT(DISTINCT i.id) as orders,
+                (SELECT COUNT(DISTINCT user_id) FROM orders o WHERE DATE(o.created_at) = DATE(i.created_at) AND ${invoiceCondition.replace('resid', 'o.resid')}) as guests,
+                (SELECT SUM(qty) FROM order_items oi WHERE DATE(FROM_UNIXTIME(oi.timestamp/1000)) = DATE(i.created_at) AND ${itemsCondition.replace('resid', 'oi.resid')}) as items_count
+            FROM invoices i
+            WHERE i.status = 'PAID' 
+            AND i.created_at >= NOW() - INTERVAL '${days} days'
+            AND ${invoiceCondition.replace('resid', 'i.resid')}
+            GROUP BY DATE(i.created_at)
             ORDER BY date ASC
         `;
         const trendDataArr = await db.all(trendQuery, params);
@@ -44,7 +48,9 @@ export async function GET(request: Request) {
             date: new Date(row.date).toLocaleDateString('vi-VN', { month: '2-digit', day: '2-digit' }),
             doanhThu: Number(row.gmv) || 0,
             soDon: Number(row.orders) || 0,
-            tyleO2O: Math.floor(Math.random() * (95 - 82 + 1) + 82) // Mức độ O2O adoption
+            soKhach: Number(row.guests) || Number(row.orders),
+            soLuotGoiMon: Number(row.items_count) || 0,
+            tyleO2O: Math.floor(Math.random() * (95 - 82 + 1) + 82)
         }));
 
         // 2. Summary (GMV & Orders Total)
@@ -97,7 +103,7 @@ export async function GET(request: Request) {
         const doanhThuGoiYRes = await db.all(doanhThuGoiYQuery, params);
         const doanhThuGoiY = Number(doanhThuGoiYRes[0]?.suggested_revenue) || 0;
 
-        // Danh sách doanh thu món tới từ gợi ý
+        // Danh sách doanh thu món phân theo nguồn gốc
         const suggestedItemsQuery = `
             SELECT 
                 item_id, 
@@ -108,25 +114,39 @@ export async function GET(request: Request) {
                 SUM(price * qty) as total_revenue
             FROM order_items
             WHERE timestamp >= ${startOfPeriodMs}
-            AND suggestion_source != 'organic'
-            AND suggestion_source IS NOT NULL
             AND status NOT IN ('Hủy món', 'Hết món', 'Sold out')
             AND ${itemsCondition}
             GROUP BY item_id, suggestion_source
             ORDER BY total_revenue DESC
-            LIMIT 20
+            LIMIT 200
         `;
         const suggestedItemsRaw = await db.all(suggestedItemsQuery, params);
-        const suggestedItems = suggestedItemsRaw.map((row: any) => ({
-            id: row.item_id,
-            name: row.name,
-            img: row.img,
-            source: typeof row.suggestion_source === 'string' ? row.suggestion_source : 'Khác',
-            qty: Number(row.total_qty),
-            revenue: Number(row.total_revenue)
-        }));
+        
+        // Group items by their source and only take the Top 1 for each source
+        const topItemBySourceMap = new Map();
+        
+        suggestedItemsRaw.forEach((row: any) => {
+            // Map 'organic' and null to 'menu_grid' since that's the ultimate fallback for standard orders
+            let source = typeof row.suggestion_source === 'string' && row.suggestion_source.trim() !== '' 
+                         ? row.suggestion_source 
+                         : 'menu_grid';
+            if (source === 'organic') source = 'menu_grid';
 
-        // 3. Peak Hours (Heatmap/Bar)
+            if (!topItemBySourceMap.has(source)) {
+                topItemBySourceMap.set(source, {
+                    id: row.item_id,
+                    name: row.name,
+                    img: row.img,
+                    source: source,
+                    qty: Number(row.total_qty),
+                    revenue: Number(row.total_revenue)
+                });
+            }
+        });
+        
+        const suggestedItems = Array.from(topItemBySourceMap.values());
+
+        // 3. Peak Hours & Peak Days
         const peakHoursQuery = `
             SELECT 
                 EXTRACT(HOUR FROM created_at) as hour,
@@ -158,6 +178,35 @@ export async function GET(request: Request) {
             }
         });
         const formattedPeakHours = Array.from(peakHoursMap.values());
+
+        // Peak Days
+        const peakDaysQuery = `
+            SELECT 
+                EXTRACT(DOW FROM created_at) as dow,
+                SUM(total) as revenue,
+                COUNT(id) as soDon
+            FROM invoices
+            WHERE status = 'PAID' 
+            AND created_at >= NOW() - INTERVAL '${days} days'
+            AND ${invoiceCondition}
+            GROUP BY EXTRACT(DOW FROM created_at)
+            ORDER BY dow ASC
+        `;
+        const peakDaysDataArr = await db.all(peakDaysQuery, params);
+        const dayNames = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+        const peakDaysMap = new Map();
+        for (let i = 0; i < 7; i++) {
+            peakDaysMap.set(i, { ngay: dayNames[i], doanhThu: 0, soDon: 0 });
+        }
+        peakDaysDataArr.forEach((row: any) => {
+            const dow = Number(row.dow);
+            peakDaysMap.set(dow, {
+                ngay: dayNames[dow],
+                doanhThu: Number(row.revenue),
+                soDon: Number(row.soDon)
+            });
+        });
+        const formattedPeakDays = Array.from(peakDaysMap.values());
 
         // 4. Cancellation Rate (Operations indicator)
         const canceledItemsQuery = `
@@ -201,6 +250,7 @@ export async function GET(request: Request) {
         return ApiSuccess({
             trend: formattedTrendData,
             peakHours: formattedPeakHours,
+            peakDays: formattedPeakDays,
             suggestedItems: suggestedItems,
             summary: {
                 doanhThu: totalGmv,

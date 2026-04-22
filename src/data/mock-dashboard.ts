@@ -5,7 +5,25 @@ export const MOCK_LIVE_PULSE = {
     neglectedTablesCount: 2,
     stockoutCount: 5,
     activeTablesCount: 15,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    liveRevenue: 4500000,
+    todayRevenue: 28500000,
+    queueVolumes: {
+      pending_to_confirmed: 12,
+      confirmed_to_cooking: 45,
+      cooking_to_ready: 18,
+      ready_to_served: 5
+    },
+    hotItems: [
+      { name: "Cơm chiên hải sản", qty: 15 },
+      { name: "Lẩu Thái Tomyum", qty: 8 },
+      { name: "Bò lúc lắc", qty: 6 }
+    ],
+    urgentFeed: [
+      { id: "1", type: "review", tableid: "A-12", content: "Đánh giá 1 sao: Lên món quá chậm, đồ ăn thì nguội.", timestamp: Date.now() - 5 * 60000, label: "5 phút trước" },
+      { id: "2", type: "request", tableid: "T-05", content: "Khách hối xuất món (Quá 25 phút chưa lên thức ăn).", timestamp: Date.now() - 12 * 60000, label: "12 phút trước" },
+      { id: "3", type: "request", tableid: "VIP-2", content: "Yêu cầu dọn dẹp bàn do đổ nước.", timestamp: Date.now() - 25 * 60000, label: "25 phút trước" }
+    ]
   }
 };
 
@@ -24,17 +42,128 @@ export const MOCK_SLA_TRACKER = {
       confirmed_to_cooking: { target: 3 },
       cooking_to_ready: { target: 15 },
       ready_to_served: { target: 2 }
-    }
+    },
+    totalOrdersToday: 410,
+    servedToday: 405
   }
 };
 
 export const MOCK_TABLE_OCCUPANCY = {
   success: true,
   data: {
-    occupied: 18,
+    active: 18,
     total: 25,
-    rate: 72,
-    soonEmpty: 3
+    occupancyRate: 72,
+    guestCount: 65,
+    avgGuestsPerTable: 3.6,
+    avgSessionMinutes: 45,
+    activeTablesList: [
+      { id: 'T1', areaName: 'Tầng 1', guestCount: 4, status: 'WAITING', idleMinutes: 2, sessionStartMinutes: 5 },
+      { id: 'T2', areaName: 'Tầng 1', guestCount: 2, status: 'WAITING', idleMinutes: 8, sessionStartMinutes: 8 },
+      { id: 'T3', areaName: 'Tầng 1', guestCount: 3, status: 'SERVING', idleMinutes: 12, sessionStartMinutes: 25 },
+      { id: 'T4', areaName: 'Tầng 1', guestCount: 5, status: 'SERVING', idleMinutes: 5, sessionStartMinutes: 18 },
+      { id: 'T5', areaName: 'Tầng 1', guestCount: 0, status: 'EMPTY', idleMinutes: 0, sessionStartMinutes: 0 },
+      { id: 'V1', areaName: 'Phòng VIP', guestCount: 4, status: 'DONE', idleMinutes: 22, sessionStartMinutes: 65 },
+      { id: 'V2', areaName: 'Phòng VIP', guestCount: 2, status: 'DONE', idleMinutes: 35, sessionStartMinutes: 70 },
+      { id: 'V3', areaName: 'Phòng VIP', guestCount: 0, status: 'EMPTY', idleMinutes: 0, sessionStartMinutes: 0 },
+      { id: 'OUT-1', areaName: 'Sân Vườn', guestCount: 4, status: 'DONE', idleMinutes: 18, sessionStartMinutes: 55 },
+      { id: 'OUT-2', areaName: 'Sân Vườn', guestCount: 0, status: 'EMPTY', idleMinutes: 0, sessionStartMinutes: 0 }
+    ]
+  }
+};
+
+export const MOCK_MENU_EFFICIENCY = {
+  success: true,
+  data: {
+    // Hero metrics (average seconds)
+    avgBrowse: 165,       // 2:45 — QR scan → first cart add
+    avgDecide: 62,        // 1:02 — first cart add → submit order
+    avgTotal: 252,         // 4:12 — QR scan → submit order
+    dropOffRate: 4.2,     // % scanned but never ordered
+    // Comparison vs previous period
+    browseDelta: -12,     // % change vs last period (negative = improved)
+    decideDelta: 3,
+    totalDelta: -8,
+    dropOffDelta: -1.1,
+    // Daily trend (seconds)
+    trend: [
+      { date: '15/04', browse: 195, decide: 72, total: 290 },
+      { date: '16/04', browse: 180, decide: 65, total: 268 },
+      { date: '17/04', browse: 172, decide: 68, total: 260 },
+      { date: '18/04', browse: 160, decide: 58, total: 235 },
+      { date: '19/04', browse: 155, decide: 60, total: 238 },
+      { date: '20/04', browse: 148, decide: 55, total: 220 },
+      { date: '21/04', browse: 142, decide: 50, total: 210 },
+    ],
+    // Funnel (absolute numbers)
+    funnel: [
+      { step: 'Quét QR', count: 680, rate: 100 },
+      { step: 'Mở menu', count: 665, rate: 97.8 },
+      { step: 'Xem chi tiết món', count: 580, rate: 85.3 },
+      { step: 'Thêm vào giỏ', count: 572, rate: 84.1 },
+      { step: 'Gửi đơn hàng', count: 548, rate: 80.6 },
+    ],
+    // Nguồn gốc món đầu tiên được thêm vào giỏ hàng — map 1:1 với module/source thật trong hệ thống
+    // Tracking: cart_items.source hoặc order_items.suggestion_source khi thêm vào giỏ
+    firstItemSource: [
+      { source: 'menu_grid',       label: 'Menu chính (lướt)',           count: 285, percent: 42, color: '#0f172a' },
+      { source: 'onboarding',      label: 'Onboarding Wizard',           count: 137, percent: 20, color: '#6366f1' },
+      { source: 'best_seller',     label: 'Siêu phẩm bán chạy',         count: 89,  percent: 13, color: '#ef4444' },
+      { source: 'search',          label: 'Ô tìm kiếm',                  count: 75,  percent: 11, color: '#f59e0b' },
+      { source: 'history',         label: 'Món bạn từng chọn',           count: 48,  percent: 7,  color: '#10b981' },
+      { source: 'combo',           label: 'Combo tiết kiệm',             count: 27,  percent: 4,  color: '#8b5cf6' },
+      { source: 'cart_recommend',  label: 'Gợi ý khi thanh toán',        count: 14,  percent: 2,  color: '#06b6d4' },
+      { source: 'flash_sale',      label: 'Flash Sale / Banner',          count: 5,   percent: 1,  color: '#ec4899' },
+    ],
+    // Hành vi đặt món — các con số này đo được từ dữ liệu order_items + cart_items thực tế
+    // Không cần client tracking event, chỉ cần query database
+    orderingBehavior: {
+      // Trung bình số món trong giỏ khi bấm gọi lần 1 (= AVG count cart_items khi round_number=1)
+      avgItemsFirstOrder: 3.4,
+      // Trung bình số lượt gọi món trên 1 bàn (= AVG count order_rounds per table_session)
+      avgRoundsPerTable: 2.1,
+      // Tỉ lệ khách chỉ gọi đúng 1 lượt rồi thanh toán (= % table_sessions có 1 round)
+      singleRoundRate: 38,
+      // Tỉ lệ khách gọi ≥3 lượt (= % table_sessions có ≥3 rounds — nghĩa là menu hấp dẫn)
+      multiRoundRate: 25,
+    },
+    // So sánh trước/sau khi đổi menu — null nếu chưa có lần đổi menu nào được ghi nhận
+    // Chủ quán đánh dấu "Tôi đã đổi menu" trên trang Admin → hệ thống tự snapshot metrics tại ngày đó
+    menuChange: {
+      changeDate: '18/04/2026',
+      changeLabel: 'Tái cấu trúc Category + Thêm ảnh lớn',
+      before: { avgBrowse: 185, avgTotal: 278, dropOff: 5.1 },
+      after:  { avgBrowse: 148, avgTotal: 220, dropOff: 3.8 },
+    }
+    // Set menuChange = null to simulate "chưa đổi menu lần nào"
+  }
+};
+
+// ── MODEL C: Counter Dispatch Center ──
+export const MOCK_ORDER_QUEUE = {
+  success: true,
+  data: {
+    // Aggregated metrics
+    activeOrderCount: 12,
+    totalCustomersToday: 87,
+    avgFulfillmentMinutes: 8.5,
+    liveRevenue: 3200000,
+    avgBillAmount: 85000,
+    // Ready Board: orders cooked, waiting for pickup
+    readyOrders: [
+      { orderId: '#C-041', customerName: 'Minh Anh', itemCount: 3, readyAt: Date.now() - 2 * 60000, waitingMinutes: 2 },
+      { orderId: '#C-038', customerName: 'Khách lẻ', itemCount: 1, readyAt: Date.now() - 7 * 60000, waitingMinutes: 7 },
+      { orderId: '#C-035', customerName: 'Thanh Hà', itemCount: 4, readyAt: Date.now() - 13 * 60000, waitingMinutes: 13 },
+    ],
+    // Active Queue: orders currently being processed
+    activeOrders: [
+      { orderId: '#C-045', customerName: 'Khách lẻ', itemCount: 2, status: 'pending', createdAt: Date.now() - 1 * 60000, waitingMinutes: 1 },
+      { orderId: '#C-044', customerName: 'Đức Trí', itemCount: 3, status: 'pending', createdAt: Date.now() - 3 * 60000, waitingMinutes: 3 },
+      { orderId: '#C-043', customerName: 'Khách lẻ', itemCount: 1, status: 'cooking', createdAt: Date.now() - 5 * 60000, waitingMinutes: 5 },
+      { orderId: '#C-042', customerName: 'Quỳnh Như', itemCount: 5, status: 'cooking', createdAt: Date.now() - 8 * 60000, waitingMinutes: 8 },
+      { orderId: '#C-040', customerName: 'Phúc An', itemCount: 2, status: 'cooking', createdAt: Date.now() - 11 * 60000, waitingMinutes: 11 },
+      { orderId: '#C-039', customerName: 'Khách lẻ', itemCount: 4, status: 'cooking', createdAt: Date.now() - 14 * 60000, waitingMinutes: 14 },
+    ]
   }
 };
 
@@ -42,13 +171,13 @@ export const MOCK_ANALYTICS = {
   success: true,
   data: {
     trend: [
-      { date: '01/04', doanhThu: 15000000, soDon: 45, tyleO2O: 85 },
-      { date: '02/04', doanhThu: 18500000, soDon: 52, tyleO2O: 88 },
-      { date: '03/04', doanhThu: 14200000, soDon: 41, tyleO2O: 82 },
-      { date: '04/04', doanhThu: 22000000, soDon: 65, tyleO2O: 90 },
-      { date: '05/04', doanhThu: 25500000, soDon: 72, tyleO2O: 92 },
-      { date: '06/04', doanhThu: 19800000, soDon: 55, tyleO2O: 86 },
-      { date: '07/04', doanhThu: 28000000, soDon: 80, tyleO2O: 94 }
+      { date: '01/04', doanhThu: 15000000, soDon: 45, soKhach: 60, soLuotGoiMon: 110, tyleO2O: 85 },
+      { date: '02/04', doanhThu: 18500000, soDon: 52, soKhach: 71, soLuotGoiMon: 140, tyleO2O: 88 },
+      { date: '03/04', doanhThu: 14200000, soDon: 41, soKhach: 55, soLuotGoiMon: 95, tyleO2O: 82 },
+      { date: '04/04', doanhThu: 22000000, soDon: 65, soKhach: 85, soLuotGoiMon: 175, tyleO2O: 90 },
+      { date: '05/04', doanhThu: 25500000, soDon: 72, soKhach: 95, soLuotGoiMon: 210, tyleO2O: 92 },
+      { date: '06/04', doanhThu: 19800000, soDon: 55, soKhach: 75, soLuotGoiMon: 150, tyleO2O: 86 },
+      { date: '07/04', doanhThu: 28000000, soDon: 80, soKhach: 110, soLuotGoiMon: 245, tyleO2O: 94 }
     ],
     peakHours: [
       { gio: '10h', doanhThu: 1500000, soDon: 10 },
@@ -62,12 +191,24 @@ export const MOCK_ANALYTICS = {
       { gio: '20h', doanhThu: 9000000, soDon: 48 },
       { gio: '21h', doanhThu: 4000000, soDon: 20 }
     ],
+    peakDays: [
+      { ngay: 'Thứ 2', doanhThu: 14200000, soDon: 41 },
+      { ngay: 'Thứ 3', doanhThu: 15000000, soDon: 45 },
+      { ngay: 'Thứ 4', doanhThu: 18500000, soDon: 52 },
+      { ngay: 'Thứ 5', doanhThu: 19800000, soDon: 55 },
+      { ngay: 'Thứ 6', doanhThu: 22000000, soDon: 65 },
+      { ngay: 'Thứ 7', doanhThu: 28000000, soDon: 80 },
+      { ngay: 'Chủ Nhật', doanhThu: 25500000, soDon: 72 }
+    ],
     suggestedItems: [
       { id: '1', name: 'Sushi Cá Hồi', img: '', source: 'best_seller', qty: 24, revenue: 1200000 },
       { id: '2', name: 'Súp Miso Hảo Hạng', img: '', source: 'onboarding', qty: 15, revenue: 450000 },
       { id: '3', name: 'Trà Sữa Olong Nướng', img: '', source: 'combo', qty: 32, revenue: 1600000 },
       { id: '4', name: 'Sashimi Tổng Hợp', img: '', source: 'history', qty: 8, revenue: 2400000 },
-      { id: '5', name: 'Salad Rong Biển', img: '', source: 'cart_recommend', qty: 12, revenue: 360000 }
+      { id: '5', name: 'Salad Rong Biển', img: '', source: 'cart_recommend', qty: 12, revenue: 360000 },
+      { id: '6', name: 'Lẩu Thái Tomyum', img: '', source: 'menu_grid', qty: 85, revenue: 25500000 },
+      { id: '7', name: 'Cơm Chiên Hải Sản', img: '', source: 'search', qty: 42, revenue: 4200000 },
+      { id: '8', name: 'Trà Đào Cam Sả', img: '', source: 'flash_sale', qty: 54, revenue: 1620000 }
     ],
     summary: {
       doanhThu: 143000000,

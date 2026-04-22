@@ -1,134 +1,129 @@
 import Link from 'next/link';
-import { Check, Zap, Star, ShieldCheck } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 const plans = [
     {
         name: 'Gói Dùng Thử',
         price: '0đ',
         originalPrice: '99k',
+        discountLabel: 'Miễn phí Tháng Đầu',
         period: '',
-        desc: 'Trải nghiệm sức mạnh của nhân viên O2O thông minh ngay hôm nay.',
+        desc: 'Trải nghiệm tổng quan sức mạnh của hệ thống O2O Assistant cơ bản.',
         features: [
-            'Gợi ý món ăn cơ bản',
-            'Đồng bộ trạng thái tĩnh',
+            'Gợi ý gọi món cơ bản',
+            'Đồng bộ dữ liệu tĩnh',
             'Kiểm đồ tiêu chuẩn',
-            'Giao diện mặc định',
-            'Giới hạn bàn/lượt khách'
+            'Giới hạn giao dịch'
         ],
-        cta: 'Bắt đầu sử dụng',
+        cta: 'Bắt đầu dùng ngay',
         highlight: false,
-        icon: <ShieldCheck size={20} className="text-slate-500" />
     },
     {
         name: 'Gói Premium',
         price: '149k',
         originalPrice: '299k',
+        discountLabel: 'Giảm 50%',
         period: '/tháng',
-        desc: 'Giải pháp hoàn hảo cho nhà hàng muốn tối ưu trải nghiệm và doanh thu.',
+        desc: 'Mở khóa toàn bộ dữ liệu phân tích và trợ lý thông minh tại bàn.',
         features: [
-            'Tất cả tính năng bản Dùng thử',
-            'AI Gợi ý món ăn thông minh',
-            'Đồng bộ POS & KDS tức thời',
-            'Giao diện tuỳ chỉnh nâng cao',
-            'Phân tích & Thống kê doanh thu',
-            'Hỗ trợ kỹ thuật 24/7'
+            'O2O Assistant Premium',
+            'Không giới hạn băng thông',
+            'Truyền tải POS & KDS thời gian thực',
+            'Báo cáo & Phân tích Đa chiều'
         ],
-        cta: 'Nâng cấp Premium',
+        cta: 'Đăng ký Premium',
         highlight: true,
-        icon: <Zap size={20} className="text-yellow-400" />
     },
     {
-        name: 'Gói Ultra',
-        price: 'Tuỳ chỉnh',
+        name: 'Gói Chuỗi',
+        price: 'Tùy chỉnh',
         period: '',
-        desc: 'Dành cho chuỗi doanh nghiệp, cần thiết kế riêng biệt và độ ổn định tuyệt đối.',
+        desc: 'Dành riêng cho doanh nghiệp đa chi nhánh. Kiến trúc máy chủ độc lập.',
         features: [
-            'Mọi tính năng Premium',
-            'Phí tuỳ chỉnh giao diện 1 lần',
-            'Phí duy trì 399k / tháng',
-            'Triển khai các tính năng riêng',
-            'Kiến trúc Server độc lập',
-            'Đội ngũ hỗ trợ chuyên trách'
+            'Bản quyền Giao diện Độc quyền',
+            'Phân quyền Chi nhánh HQ',
+            'Tích hợp Hệ Sinh Thái thứ 3',
+            'Kỹ thuật hỗ trợ 24/7 chuyên biệt'
         ],
-        cta: 'Liên hệ tư vấn',
+        cta: 'Liên hệ Tư vấn',
         highlight: false,
-        icon: <Star size={20} className="text-indigo-400" />
     }
 ];
 
 export function Pricing() {
     return (
-        <section id="pricing" className="py-32 relative overflow-hidden transition-colors duration-300">
+        <section id="pricing" className="py-24 md:py-32 relative bg-slate-50 dark:bg-[#0c0c0e] transition-colors duration-300 overflow-hidden">
+            {/* Ambient Glow from DESIGN.md */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-[#DF1B41]/10 to-[#F56B0F]/10 dark:from-[#DF1B41]/20 dark:to-[#F56B0F]/20 blur-[100px] rounded-[100%] pointer-events-none z-0" />
+
             <div className="container mx-auto px-6 relative z-10">
 
-                <div className="text-center max-w-2xl mx-auto mb-20">
-                    <div className="inline-flex items-center px-4 py-2 rounded-full border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-white/[0.02] backdrop-blur-md mb-8 transition-colors">
-                        <h2 className="text-[12px] font-bold uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 font-sans">Giá cả linh hoạt</h2>
-                    </div>
-                    <h3 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-6 font-sans italic transition-colors">
-                        Đầu tư thông minh cho <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">Trải nghiệm đỉnh cao</span>
+                <div className="text-center max-w-2xl mx-auto mb-20 relative">
+                    <h2 className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#DF1B41] mb-4">
+                        Chi Phí Rõ Ràng
+                    </h2>
+                    <h3 className="text-[40px] md:text-[52px] font-medium text-slate-900 dark:text-white tracking-tight leading-[1.1] mb-6">
+                        Đầu tư thông minh cho <br className="hidden md:block" />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DF1B41] to-[#F56B0F] font-bold">Sự chuyên nghiệp.</span>
                     </h3>
-                    <p className="text-lg text-slate-600 dark:text-slate-400 font-medium leading-relaxed transition-colors">
-                        Đăng ký ngay trong tháng này để nhận ưu đãi Gạch Giá hấp dẫn nhất.
-                    </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                <div className="flex flex-col lg:flex-row items-stretch justify-center gap-6 max-w-[1100px] mx-auto">
                     {plans.map((p, i) => (
                         <div
                             key={i}
-                            className={`relative p-10 rounded-[2.5rem] border transition-all duration-500 backdrop-blur-2xl overflow-hidden ${p.highlight
-                                ? 'bg-gradient-to-br from-slate-900 to-slate-800 dark:from-white/[0.04] dark:to-white/[0.02] border-slate-800 dark:border-blue-500/30 text-white shadow-2xl dark:shadow-[0_0_60px_rgba(59,130,246,0.15)] scale-100 md:scale-[1.05] z-10'
-                                : 'bg-white/60 dark:bg-white/[0.015] border-slate-200 dark:border-white/[0.05] text-slate-900 dark:text-white hover:bg-white dark:hover:bg-white/[0.03] shadow-lg dark:shadow-none'
+                            className={`flex flex-col p-8 md:p-10 rounded-[36px] transition-all duration-300 relative w-full lg:w-[340px] group ${p.highlight
+                                ? 'bg-slate-900 dark:bg-[#111115] border-[2px] border-[#DF1B41]/30 dark:border-white/10 text-white shadow-[0_30px_60px_rgba(223,27,65,0.15)] transform lg:-translate-y-4'
+                                : 'bg-white/80 dark:bg-[#1A1A1F]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 text-slate-900 dark:text-white shadow-[0_10px_40px_rgba(0,0,0,0.03)]'
                                 }`}
                         >
+                            {/* Popular/Highlight Badge */}
                             {p.highlight && (
-                                <div className="absolute top-0 right-0 p-4">
-                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-600/20 dark:bg-blue-500/20 border border-blue-500/30 rounded-full text-blue-300 dark:text-blue-300 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
-                                        <Zap size={14} className="fill-blue-300" />
-                                        Hot nhất
-                                    </div>
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#DF1B41] to-[#F56B0F] text-white text-[11px] font-bold uppercase tracking-widest py-1.5 px-4 rounded-full flex items-center gap-1.5 shadow-lg shadow-red-500/30">
+                                    <Sparkles size={12} fill="white" /> Phổ Biến Nhất
                                 </div>
                             )}
 
-                            <div className="mb-8">
-                                <div className="flex items-center gap-3 mb-4">
-                                    {p.icon}
-                                    <h4 className={`text-xl font-bold font-sans tracking-tight ${p.highlight ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{p.name}</h4>
-                                </div>
-                                <div className="mt-6 flex flex-col justify-start">
+                            <div className="mb-4 flex-1">
+                                <h4 className={`text-[20px] font-bold tracking-tight mb-3 ${p.highlight ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{p.name}</h4>
+                                <p className={`text-[14px] font-medium leading-relaxed mb-8 h-[42px] ${p.highlight ? 'text-slate-400' : 'text-slate-500'}`}>{p.desc}</p>
+                                
+                                {/* Pronounced Pricing Area */}
+                                <div className="flex flex-col justify-end h-[100px] mb-4">
                                     {p.originalPrice && (
-                                        <div className="text-lg font-bold text-slate-400 line-through decoration-red-500 decoration-2 mb-1">
-                                            {p.originalPrice}
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className={`text-[18px] font-bold ${p.highlight ? 'text-slate-500' : 'text-slate-400'} line-through decoration-[#DF1B41] decoration-[3px] opacity-80`}>
+                                                {p.originalPrice}
+                                            </span>
+                                            <span className={`px-2.5 py-0.5 rounded-[8px] text-[11px] font-bold tracking-wider uppercase ${p.highlight ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-red-50 dark:bg-red-500/10 text-[#DF1B41] border border-red-100 dark:border-red-500/20'}`}>
+                                                {p.discountLabel}
+                                            </span>
                                         </div>
                                     )}
                                     <div className="flex items-baseline gap-1">
-                                        <span className={`text-5xl font-black tracking-tighter drop-shadow-sm ${p.highlight ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{p.price}</span>
-                                        {p.period && <span className={`text-sm font-bold uppercase tracking-widest ml-2 ${p.highlight ? 'text-slate-400' : 'text-slate-500'}`}>{p.period}</span>}
+                                        <span className={`text-[56px] font-bold tracking-tighter leading-none ${p.highlight ? 'text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400' : 'text-[#DF1B41]'}`}>
+                                            {p.price}
+                                        </span>
+                                        {p.period && <span className={`text-[15px] font-bold ml-1 ${p.highlight ? 'text-slate-400' : 'text-slate-500'}`}>{p.period}</span>}
                                     </div>
                                 </div>
-                                <p className={`mt-6 text-sm font-medium leading-relaxed min-h-[60px] ${p.highlight ? 'text-blue-100/80' : 'text-slate-500 dark:text-slate-400'}`}>{p.desc}</p>
                             </div>
 
-                            <div className={`space-y-4 mb-10 pt-8 border-t ${p.highlight ? 'border-white/10' : 'border-slate-200 dark:border-white/5'}`}>
+                            <div className="space-y-4 mb-10 pt-6 border-t border-slate-100 dark:border-white/10">
                                 {p.features.map((f, j) => (
-                                    <div key={j} className="flex items-center gap-4">
-                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border ${p.highlight
-                                            ? 'bg-blue-500/20 border-blue-500/30 text-blue-400'
-                                            : 'bg-blue-50 dark:bg-white/5 border-blue-100 dark:border-white/10 text-blue-600 dark:text-white/50'
-                                            }`}>
-                                            <Check size={12} strokeWidth={4} />
-                                        </div>
-                                        <span className={`text-[14px] font-medium tracking-tight leading-snug ${p.highlight ? 'text-slate-200' : 'text-slate-600 dark:text-slate-400'}`}>{f}</span>
+                                    <div key={j} className="flex items-start gap-4">
+                                        <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${p.highlight ? 'bg-[#DF1B41]' : 'bg-[#DF1B41]'}`} />
+                                        <span className={`text-[15px] font-medium leading-snug ${p.highlight ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'}`}>{f}</span>
                                     </div>
                                 ))}
                             </div>
 
+                            {/* Vibrant CTAs */}
                             <Link
                                 href="/login"
-                                className={`flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-[15px] transition-all duration-300 mt-auto ${p.highlight
-                                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-black/20 dark:shadow-blue-900/40'
-                                    : 'bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-white backdrop-blur-md shadow-sm dark:shadow-none'
+                                className={`flex items-center justify-center w-full py-4 rounded-full font-bold text-[15px] transition-all duration-300 shadow-sm ${p.highlight
+                                    ? 'bg-gradient-to-r from-[#DF1B41] to-[#F56B0F] text-white hover:scale-[1.02] active:scale-[0.98] shadow-[0_10px_25px_rgba(223,27,65,0.4)]'
+                                    : 'bg-white dark:bg-[#1A1A1F] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5'
                                     }`}
                             >
                                 {p.cta}
@@ -140,4 +135,3 @@ export function Pricing() {
         </section>
     );
 }
-

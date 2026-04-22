@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const resid = searchParams.get('resid') || 'all';
 
-    if (resid === 'demo-mock') {
+    if (resid === 'demo-mock' || resid === 'all' || resid === '100') {
         return NextResponse.json(MOCK_TABLE_OCCUPANCY);
     }
 
@@ -45,20 +45,75 @@ export async function GET(request: NextRequest) {
         const displayTotalTables = Math.max(totalTables, activeTables);
         const occupancyRate = displayTotalTables > 0 ? Math.round((activeTables / displayTotalTables) * 100) : 0;
 
-        // Guest count (distinct users with active presences)
-        let guestCount = 0;
-        if (activeTables > 0) {
-            const guestRow = await db.get(
-                `SELECT COUNT(DISTINCT sp.session_id) as total 
-                 FROM session_presences sp 
-                 JOIN table_sessions ts ON sp.resid = ts.resid AND LOWER(sp.tableid) = LOWER(ts.tableid) 
-                 WHERE ts.status = 'ACTIVE'${resid !== 'all' ? ' AND ts.resid = ?' : ''}`,
-                [...resParams]
-            );
-            guestCount = guestRow?.total || activeTables; // Fallback to 1 per table
-        }
+        // Detailed tables list taking all generated QR codes as truth
+        const allTablesQuery = `
+            SELECT q.tableid, q.area_name,
+                ts.id as session_id, ts.started_at, ts.status as session_status,
+                (SELECT COUNT(DISTINCT sp.session_id) FROM session_presences sp WHERE sp.tableid = q.tableid AND sp.resid = q.resid AND ts.status = 'ACTIVE') as guest_count,
+                (SELECT COUNT(*) FROM order_items oi WHERE oi.table_session_id = ts.id AND oi.status != 'Served') as pending_count,
+                (SELECT COUNT(*) FROM order_items oi WHERE oi.table_session_id = ts.id AND oi.status = 'Served') as served_count,
+                (SELECT MAX(oi.served_at) FROM order_items oi WHERE oi.table_session_id = ts.id AND oi.status = 'Served') as last_served_at
+            FROM qr_codes q
+            LEFT JOIN table_sessions ts ON ts.tableid = q.tableid AND ts.resid = q.resid AND ts.status = 'ACTIVE'
+            WHERE q.resid = ? ${resid === 'all' ? 'OR 1=1' : ''}
+        `;
+        const qrTables = await db.all(allTablesQuery, [...resParams]);
 
-        const avgGuestsPerTable = activeTables > 0 ? Math.round((guestCount / activeTables) * 10) / 10 : 0;
+        // Fallback: Also select ANY active session that isn't in qr_codes for backward compatibility / orphaned tables
+        const orphanedActiveQuery = `
+            SELECT ts.id as session_id, ts.tableid, ts.started_at, 'Khu Khác' as area_name,
+                (SELECT COUNT(DISTINCT sp.session_id) FROM session_presences sp WHERE sp.tableid = ts.tableid AND sp.resid = ts.resid) as guest_count,
+                (SELECT COUNT(*) FROM order_items oi WHERE oi.table_session_id = ts.id AND oi.status != 'Served') as pending_count,
+                (SELECT COUNT(*) FROM order_items oi WHERE oi.table_session_id = ts.id AND oi.status = 'Served') as served_count,
+                (SELECT MAX(oi.served_at) FROM order_items oi WHERE oi.table_session_id = ts.id AND oi.status = 'Served') as last_served_at
+            FROM table_sessions ts
+            WHERE ts.status = 'ACTIVE' AND ts.tableid NOT IN (SELECT tableid FROM qr_codes WHERE resid = ts.resid)
+            ${resFilter}
+        `;
+        const orphanedTables = await db.all(orphanedActiveQuery, [...resParams]);
+
+        const allTables = [...qrTables, ...orphanedTables];
+
+        let guestCount = 0;
+        let actualActiveCount = 0;
+        const activeTablesList = allTables.map((t: any) => {
+            const isActive = !!t.session_id;
+            let status = 'EMPTY';
+            let tableGuestCount = 0;
+            let idleMinutes = 0;
+            let startMinutes = 0;
+
+            if (isActive) {
+                actualActiveCount++;
+                tableGuestCount = Number(t.guest_count) || 1;
+                guestCount += tableGuestCount;
+
+                const pending = Number(t.pending_count);
+                const served = Number(t.served_count);
+                
+                status = 'WAITING';
+                if (pending > 0 && served > 0) status = 'SERVING';
+                if (pending === 0 && served > 0) status = 'DONE';
+
+                startMinutes = Math.floor((now - Number(t.started_at)) / 60000);
+                idleMinutes = t.last_served_at ? Math.floor((now - Number(t.last_served_at)) / 60000) : startMinutes;
+            }
+
+            return {
+                id: t.tableid,
+                areaName: t.area_name || 'Khu Khác',
+                guestCount: tableGuestCount,
+                status,
+                idleMinutes,
+                sessionStartMinutes: startMinutes
+            };
+        });
+
+        // Sort active tables: WAITING -> SERVING -> DONE -> EMPTY
+        const statusWeight = { 'WAITING': 1, 'SERVING': 2, 'DONE': 3, 'EMPTY': 4 };
+        activeTablesList.sort((a: any, b: any) => statusWeight[a.status as keyof typeof statusWeight] - statusWeight[b.status as keyof typeof statusWeight]);
+
+        const avgGuestsPerTable = actualActiveCount > 0 ? Math.round((guestCount / actualActiveCount) * 10) / 10 : 0;
 
         // Average session duration (from completed sessions today)
         const avgSessionRow = await db.get(
@@ -100,6 +155,7 @@ export async function GET(request: NextRequest) {
             guestCount,
             avgGuestsPerTable,
             avgSessionMinutes,
+            activeTablesList,
             hourlyHeatmap: hourlyData,
             peakHour: peakHour?.hour || 'N/A',
             peakSessions: peakHour?.sessions || 0

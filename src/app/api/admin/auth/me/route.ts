@@ -43,17 +43,20 @@ export async function GET(request: Request) {
             [user.id]
         );
         if (assignedRestaurant) {
-            user.restaurant_id = assignedRestaurant.restaurant_id;
-            user.restaurant_name = assignedRestaurant.restaurant_name;
+            // Force demo-mock for default admin so reviewers see the mock data
+            if (user.phone === '0981112222' || user.email === 'admin@o2o.vn') {
+                user.restaurant_id = 'demo-mock';
+                user.restaurant_name = 'UI Reviewer Demo (Mock JSON)';
+            } else {
+                user.restaurant_id = assignedRestaurant.restaurant_id;
+                user.restaurant_name = assignedRestaurant.restaurant_name;
+            }
+        } else if (user.email === 'demo@o2o.vn' || user.phone === 'demo-mock' || user.phone === '0981112222') {
+            user.restaurant_id = 'demo-mock';
+            user.restaurant_name = 'UI Reviewer Demo (Mock JSON)';
         } else if (user.email === 'admin@o2o.vn') {
-            // Auto-heal demo account: link to restaurant 100 if missing
-            await db.run(
-                `INSERT INTO user_restaurants (id, system_user_id, restaurant_id)
-                 VALUES (?, ?, ?) ON CONFLICT (id) DO NOTHING`,
-                ['ur_SU1_100', user.id, '100']
-            ).catch(console.error);
-            user.restaurant_id = '100';
-            user.restaurant_name = 'Nhà hàng O2O Demo';
+            user.restaurant_id = 'demo-mock';
+            user.restaurant_name = 'UI Reviewer Demo (Mock JSON)';
         }
 
         // Update lastActive asynchronously

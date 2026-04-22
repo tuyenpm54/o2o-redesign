@@ -58,12 +58,38 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
     try {
         const body = await request.json();
-        const { resid, itemId, ...updates } = body;
-        if (!resid || itemId === undefined) {
-            return NextResponse.json({ error: 'resid and itemId required' }, { status: 400 });
+        const { resid } = body;
+        if (!resid) {
+            return NextResponse.json({ error: 'resid required' }, { status: 400 });
         }
 
         const db = await getDb();
+
+        // Action: Reorder categories
+        if (body.action === 'reorder-categories') {
+            const { categories } = body;
+            if (!categories || !Array.isArray(categories)) {
+                return NextResponse.json({ error: 'categories array required' }, { status: 400 });
+            }
+            const row = await db.get('SELECT menu_data FROM restaurant_menus WHERE resid = ?', [resid]);
+            if (!row?.menu_data) {
+                return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
+            }
+            const menuData = JSON.parse(row.menu_data);
+            menuData.categories = categories;
+            await db.run(
+                'UPDATE restaurant_menus SET menu_data = ? WHERE resid = ?',
+                [JSON.stringify(menuData), resid]
+            );
+            return NextResponse.json({ success: true });
+        }
+
+        // Default: Item-level update
+        const { itemId, ...updates } = body;
+        if (itemId === undefined) {
+            return NextResponse.json({ error: 'itemId required for item updates' }, { status: 400 });
+        }
+
         const existing = await db.get(
             'SELECT item_overrides, pos_sync_config FROM restaurant_menus WHERE resid = ?',
             [resid]

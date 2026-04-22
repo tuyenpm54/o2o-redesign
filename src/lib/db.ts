@@ -246,6 +246,8 @@ async function initDb(database: DBWrapper) {
       qr_code TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE tables ADD COLUMN IF NOT EXISTS area_id TEXT;
+    ALTER TABLE tables ADD COLUMN IF NOT EXISTS area_name TEXT;
 
     -- QR Codes
     CREATE TABLE IF NOT EXISTS qr_codes (
@@ -256,6 +258,7 @@ async function initDb(database: DBWrapper) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     ALTER TABLE qr_codes ADD COLUMN IF NOT EXISTS payment_model TEXT DEFAULT 'POST_PAY_TABLE';
+    ALTER TABLE qr_codes ADD COLUMN IF NOT EXISTS area_name TEXT DEFAULT 'Khu Chung';
 
     -- Orders
     CREATE TABLE IF NOT EXISTS orders (

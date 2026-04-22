@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { LayoutTemplate, Plus, Save, ChevronUp, ChevronDown, Trash2, Settings2, Eye, X, ExternalLink, CheckCircle2, AlertTriangle, Lock, Zap, Palette, GripVertical, MonitorSmartphone, RefreshCcw, ArrowLeft, Utensils, QrCode, Store } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
-import { SurveyEditorModal, DEFAULT_SURVEY_CONFIG } from './SurveyEditorModal';
+import { SurveyEditorInline, DEFAULT_SURVEY_CONFIG } from './SurveyEditorModal';
 import { IconDictionary } from '@/lib/icons';
 
 type ModuleType = 'menu-grid' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'support-options' | 'checkout-auth' | 'custom';
@@ -60,7 +61,6 @@ const isBlockValid = (block: StorefrontBlock): boolean => {
 function ModuleConfigForm({ block, onChange, allMenuItems = [] }: { block: StorefrontBlock, onChange: (newConfig: any) => void, allMenuItems?: any[] }) {
     const { type, config } = block;
     const [previewStyle, setPreviewStyle] = useState<'v1' | 'v2' | null>(null);
-    const [isEditSurveyOpen, setIsEditSurveyOpen] = useState(false);
     const [iconPickerOpenForId, setIconPickerOpenForId] = useState<string | null>(null);
 
     if (type === 'for-you') {
@@ -208,23 +208,21 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [] }: { block: Store
                 </div>
                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/10 mt-4">
                     <p className="text-sm font-medium mb-1">Dữ liệu Khảo sát</p>
-                    <button onClick={() => setIsEditSurveyOpen(true)} className="px-4 py-2 bg-slate-800 dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold mt-2 transition-colors">Chỉnh sửa bộ câu hỏi</button>
-                    <SurveyEditorModal 
-                        isOpen={isEditSurveyOpen} 
-                        onClose={() => setIsEditSurveyOpen(false)} 
-                        initialData={config.survey || DEFAULT_SURVEY_CONFIG} 
-                        onSave={(surveyData) => onChange({ ...config, survey: surveyData })}
+                    <p className="text-xs text-slate-500 mb-2">Chỉnh sửa trực tiếp bộ câu hỏi để AI phân tích và gợi ý món.</p>
+                    <SurveyEditorInline 
+                        data={config.survey || DEFAULT_SURVEY_CONFIG} 
+                        onChange={(surveyData) => onChange({ ...config, survey: surveyData })}
                     />
                 </div>
 
-                {previewStyle && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setPreviewStyle(null)}>
-                        <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+                {previewStyle && typeof document !== 'undefined' && createPortal(
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setPreviewStyle(null)}>
+                        <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md shadow-[0_0_80px_rgba(0,0,0,0.3)] p-6" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="font-bold">Bản xem trước {previewStyle.toUpperCase()}</h3>
                                 <button onClick={() => setPreviewStyle(null)}><X size={20}/></button>
                             </div>
-                            <div className="aspect-[9/16] bg-slate-100 rounded-3xl border-8 border-slate-800 relative overflow-hidden">
+                            <div className="aspect-[9/16] bg-slate-100 rounded-3xl border-8 border-slate-800 relative overflow-hidden shadow-inner">
                                 {previewStyle === 'v1' ? (
                                     <div className="p-4 space-y-4">
                                         <div className="h-8 w-3/4 bg-slate-200 rounded"></div>
@@ -239,7 +237,8 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [] }: { block: Store
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
             </div>
         );
@@ -484,38 +483,38 @@ export default function DisplayConfigPage() {
     }
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#050510] relative text-slate-800 dark:text-slate-200 justify-center p-4 sm:p-8" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.05) 1px, transparent 0)', backgroundSize: '24px 24px' }}>
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#050510] relative text-slate-800 dark:text-slate-200 justify-center p-2 sm:p-4">
             
             {/* MAIN PANE: BUILDER PANEL */}
             <div className="w-full max-w-[75rem] flex-1 flex bg-white dark:bg-[#13141A] shadow-2xl rounded-[32px] overflow-hidden border border-slate-200/60 dark:border-white/5 relative z-20 animation-slide-up transition-all duration-500">
                 
                 {/* LEFT COLUMN: List & Global Actions */}
-                <div className="flex flex-col h-full shrink-0 w-[420px] shadow-[4px_0_24px_rgba(0,0,0,0.02)] border-r border-slate-200/80 dark:border-white/5 bg-slate-50/40 dark:bg-black/10 relative z-20">
+                <div className="flex flex-col h-full shrink-0 w-[360px] shadow-[4px_0_24px_rgba(0,0,0,0.02)] border-r border-slate-200/80 dark:border-white/5 bg-slate-50/40 dark:bg-black/10 relative z-20">
                     
                     {/* Header */}
-                <div className="h-20 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-8 shrink-0 bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl sticky top-0 z-20">
-                    <div className="flex items-center gap-4">
+                <div className="h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-6 shrink-0 bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl sticky top-0 z-20">
+                    <div className="flex items-center gap-3">
                         <button 
                             onClick={() => setSelectedModel(null)} 
-                            className="w-11 h-11 rounded-2xl bg-slate-50 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors border border-slate-200 dark:border-white/10 shrink-0"
+                            className="w-8 h-8 rounded-full bg-slate-50 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors shrink-0"
                             title="Quay lại"
                         >
-                            <ArrowLeft size={20} className="stroke-[2.5]" />
+                            <ArrowLeft size={16} className="stroke-[2.5]" />
                         </button>
-                        <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 flex items-center justify-center shadow-inner shrink-0 ring-1 ring-indigo-200 dark:ring-indigo-500/20">
-                            {React.createElement(selectedModel.icon, { size: 20, className: "stroke-[2.5]" })}
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 flex items-center justify-center flex-shrink-0">
+                            {React.createElement(selectedModel.icon, { size: 14, className: "stroke-[2.5]" })}
                         </div>
                         <div className="min-w-0">
-                            <h1 className="font-black text-base text-slate-800 dark:text-slate-200 truncate">{selectedModel.name}</h1>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 truncate">{savedTemplates.find(t => t.id === activeTemplateId)?.name || 'Cấu hình tùy chỉnh'}</p>
+                            <h1 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{selectedModel.name}</h1>
+                            <p className="text-[10px] text-slate-500 font-medium truncate">{savedTemplates.find(t => t.id === activeTemplateId)?.name || 'Cấu hình tùy chỉnh'}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setShowSimulator(true)} className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all flex items-center justify-center" title="Xem trước">
-                            <Eye size={18} className="stroke-[2.5]" />
+                    <div className="flex items-center gap-1">
+                        <button onClick={() => setShowSimulator(true)} className="w-8 h-8 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-all flex items-center justify-center" title="Xem trước">
+                            <Eye size={16} className="stroke-[2]" />
                         </button>
-                        <button onClick={() => setIsTemplateModalOpen(true)} className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-all flex items-center justify-center border border-slate-200/50 dark:border-white/5" title="Chọn mẫu">
-                            <Palette size={18} className="stroke-[2.5]" />
+                        <button onClick={() => setIsTemplateModalOpen(true)} className="w-8 h-8 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-all flex items-center justify-center" title="Chọn mẫu">
+                            <Palette size={16} className="stroke-[2]" />
                         </button>
                     </div>
                 </div>
@@ -534,49 +533,60 @@ export default function DisplayConfigPage() {
                         </div>
                     </div>
 
-                    <div className="p-5 md:p-8 max-w-4xl mx-auto w-full">
+                    <div className="p-4 md:p-6 mx-auto w-full">
                         {/* LAYOUT TAB */}
                         {activeTab === 'layout' && (
-                            <div className="space-y-4">
-                                <div className="bg-white dark:bg-white/[0.02] rounded-3xl shadow-sm border border-slate-200/60 dark:border-white/10 overflow-hidden divide-y divide-slate-100 dark:divide-white/5">
+                            <div className="space-y-3">
+                                <div className="space-y-1">
                                     {blocks.filter(b => MODULE_DEFINITIONS[b.type]?.category === 'layout').map((block, idx) => {
                                         const def = MODULE_DEFINITIONS[block.type];
                                         const isLocked = isModuleLocked(block.type);
+                                        const isSystem = block.type !== 'custom';
+                                        const isCore = block.type === 'menu-grid';
+                                        const isEnabled = block.config?.isEnabled !== false; // default true
                                         
                                         return (
-                                            <div key={block.id} className={`group relative transition-all overflow-hidden ${isLocked ? 'opacity-80' : 'hover:bg-slate-50 dark:hover:bg-white/[0.02]'} ${editingBlockId === block.id ? 'bg-indigo-50/40 dark:bg-indigo-900/10' : ''}`}>
-                                                {editingBlockId === block.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 z-20"></div>}
+                                            <div key={block.id} className={`group relative transition-all rounded-xl ${isLocked ? 'opacity-80' : ''} ${!isEnabled && !isCore ? 'opacity-50 grayscale-[30%]' : ''} ${isSystem ? 'bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/10' : 'bg-slate-50/50 dark:bg-black/20 border border-dashed border-slate-300 dark:border-white/20'} ${editingBlockId === block.id ? 'ring-1 ring-slate-300 dark:ring-white/20 shadow-md' : 'hover:shadow-sm'}`}>
                                                 <div className="relative z-10 flex items-center p-3 gap-3 cursor-pointer" onClick={() => !isLocked && setEditingBlockId(editingBlockId === block.id ? null : block.id)}>
                                                     
                                                     {/* Reorder Grip Custom iOS */}
                                                     <div className="flex flex-col items-center justify-center w-6 shrink-0 text-slate-300 dark:text-slate-600 transition-all">
-                                                        <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-[10px] font-black text-slate-500">{idx + 1}</div>
+                                                        <div className={`w-5 h-5 rounded-md ${isSystem ? 'bg-slate-100' : 'bg-white'} dark:bg-black/20 flex items-center justify-center text-[10px] font-bold text-slate-500 border border-slate-200 dark:border-white/5`}>{idx + 1}</div>
                                                         <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button onClick={(e) => { e.stopPropagation(); !isLocked && handleMoveBlock(block.id, 'up') }} disabled={idx === 0 || isLocked} className="hover:text-indigo-500 transition-colors disabled:opacity-0"><ChevronUp size={12} strokeWidth={4} /></button>
-                                                            <button onClick={(e) => { e.stopPropagation(); !isLocked && handleMoveBlock(block.id, 'down') }} disabled={block.type === 'menu-grid' || isLocked} className="hover:text-indigo-500 transition-colors disabled:opacity-0"><ChevronDown size={12} strokeWidth={4} /></button>
+                                                            <button onClick={(e) => { e.stopPropagation(); !isLocked && handleMoveBlock(block.id, 'up') }} disabled={idx === 0 || isLocked} className="hover:text-slate-800 dark:hover:text-white transition-colors disabled:opacity-0"><ChevronUp size={12} strokeWidth={3} /></button>
+                                                            <button onClick={(e) => { e.stopPropagation(); !isLocked && handleMoveBlock(block.id, 'down') }} disabled={isCore || isLocked} className="hover:text-slate-800 dark:hover:text-white transition-colors disabled:opacity-0"><ChevronDown size={12} strokeWidth={3} /></button>
                                                         </div>
                                                     </div>
 
                                                     <div className="flex-1 min-w-0 pr-2">
-                                                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1 mt-1">
-                                                            {def.name} {isLocked && <Lock size={10} className="text-amber-500" />}
+                                                        <div className="text-[10px] text-slate-400 uppercase tracking-widest flex items-center flex-wrap gap-1.5 mb-0.5">
+                                                            {def.name} 
+                                                            {isLocked && <Lock size={10} className="text-amber-500" />}
+                                                            {!isSystem && <span className="lowercase bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-md text-[9px] font-bold border border-slate-200 dark:border-white/10 tracking-normal">Tuỳ chỉnh</span>}
+                                                            {isSystem && !isCore && <span className="lowercase bg-transparent text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-md text-[9px] font-bold border border-slate-200 dark:border-white/10 tracking-normal">Có sẵn</span>}
                                                         </div>
-                                                        <div className={`font-semibold text-sm truncate mb-1 ${editingBlockId === block.id ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-200'}`}>{block.title || def.name}</div>
+                                                        <div className={`font-semibold text-sm break-words leading-tight ${editingBlockId === block.id ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>{block.title || def.name}</div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-2 shrink-0">
+                                                    <div className="flex items-center gap-3 shrink-0 pr-2">
                                                         {isLocked ? (
                                                             <Link href="/admin/settings/billing" className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border border-amber-200/50" onClick={e => e.stopPropagation()}>Mở Khóa</Link>
                                                         ) : (
                                                             <>
-                                                                {block.type !== 'menu-grid' && (
-                                                                    <button onClick={(e) => { e.stopPropagation(); setBlocks(blocks.filter(b => b.id !== block.id)) }} className="w-8 h-8 rounded-full text-slate-400 hover:text-white hover:bg-rose-500 dark:hover:bg-rose-500 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                                {isCore ? (
+                                                                    <div className="w-8 h-8 flex items-center justify-center text-slate-300" title="Ghim cố định"><AlertTriangle size={14} /></div>
+                                                                ) : isSystem ? (
+                                                                    <label className="relative inline-flex items-center cursor-pointer scale-[0.8] origin-right" onClick={(e) => e.stopPropagation()}>
+                                                                        <input type="checkbox" className="sr-only peer" checked={isEnabled} onChange={(e) => {
+                                                                            setBlocks(blocks.map(b => b.id === block.id ? { ...b, config: { ...b.config, isEnabled: e.target.checked } } : b));
+                                                                        }} />
+                                                                        <div className="w-11 h-6 bg-slate-200 dark:bg-white/20 rounded-full peer peer-checked:bg-slate-900 dark:peer-checked:bg-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-slate-900 after:border-slate-300 dark:after:border-transparent after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:after:translate-x-full"></div>
+                                                                    </label>
+                                                                ) : (
+                                                                    <button onClick={(e) => { e.stopPropagation(); setBlocks(blocks.filter(b => b.id !== block.id)) }} className="w-8 h-8 rounded-full text-slate-400 hover:text-white hover:bg-red-500 dark:hover:bg-red-500 transition-all duration-200 flex items-center justify-center bg-slate-100 dark:bg-white/5 opacity-0 group-hover:opacity-100" title="Xóa danh mục tùy chỉnh">
                                                                         <Trash2 size={14} />
                                                                     </button>
                                                                 )}
-                                                                <div className={`w-8 h-8 rounded-full transition-all duration-300 flex items-center justify-center ${editingBlockId === block.id ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-100 dark:bg-white/5 text-slate-500 group-hover:text-indigo-600 group-hover:bg-slate-200 dark:group-hover:bg-white/10'}`}>
-                                                                    <Settings2 size={16} className={editingBlockId === block.id ? 'stroke-[2.5]' : ''} />
-                                                                </div>
                                                             </>
                                                         )}
                                                     </div>
@@ -587,16 +597,16 @@ export default function DisplayConfigPage() {
                                     })}
                                 </div>
 
-                                <button onClick={() => setIsAddBlockModalOpen(true)} className="mt-4 w-full py-5 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[24px] flex items-center justify-center gap-3 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all group font-bold text-sm bg-white dark:bg-transparent">
-                                    <Plus size={18} className="stroke-[2.5] group-hover:scale-110 transition-transform" />
-                                    Thêm thành phần hiển thị
+                                <button onClick={() => setIsAddBlockModalOpen(true)} className="mt-4 w-full py-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl flex items-center justify-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 hover:shadow-sm transition-all group font-semibold text-sm">
+                                    <Plus size={16} className="group-hover:scale-110 transition-transform" />
+                                    Thêm hiển thị
                                 </button>
                             </div>
                         )}
 
                         {/* ACTION TAB */}
                         {activeTab === 'action' && (
-                            <div className="bg-white dark:bg-white/[0.02] rounded-3xl shadow-sm border border-slate-200/60 dark:border-white/10 overflow-hidden divide-y divide-slate-100 dark:divide-white/5">
+                            <div className="space-y-1">
                                 {(Object.keys(MODULE_DEFINITIONS) as ModuleType[]).filter(k => MODULE_DEFINITIONS[k].category === 'action').map((type, idx) => {
                                     const def = MODULE_DEFINITIONS[type];
                                     const activeBlock = blocks.find(b => b.type === type);
@@ -604,28 +614,22 @@ export default function DisplayConfigPage() {
                                     const isEnabled = activeBlock?.config?.isEnabled || false;
                                     
                                     return (
-                                        <div key={type} className={`transition-colors flex flex-col relative group overflow-hidden ${isLocked ? 'opacity-80' : 'hover:bg-slate-50 dark:hover:bg-white/[0.02]'} ${editingBlockId === type ? 'bg-indigo-50/40 dark:bg-indigo-900/10' : ''}`}>
-                                            {editingBlockId === type && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 z-20"></div>}
+                                        <div key={type} className={`transition-colors flex flex-col relative group rounded-xl ${isLocked ? 'opacity-80' : 'hover:bg-slate-100 dark:hover:bg-white/5'} ${editingBlockId === type ? 'bg-slate-100 dark:bg-white/10 ring-1 ring-slate-200 dark:ring-white/10' : ''}`}>
                                             <div className="flex items-center justify-between p-4 cursor-pointer" onClick={() => !isLocked && setEditingBlockId(editingBlockId === type ? null : type)}>
                                                 <div className="flex-1 pr-4 relative z-10 min-w-0">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${editingBlockId === type ? 'bg-indigo-100 text-indigo-600 shadow-sm' : 'bg-slate-100 dark:bg-white/5 text-slate-500 group-hover:text-indigo-600 group-hover:bg-indigo-50'}`}><Zap size={14} className="stroke-[2.5]" /></div>
-                                                        <div className="min-w-0">
-                                                            <div className={`font-semibold text-sm truncate flex items-center gap-2 ${editingBlockId === type ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-200'}`}>
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 ${editingBlockId === type ? 'text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 group-hover:text-slate-800 group-hover:shadow-sm'}`}><Settings2 size={16} /></div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className={`font-semibold text-sm break-words leading-tight flex items-center flex-wrap gap-2 ${editingBlockId === type ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'}`}>
                                                                 {def.name}
                                                                 {isLocked && <div className="flex items-center gap-1 text-[9px] font-black uppercase text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full"><Lock size={10} /> {def.minTier}</div>}
                                                             </div>
-                                                            <p className="text-[11px] font-medium text-slate-500 truncate mt-0.5">{def.description}</p>
+                                                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed pr-1">{def.description}</p>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="shrink-0 flex items-center gap-2 pl-2">
-                                                    {!isLocked && (
-                                                        <div className={`w-8 h-8 rounded-full transition-all duration-300 flex items-center justify-center ${editingBlockId === type ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-100 dark:bg-white/5 text-slate-500 group-hover:text-indigo-600 group-hover:bg-slate-200 dark:group-hover:bg-white/10'}`}>
-                                                            <Settings2 size={16} className={editingBlockId === type ? 'stroke-[2.5]' : ''} />
-                                                        </div>
-                                                    )}
+                                                <div className="shrink-0 flex items-center pl-2">
                                                     {isLocked ? (
                                                         <Link href="/admin/settings/billing" className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border border-amber-200/50" onClick={e => e.stopPropagation()}>Mở Khóa</Link>
                                                     ) : (
@@ -636,7 +640,7 @@ export default function DisplayConfigPage() {
                                                                 if (!activeBlock) setBlocks([...blocks, { id: 'act-' + type, type, title: def.name, config: newConf }]);
                                                                 else setBlocks(blocks.map(b => b.type === type ? { ...b, config: newConf } : b));
                                                             }} />
-                                                            <div className="w-11 h-6 bg-slate-200 dark:bg-white/20 rounded-full peer peer-checked:bg-indigo-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:border-transparent after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                                                            <div className="w-11 h-6 bg-slate-200 dark:bg-white/20 rounded-full peer peer-checked:bg-slate-900 dark:peer-checked:bg-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-slate-900 after:border-slate-300 dark:after:border-transparent after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:after:translate-x-full"></div>
                                                         </label>
                                                     )}
                                                 </div>
@@ -651,11 +655,11 @@ export default function DisplayConfigPage() {
                 </div>
 
                 {/* Footer Save Area */}
-                <div className="p-4 border-t border-slate-200/60 dark:border-white/5 flex items-center gap-3 bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl shrink-0 sticky bottom-0 z-20 justify-between px-8">
-                    <span className="text-xs text-slate-400 font-medium">Bạn đang sửa cho <strong className="text-slate-600 dark:text-slate-300">{selectedModel.name}</strong></span>
-                    <div className="flex gap-3">
-                        <button onClick={() => alert('Đã lưu nháp')} className="px-6 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-white/10 transition-all border border-transparent shadow-sm">Lưu Nháp</button>
-                        <button onClick={() => setIsPublishModalOpen(true)} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-700 hover:scale-105 transition-all shadow-lg shadow-indigo-500/20"><CheckCircle2 size={16} className="stroke-[2.5]" /> Phát Hành</button>
+                <div className="p-4 border-t border-slate-200/60 dark:border-white/5 flex flex-col gap-3 bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl shrink-0 sticky bottom-0 z-20 px-6">
+                    <span className="text-xs text-slate-500">Cho: <strong className="text-slate-800 dark:text-slate-200">{selectedModel.name}</strong></span>
+                    <div className="flex gap-2 w-full">
+                        <button onClick={() => alert('Đã lưu nháp')} className="flex-1 py-2 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-white/10 transition-all border border-transparent shadow-sm">Lưu Nháp</button>
+                        <button onClick={() => setIsPublishModalOpen(true)} className="flex-[2] py-2 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-black dark:hover:bg-slate-200 transition-all shadow-md"><CheckCircle2 size={16} /> Phát Hành</button>
                     </div>
                 </div>
                 </div> {/* End Left Column */}
@@ -675,14 +679,14 @@ export default function DisplayConfigPage() {
                                <div className="flex flex-col h-full animation-slide-left">
                                 <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl sticky top-0 z-20">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 flex items-center justify-center shrink-0 ring-1 ring-indigo-100 dark:ring-indigo-500/20"><Settings2 size={24} className="stroke-[2.5]" /></div>
+                                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10"><Settings2 size={20} /></div>
                                         <div>
-                                            <h2 className="text-xl font-black text-slate-800 dark:text-slate-100">{def?.name || activeEditorBlock.title}</h2>
-                                            <p className="text-sm font-medium text-slate-500 mt-1">Cấu hình chi tiết thông số hiển thị cho module này</p>
+                                            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{def?.name || activeEditorBlock.title}</h2>
+                                            <p className="text-xs font-medium text-slate-500 mt-0.5">Cấu hình chi tiết thông số hiển thị</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => setEditingBlockId(null)} className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-500 transition-colors shrink-0">
-                                        <X size={20} className="stroke-[2.5]" />
+                                    <button onClick={() => setEditingBlockId(null)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-500 transition-colors shrink-0">
+                                        <X size={16} />
                                     </button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-8 hidden-scroll">
@@ -695,11 +699,11 @@ export default function DisplayConfigPage() {
                         })()
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
-                            <div className="w-24 h-24 mb-6 rounded-[2rem] bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 flex items-center justify-center shadow-inner">
-                                <Settings2 size={32} className="stroke-[1.5] text-slate-300 dark:text-slate-600" />
+                            <div className="w-16 h-16 mb-4 rounded-[1.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-center">
+                                <Settings2 size={24} className="text-slate-400 dark:text-slate-500" />
                             </div>
-                            <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 mb-2">Chưa chọn tính năng</h3>
-                            <p className="font-medium text-slate-500 text-center max-w-sm">Hãy click chọn một module ở cột bên trái để bắt đầu tùy chỉnh chi tiết cấu hình.</p>
+                            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-2">Chưa chọn tính năng</h3>
+                            <p className="text-sm font-medium text-slate-500 text-center max-w-sm">Chọn một module bên trái để cấu hình.</p>
                         </div>
                     )}
                 </div>
@@ -714,7 +718,7 @@ export default function DisplayConfigPage() {
                             <button onClick={() => setIsAddBlockModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors"><X size={20}/></button>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            {(Object.keys(MODULE_DEFINITIONS) as ModuleType[]).filter(k => MODULE_DEFINITIONS[k].category === 'layout' && k !== 'menu-grid').map(type => {
+                            {(Object.keys(MODULE_DEFINITIONS) as ModuleType[]).filter(k => MODULE_DEFINITIONS[k].category === 'layout' && k !== 'menu-grid').filter(k => k === 'custom' || !blocks.some(b => b.type === k)).map(type => {
                                 const def = MODULE_DEFINITIONS[type];
                                 const isLocked = isModuleLocked(type);
                                 return (
@@ -801,7 +805,7 @@ export default function DisplayConfigPage() {
                             </div>
                             <iframe 
                                 ref={iframeRef} 
-                                src="/storefront-preview" 
+                                src="/menu?preview=1" 
                                 className="w-full h-full border-none bg-white relative z-0" 
                                 onLoad={() => iframeRef.current?.contentWindow?.postMessage({ type: 'STOREFRONT_CONFIG_UPDATE', config: blocks }, '*')} 
                             />

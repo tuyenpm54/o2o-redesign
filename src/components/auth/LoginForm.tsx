@@ -21,7 +21,6 @@ export function LoginForm() {
     try {
         const user = await login(phoneToLogin);
         if (user) {
-            // Đăng nhập thành công, chuyển hướng theo chức năng
             if (user.role === 'CHAIN_MANAGER') {
                 router.push('/hq/dashboard');
             } else {
@@ -51,29 +50,42 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full p-8 bg-white/60 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.08] backdrop-blur-2xl rounded-[2rem] shadow-xl dark:shadow-2xl shadow-slate-200/50 dark:shadow-indigo-900/10 flex flex-col gap-8 transition-colors duration-300">
+    <div className="w-full p-8 md:p-10 bg-white dark:bg-[#111115] border border-black/[0.04] dark:border-white/[0.04] rounded-[32px] shadow-[0_2px_30px_rgba(0,0,0,0.03)] dark:shadow-none flex flex-col gap-8 transition-colors duration-300">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Chào mừng trở lại</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Đăng nhập để quản lý nhà hàng hoặc chuỗi của bạn</p>
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 text-sm text-blue-700 dark:text-blue-300 rounded-xl text-left backdrop-blur-sm">
-          <p className="font-semibold mb-1 mb-1.5 flex items-center gap-1.5">💡 Tài khoản Test Demo:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Quản lý nhà hàng: <b className="font-mono text-slate-900 dark:text-white">admin@o2o.vn</b></li>
-            <li>Quản lý chuỗi (HQ): <b className="font-mono text-slate-900 dark:text-white">hq@o2o.vn</b></li>
+        <h1 className="text-[26px] font-semibold text-slate-900 dark:text-white tracking-tight">Xác thực Định danh</h1>
+        <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-2 font-medium">Bắt đầu phiên làm việc tại hệ thống quản trị.</p>
+        
+        <div className="mt-6 p-4 bg-slate-50 dark:bg-white/5 border border-black/[0.04] dark:border-white/[0.04] text-[13px] text-slate-600 dark:text-slate-400 rounded-[16px] text-left">
+          <p className="font-semibold mb-2 flex items-center gap-1.5 text-slate-900 dark:text-white">
+            <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500 animate-pulse"/> Dữ liệu Trải nghiệm
+          </p>
+          <ul className="space-y-1.5">
+            <li className="flex justify-between border-b border-black/[0.04] dark:border-white/[0.04] pb-1.5">
+                <span>Quản lý nhà hàng</span>
+                <b className="font-mono text-slate-900 dark:text-white">admin@o2o.vn</b>
+            </li>
+            <li className="flex justify-between border-b border-black/[0.04] dark:border-white/[0.04] pb-1.5">
+                <span>Quản lý chuỗi (HQ)</span>
+                <b className="font-mono text-slate-900 dark:text-white">hq@o2o.vn</b>
+            </li>
+            <li className="flex justify-between pt-1">
+                <span>Xem dữ liệu Mock Sample</span>
+                <b className="font-mono text-slate-900 dark:text-white">demo@o2o.vn</b>
+            </li>
           </ul>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl flex items-center gap-2 text-red-600 dark:text-red-400 text-sm animate-in fade-in slide-in-from-top-1 backdrop-blur-md">
-            <AlertCircle size={18} />
-            <span>{error}</span>
+          <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-[12px] flex items-center gap-2 text-red-600 dark:text-red-400 text-[13px] animate-in fade-in slide-in-from-top-1">
+            <AlertCircle size={16} />
+            <span className="font-medium">{error}</span>
           </div>
         )}
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tài khoản</label>
+          <label className="text-[13px] font-semibold text-slate-900 dark:text-white">Tài khoản</label>
           <div className="relative">
             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
@@ -81,14 +93,14 @@ export function LoginForm() {
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
-              placeholder="SĐT hoặc Email (vd: hq@o2o.vn)"
+              className="w-full pl-10 pr-4 py-3 bg-[#f8f9fa] dark:bg-[#0c0c0e] border border-black/[0.06] dark:border-white/[0.08] rounded-[14px] focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none transition-all text-[15px] font-medium text-slate-900 dark:text-white placeholder:text-slate-400"
+              placeholder="Nhập tên định danh..."
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Mật khẩu</label>
+          <label className="text-[13px] font-semibold text-slate-900 dark:text-white">Mật khẩu</label>
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
@@ -96,7 +108,7 @@ export function LoginForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-3 bg-[#f8f9fa] dark:bg-[#0c0c0e] border border-black/[0.06] dark:border-white/[0.08] rounded-[14px] focus:ring-1 focus:ring-slate-900 dark:focus:ring-white outline-none transition-all text-[15px] font-medium text-slate-900 dark:text-white placeholder:text-slate-400 tracking-widest"
               placeholder="••••••••"
             />
           </div>
@@ -105,24 +117,24 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] transition-all duration-300 disabled:opacity-50 shadow-lg shadow-blue-500/25"
+          className="w-full py-3.5 mt-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-semibold text-[15px] flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50"
         >
           {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent dark:border-slate-500 dark:border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <LogIn size={20} />
-              <span>Đăng nhập</span>
+              <LogIn size={18} />
+              <span>Tiếp tục</span>
             </>
           )}
         </button>
       </form>
 
-      <div className="pt-6 border-t border-slate-200 dark:border-white/10 text-center">
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-          Chưa có tài khoản?{' '}
-          <a href="/home#pricing" className="text-blue-600 dark:text-blue-400 font-bold hover:underline transition-colors">
-            Xem bảng giá
+      <div className="text-center mt-2">
+        <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
+          Có muốn tìm hiểu Hệ sinh thái?{' '}
+          <a href="/home#pricing" className="text-slate-900 dark:text-white font-semibold underline underline-offset-4 hover:opacity-70 transition-opacity">
+            Khám phá Kiến trúc
           </a>
         </p>
       </div>

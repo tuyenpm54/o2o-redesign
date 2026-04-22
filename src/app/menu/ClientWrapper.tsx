@@ -10,9 +10,10 @@ interface ClientWrapperProps {
     tableid: string;
     resid: string;
     displayConfig: any[];
+    isPreview?: boolean;
 }
 
-export default function ClientWrapper({ style, tableid, resid, displayConfig }: ClientWrapperProps) {
+export default function ClientWrapper({ style, tableid, resid, displayConfig, isPreview }: ClientWrapperProps) {
     const { cssVars } = useMenuContext();
 
     const wrapperStyle: React.CSSProperties = {
@@ -29,8 +30,8 @@ export default function ClientWrapper({ style, tableid, resid, displayConfig }: 
     }
 
     if (style === 'v3') {
-        return <div style={wrapperStyle}><MenuView isV3={true} displayConfig={displayConfig} /></div>;
+        return <div style={wrapperStyle}><MenuView isV3={true} displayConfig={displayConfig} isPreview={isPreview} /></div>;
     }
 
-    return <div style={wrapperStyle}><MenuView displayConfig={displayConfig} /></div>;
+    return <div style={wrapperStyle}><MenuView displayConfig={displayConfig} isPreview={isPreview} /></div>;
 }

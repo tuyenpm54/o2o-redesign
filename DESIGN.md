@@ -5,10 +5,11 @@ Bản đồ DNA Ứng dụng này là Bộ Luật Kiến Trúc Thẩm Mỹ gốc
 ## A. Product DNA (Dual Platform Profiles)
 Dự án được chia làm 2 phân hệ độc lập, KHÔNG DÙNG CHUNG chung chung quy tắc thẩm mỹ:
 
-### Phân hệ 1: Customer Storefront (Web Mobile)
-- **Target Subject**: Khách hàng ngồi tại bàn, thao tác qua điện thoại cá nhân. Cần Tốc độ, Sang trọng và Hiệu ứng thị giác.
-- **Core Value**: Glassmorphism (Bồng bềnh), Spatial (Layout rộng mở), Touchable (Touch Target lớn >=44px).
+### Phân hệ 1: Customer Storefront (Web Mobile) & Landing Page (Marketing)
+- **Target Subject**: Khách hàng ngồi tại bàn hoặc đối tác truy cập trang chủ. Cần Tốc độ, Sang trọng, Sức sống (Vitality) và Hiệu ứng thị giác bùng nổ.
+- **Core Value**: Vibrant Glassmorphism (Kính mờ kết hợp ánh sáng), Spatial (Layout rộng mở), Touchable (Touch Target lớn >=44px).
 - **Aesthetic**: Dynamic & Vibrant (Sử dụng các màu nhấn mạnh như Red #DF1B41, Orange, Gold để tăng nhận diện và cảm xúc).
+  - *Cụ thể cho Landing Page*: Giữ Layout tối giản, trọng tâm, nhưng BẮT BUỘC bơm "sức sống" bằng **Ambient Glow** (Ánh sáng môi trường dạng gradient mờ ảo `blur-[100px]`) hắt từ phía sau khối nội dung. Các nút bấm gọi hành động (CTA) và điểm chạm tương tác phải sử dụng tông màu rực rỡ (Đỏ/Cam/Vàng) để điều hướng mắt thay vì phong cách lạnh lẽo thuần Đen/Trắng.
 
 ### Phân hệ 2: Admin Console (Web Desktop)
 - **Target Subject**: Quản lý cửa hàng, nhân viên điều phối (HQ), làm việc trong ca dài qua màn hình lớn.

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, MonitorSmartphone, Settings, LogOut, LayoutGrid, Terminal, UtensilsCrossed, Building2, CreditCard, UserCog, User, QrCode } from 'lucide-react';
+import { LayoutDashboard, MonitorSmartphone, Settings, LogOut, LayoutGrid, Terminal, UtensilsCrossed, Building2, CreditCard, UserCog, User, QrCode, Siren } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { UserTierBadge } from '@/components/UserTierBadge';
 import { useAuth } from '@/context/AuthContext';
@@ -24,7 +24,7 @@ export function AdminSidebar() {
     };
 
     return (
-        <div className="w-64 h-full flex flex-col">
+        <div className="w-64 h-full flex flex-col border-r border-slate-200/50 dark:border-white/[0.05]">
             <div className="p-6 border-b border-slate-200/50 dark:border-white/[0.05]">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-gradient-to-br from-slate-800 to-slate-900 dark:from-white dark:to-slate-200 rounded-lg flex items-center justify-center text-white dark:text-slate-900 font-bold text-lg shadow-sm">
@@ -51,9 +51,13 @@ export function AdminSidebar() {
             </div>
 
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+                <Link href="/admin/live" className={navLink('/admin/live')}>
+                    <Siren size={18} />
+                    <span>Sảnh Trực Chiến</span>
+                </Link>
                 <Link href="/admin/dashboard" className={navLink('/admin/dashboard')}>
                     <LayoutDashboard size={18} />
-                    <span>Dashboard</span>
+                    <span>Báo cáo & Tăng trưởng</span>
                 </Link>
                 <Link href="/admin/menu" className={navLink('/admin/menu')}>
                     <UtensilsCrossed size={18} />
@@ -106,10 +110,10 @@ export function AdminSidebar() {
                     </button>
                 </div>
 
-                <Link href="/account/settings" className="block p-2 -mx-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer group">
+                <Link href="/account/settings" className="flex flex-col gap-3 p-2 -mx-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer group">
                     {/* User Info */}
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 flex items-center justify-center shrink-0 shadow-sm">
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 flex items-center justify-center shrink-0 shadow-sm relative">
                             {user?.avatar ? (
                                 <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover relative z-10" />
                             ) : (
@@ -123,13 +127,13 @@ export function AdminSidebar() {
                                 <span className="text-[13px] font-bold text-slate-900 dark:text-white truncate leading-none">{user?.name || 'Quản trị viên'}</span>
                                 <UserTierBadge tier={user?.tier} />
                             </div>
-                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-none truncate tracking-wide">{user?.phone || user?.email || 'Chưa cung cấp liên hệ'}</span>
+                            <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400 leading-none truncate tracking-wide">{user?.phone || user?.email || 'Chưa cung cấp liên hệ'}</span>
                         </div>
                     </div>
                     
                     {/* Quota Progress - iCloud Storage Style */}
                     {user?.tier !== 'ENTERPRISE' && (
-                        <div className="mt-2.5 ml-12 pr-1 opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="ml-[48px] pr-1 block opacity-80 group-hover:opacity-100 transition-opacity duration-300">
                             <div className="flex items-end justify-between leading-none mb-1.5">
                                 <span className="text-[11px] font-semibold text-slate-500">Cước O2O</span>
                                 <span className="text-[11px] font-semibold text-slate-900 dark:text-white">842<span className="font-medium text-slate-400">/1.000</span></span>

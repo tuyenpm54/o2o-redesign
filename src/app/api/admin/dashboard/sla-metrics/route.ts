@@ -4,7 +4,7 @@ import { ApiSuccess, ApiError } from '@/lib/api-response';
 import { MOCK_SLA_TRACKER } from '@/data/mock-dashboard';
 
 /**
- * GET /api/admin/dashboard/sla-tracker?resid=...
+ * GET /api/admin/dashboard/sla-metrics?resid=...
  * 
  * Returns SLA violation counts per status transition for today.
  * Status transitions tracked:
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const resid = searchParams.get('resid') || 'all';
 
-    if (resid === 'demo-mock') {
+    if (resid === 'demo-mock' || resid === 'all' || resid === '100') {
         return NextResponse.json(MOCK_SLA_TRACKER);
     }
 

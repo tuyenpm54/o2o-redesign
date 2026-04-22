@@ -73,7 +73,7 @@ const BanIcon = ({ size, color = "currentColor" }: any) => (
 );
 
 
-function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, displayConfig?: any[] }) {
+function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { isV3?: boolean, displayConfig?: any[], isPreview?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resid = searchParams.get("resid") || searchParams.get("resId") || "100";
@@ -81,9 +81,24 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
   const paytype = searchParams.get("paytype");
   
   let tableid = rawTableId as string;
-  if (!rawTableId && paytype === 'PREPAID') {
-      tableid = 'COUNTER';
+  if (!rawTableId && (paytype === 'PREPAID' || isPreview)) {
+      tableid = isPreview ? 'PREVIEW_TABLE' : 'COUNTER';
   }
+  
+  const [liveConfig, setLiveConfig] = useState<any[] | undefined>(displayConfig);
+
+  useEffect(() => {
+    if (!isPreview) return;
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'STOREFRONT_CONFIG_UPDATE') {
+        setLiveConfig(event.data.config);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isPreview]);
+
+  const currentDisplayConfig = isPreview ? liveConfig : displayConfig;
   
   const pathname = usePathname();
   const { isLoggedIn, user, isLoadingAuth, loginAsGuest, logout } = useAuth();
@@ -215,9 +230,9 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
     getItemQuantity, handleEditCartItem, acknowledgedCollisions
   } = cart;
 
-  const onboardingBlock = displayConfig?.find(b => b.type === 'onboarding-wizard');
-  const supportOptionsBlock = displayConfig?.find(b => b.type === 'support-options');
-  const checkoutAuthBlock = displayConfig?.find(b => b.type === 'checkout-auth');
+  const onboardingBlock = currentDisplayConfig?.find(b => b.type === 'onboarding-wizard');
+  const supportOptionsBlock = currentDisplayConfig?.find(b => b.type === 'support-options');
+  const checkoutAuthBlock = currentDisplayConfig?.find(b => b.type === 'checkout-auth');
   const allowOtpSkip = checkoutAuthBlock?.config?.isEnabled === false ? true : (checkoutAuthBlock?.config?.allowSkip !== false);
   const isWizardEnabled = onboardingBlock?.config?.isEnabled !== false;
   const wizardStyle = onboardingBlock?.config?.wizardStyle || 'v2';
@@ -378,9 +393,9 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
 
 
   const manualBestSaleIds = useMemo(() => {
-    const block = displayConfig?.find(b => b.type === 'best-sale' && b.config?.isEnabled !== false);
+    const block = currentDisplayConfig?.find(b => b.type === 'best-sale' && b.config?.isEnabled !== false);
     return block?.config?.itemIds || [];
-  }, [displayConfig]);
+  }, [currentDisplayConfig]);
 
   const finalTopItems = useMemo(() => {
     if (manualBestSaleIds.length > 0) {
@@ -759,7 +774,7 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
         )}
 
         {/* --- DYNAMIC MODULE RENDERING LOOP --- */}
-        {displayConfig?.filter((block: any) => block.config?.isEnabled !== false).map((block: any) => {
+        {currentDisplayConfig?.filter((block: any) => block.config?.isEnabled !== false).map((block: any) => {
           switch (block.type) {
             case 'for-you':
               return (
@@ -1140,14 +1155,14 @@ function MenuPageContent({ isV3 = false, displayConfig }: { isV3?: boolean, disp
   );
 }
 
-export default function MenuPage({ isV3 = false, displayConfig }: { isV3?: boolean, displayConfig?: any[] }) {
+export default function MenuPage({ isV3 = false, displayConfig, isPreview = false }: { isV3?: boolean, displayConfig?: any[], isPreview?: boolean }) {
   return (
     <Suspense fallback={
       <div className={styles.loadingContainer}>
         <div className={styles.loaderPill}><div className={styles.loaderDot}></div><span>Đang tải...</span></div>
       </div>
     }>
-      <MenuPageContent isV3={isV3} displayConfig={displayConfig} />
+      <MenuPageContent isV3={isV3} displayConfig={displayConfig} isPreview={isPreview} />
     </Suspense>
   );
 }

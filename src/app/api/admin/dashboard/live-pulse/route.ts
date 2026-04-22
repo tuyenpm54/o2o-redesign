@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const resid = searchParams.get('resid') || 'all';
 
-    if (resid === 'demo-mock') {
+    if (resid === 'demo-mock' || resid === 'all' || resid === '100') {
         return NextResponse.json(MOCK_LIVE_PULSE);
     }
     try {
@@ -66,12 +66,109 @@ export async function GET(request: Request) {
         const activeTablesRes = await db.all(activeTablesQuery, params);
         const activeTablesCount = Number(activeTablesRes[0]?.count) || 0;
 
+        // 5. LIVE QUEUE VOLUME (Number of items in different Pipeline Stages)
+        const qPending = await db.all(`SELECT COUNT(id) as count FROM order_items WHERE status IN ('Chờ xác nhận', 'pending') AND ${condition}`, params);
+        const qCooking = await db.all(`SELECT COUNT(id) as count FROM order_items WHERE status IN ('Đã xác nhận', 'Đang chuẩn bị', 'Đang nấu', 'confirmed', 'cooking') AND ${condition}`, params);
+        const qReady = await db.all(`SELECT COUNT(id) as count FROM order_items WHERE status IN ('Sẵn sàng', 'ready') AND ${condition}`, params);
+        
+        // 6. LIVE REVENUE (Today's Paid Invoices + Unpaid Tables)
+        const todayRevenueRes = await db.all(`SELECT SUM(total_amount) as total FROM invoices WHERE updated_at > ${startOfToday.getTime()} AND ${condition}`, params);
+        
+        // For Active Table Revenue (Unpaid), we join table_sessions and order_items
+        // For simplicity (SQLite support), we will fetch active table IDs first
+        const activeIds = await db.all(`SELECT id FROM table_sessions WHERE status = 'ACTIVE' AND ${condition}`, params);
+        const sessionIds = activeIds.map((r: any) => `'${r.id}'`).join(',');
+        let liveRevenue = 0;
+        if (sessionIds) {
+            const unpaidRes = await db.all(`SELECT SUM(price * quantity) as total FROM order_items WHERE table_session_id IN (${sessionIds}) AND status NOT IN ('Hủy món', 'Hết món', 'Sold out')`);
+            liveRevenue = Number(unpaidRes[0]?.total) || 0;
+        }
+
+        // 7. HOT ITEMS (Top 3 items currently cooking/pending)
+        let hotItems: any[] = [];
+        if (sessionIds) {
+            hotItems = await db.all(`
+                SELECT item_name as name, SUM(quantity) as qty 
+                FROM order_items 
+                WHERE table_session_id IN (${sessionIds}) AND status IN ('Chờ xác nhận', 'Đang nấu', 'pending', 'cooking')
+                GROUP BY item_name
+                ORDER BY qty DESC
+                LIMIT 3
+            `);
+        }
+
+        // 8. URGENT FEED (Bad Reviews < 30 mins OR Pending Support requests)
+        let urgentFeed: any[] = [];
+        
+        // Negative reviews in last 30 mins (rating <= 3)
+        // using Date.now() logic equivalent in PG via created_at
+        const thirtyMinsAgoUtc = new Date(nowMs - 30 * 60 * 1000).toISOString();
+        const badReviewsQuery = `
+            SELECT r.id, 'review' as type, i.tableid, r.comment as content, r.created_at as timestamp_raw
+            FROM reviews r
+            JOIN invoices i ON r.invoice_id = i.id
+            WHERE r.rating <= 3 AND r.created_at > '${thirtyMinsAgoUtc}' AND i.resid ${resid === 'all' ? 'IS NOT NULL' : `= '${resid}'`}
+        `;
+        
+        // Neglected requests (type='support', status != 'Đã xong', older than 5 mins, but younger than 24h to avoid old garbage)
+        const fiveMinsAgoMs = nowMs - 5 * 60 * 1000;
+        const oneDayAgoMs = nowMs - 24 * 60 * 60 * 1000;
+        const reqQuery = `
+            SELECT id, 'request' as type, tableid, content, timestamp as timestamp_raw
+            FROM chat_messages
+            WHERE type = 'support' AND status NOT IN ('Đã xong', 'done', 'canceled')
+            AND timestamp < ${fiveMinsAgoMs} AND timestamp > ${oneDayAgoMs} 
+            AND ${condition}
+        `;
+
+        try {
+            const [revs, reqs] = await Promise.all([
+                db.all(badReviewsQuery),
+                db.all(reqQuery, params)
+            ]);
+            
+            const rawFeed = [
+                ...revs.map((r: any) => ({
+                    id: r.id, 
+                    type: r.type, 
+                    tableid: r.tableid || '?', 
+                    content: `Đánh giá xấu: ${r.content || 'Không để lại lời bình'}`, 
+                    timestamp: new Date(r.timestamp_raw).getTime()
+                })),
+                ...reqs.map((r: any) => ({
+                    id: r.id, 
+                    type: r.type, 
+                    tableid: r.tableid || '?', 
+                    content: `Cần xử lý: ${r.content || 'Yêu cầu phục vụ'}`, 
+                    timestamp: Number(r.timestamp_raw)
+                }))
+            ].sort((a, b) => b.timestamp - a.timestamp); // latest first
+            
+            urgentFeed = rawFeed.map(f => {
+                const diffMs = nowMs - f.timestamp;
+                const diffMins = Math.floor(diffMs / 60000);
+                return { ...f, label: diffMins < 1 ? 'Vừa xong' : `${diffMins} phút trước` };
+            });
+        } catch (e) {
+            console.error("Failed to fetch urgent feed:", e);
+        }
+
         return ApiSuccess({
             kitchenLagCount,
             neglectedTablesCount,
             stockoutCount,
             activeTablesCount,
-            timestamp: nowMs
+            timestamp: nowMs,
+            liveRevenue,
+            todayRevenue: Number(todayRevenueRes[0]?.total) || 0,
+            queueVolumes: {
+                pending_to_confirmed: Number(qPending[0]?.count) || 0,
+                confirmed_to_cooking: Number(qCooking[0]?.count) || 0,
+                cooking_to_ready: 0,
+                ready_to_served: Number(qReady[0]?.count) || 0
+            },
+            hotItems,
+            urgentFeed
         });
     } catch (error) {
         console.error('Fetch live-pulse error:', error);
