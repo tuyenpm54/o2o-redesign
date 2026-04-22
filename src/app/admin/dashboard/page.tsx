@@ -274,7 +274,7 @@ export default function DashboardPage() {
                                         <Tooltip 
                                             contentStyle={{ background: '#0f172a', borderRadius: 12, border: 'none', color: '#fff', fontSize: 13, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}
                                             formatter={(value: any, name: any) => {
-                                                if (name === 'Doanh thu') return [formatVND(value), name];
+                                                if (name === 'Doanh thu') return [formatVND(Number(value)), name];
                                                 if (name === 'Tỉ lệ O2O') return [`${value}%`, name];
                                                 return [value, name];
                                             }}
