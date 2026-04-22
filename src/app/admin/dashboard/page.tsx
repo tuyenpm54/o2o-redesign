@@ -238,7 +238,7 @@ export default function DashboardPage() {
                                         <XAxis type="number" hide />
                                         <YAxis dataKey={peakTab === 'hours' ? "gio" : "ngay"} type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 500, fill: '#64748b' }} width={80} />
                                         <Tooltip 
-                                            formatter={(value: number) => peakTab === 'hours' || peakTab === 'days' ? formatVND(value) : value}
+                                            formatter={(value: any) => (peakTab === 'hours' || peakTab === 'days') ? formatVND(Number(value)) : value}
                                             contentStyle={{ background: '#0f172a', borderRadius: 12, border: 'none', color: '#fff', fontSize: 13, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }} 
                                             cursor={{ fill: 'rgba(0,0,0,0.02)' }} 
                                         />
@@ -273,7 +273,7 @@ export default function DashboardPage() {
 
                                         <Tooltip 
                                             contentStyle={{ background: '#0f172a', borderRadius: 12, border: 'none', color: '#fff', fontSize: 13, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}
-                                            formatter={(value: any, name: string) => {
+                                            formatter={(value: any, name: any) => {
                                                 if (name === 'Doanh thu') return [formatVND(value), name];
                                                 if (name === 'Tỉ lệ O2O') return [`${value}%`, name];
                                                 return [value, name];
@@ -711,7 +711,7 @@ function MenuEfficiencyDeck({ analytics }: { analytics?: any }) {
                                     <YAxis tick={{ fontSize: 12, fontWeight: 600, fill: '#64748b' }} tickFormatter={v => `${Math.floor(v / 60)}:${(v % 60).toString().padStart(2, '0')}`} axisLine={false} tickLine={false} />
                                     <Tooltip
                                         contentStyle={{ background: '#0f172a', borderRadius: 12, border: 'none', color: '#fff', fontSize: 13, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}
-                                        formatter={(val: number, name: string) => [`${Math.floor(val / 60)}:${(val % 60).toString().padStart(2, '0')}`, name]}
+                                        formatter={(val: any, name: any) => [`${Math.floor(Number(val) / 60)}:${(Number(val) % 60).toString().padStart(2, '0')}`, name]}
                                     />
                                     <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 12, fontWeight: 600, paddingBottom: 20 }} />
                                     <Area type="monotone" dataKey="browse" name="Duyệt menu" stroke="#6366f1" strokeWidth={2.5} fill="url(#gradBrowse)" dot={{ r: 4, fill: '#fff', stroke: '#6366f1', strokeWidth: 2 }} activeDot={{ r: 6 }} />
