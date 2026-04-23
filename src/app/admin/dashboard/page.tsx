@@ -132,6 +132,88 @@ export default function DashboardPage() {
     type SlaStatus = 'ok' | 'warning' | 'critical';
     const slaStatus: SlaStatus = totalViolations === 0 ? 'ok' : totalViolations < 5 ? 'warning' : 'critical';
 
+    const generateAutoInsights = () => {
+        const generated = [];
+        
+        // 1. Tăng trưởng
+        if (analytics.summary.o2oRate > 70) {
+            generated.push({
+                type: 'positive',
+                icon: <TrendingUp size={16} className="text-emerald-500" />,
+                bgColor: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20',
+                textColor: 'text-emerald-700 dark:text-emerald-400',
+                content: <><strong className="font-semibold">Tăng trưởng:</strong> Tỉ lệ dùng O2O xuất sắc ({analytics.summary.o2oRate.toFixed(1)}%), khách tự gọi món giúp tiết kiệm thì giờ nhân viên ghi order.</>
+            });
+        } else if (analytics.summary.aovTable > 150000) {
+            generated.push({
+                type: 'positive',
+                icon: <Banknote size={16} className="text-emerald-500" />,
+                bgColor: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20',
+                textColor: 'text-emerald-700 dark:text-emerald-400',
+                content: <><strong className="font-semibold">Tăng trưởng:</strong> Chi tiêu trung bình/bàn đạt mức khả quan ({formatVND(analytics.summary.aovTable)}), các module bán chéo O2O đang hoạt động hiệu quả.</>
+            });
+        }
+
+        // 2. SLA Thắt cổ chai
+        if (slaData && slaData.violations) {
+            let worstStageKey = '';
+            let highestRate = -1;
+            Object.entries(slaData.violations).forEach(([k, v]: [string, any]) => {
+                if (v.rate > highestRate) { highestRate = v.rate; worstStageKey = k; }
+            });
+
+            if (highestRate > 15) {
+                const labels: any = { pending_to_confirmed: 'Tiếp nhận', confirmed_to_cooking: 'Chuẩn bị', cooking_to_ready: 'Chế biến', ready_to_served: 'Phục vụ' };
+                generated.push({
+                    type: 'critical',
+                    icon: <AlertCircle size={16} className="text-rose-500" />,
+                    bgColor: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20',
+                    textColor: 'text-rose-700 dark:text-rose-400',
+                    content: <><strong className="font-semibold">Báo động:</strong> Khâu {labels[worstStageKey] || worstStageKey} đang kẹt đơn cực kỳ nghiêm trọng ({highestRate}% đơn bị trễ). Cần dồn nhân lực gỡ gạch ngay.</>
+                });
+            } else if (slaData.endToEnd.avg > slaData.endToEnd.target) {
+                generated.push({
+                    type: 'critical',
+                    icon: <AlertCircle size={16} className="text-rose-500" />,
+                    bgColor: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20',
+                    textColor: 'text-rose-700 dark:text-rose-400',
+                    content: <><strong className="font-semibold">Chú ý SLA:</strong> Thời gian hoàn thành đơn trung bình ({slaData.endToEnd.avg}p) đang vượt mốc mục tiêu ({slaData.endToEnd.target}p). Hệ thống đang chậm dần.</>
+                });
+            }
+        }
+
+        // 3. Cơ hội
+        if (analytics.summary.cancellationRate > 5) {
+            generated.push({
+                type: 'warning',
+                icon: <Lightbulb size={16} className="text-amber-500" />,
+                bgColor: 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20',
+                textColor: 'text-amber-700 dark:text-amber-400',
+                content: <><strong className="font-semibold">Khuyến nghị:</strong> Tỉ lệ Hủy/Hết món khá cao ({analytics.summary.cancellationRate.toFixed(1)}%). Nên rà soát kho nguyên liệu gắt gao hơn trước giờ cao điểm.</>
+            });
+        } else if (occupancy && occupancy.avgSessionMinutes > 90) {
+            generated.push({
+                type: 'warning',
+                icon: <Lightbulb size={16} className="text-amber-500" />,
+                bgColor: 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20',
+                textColor: 'text-amber-700 dark:text-amber-400',
+                content: <><strong className="font-semibold">Khuyến nghị:</strong> Tốc độ xoay vòng bàn đang chậm (Khách lưu lại &gt;90p/bàn). Cân nhắc đẩy mạnh nhắc bill hoặc mời gọi thêm tráng miệng.</>
+            });
+        } else {
+            generated.push({
+                type: 'neutral',
+                icon: <CheckCircle2 size={16} className="text-slate-500 dark:text-slate-400" />,
+                bgColor: 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10',
+                textColor: 'text-slate-700 dark:text-slate-300',
+                content: <><strong className="font-semibold">Trạng thái:</strong> Toàn bộ các chỉ số vận hành đang ổn định, không có thắt cổ chai lớn được ghi nhận.</>
+            });
+        }
+
+        return generated.slice(0, 3);
+    };
+
+    const autoInsights = generateAutoInsights();
+
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 bg-slate-50 dark:bg-black min-h-screen">
             {/* ── HEADER ── */}
@@ -171,6 +253,20 @@ export default function DashboardPage() {
                             </select>
                             <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         </div>
+                    </div>
+
+                    {/* Bản tin Vận hành Tự động (Auto-Insights) */}
+                    <div className="flex flex-col gap-2">
+                        {autoInsights.map((insight, idx) => (
+                            <div key={idx} className={`flex items-start gap-3 p-3.5 rounded-2xl border ${insight.bgColor}`}>
+                                <div className={`shrink-0 mt-0.5 ${insight.textColor.split(' ')[0]}`}>
+                                    {insight.icon}
+                                </div>
+                                <p className={`text-[13px] leading-relaxed ${insight.textColor}`}>
+                                    {insight.content}
+                                </p>
+                            </div>
+                        ))}
                     </div>
 
                     {/* KPI Summary Cards */}

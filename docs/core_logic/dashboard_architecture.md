@@ -138,9 +138,30 @@ Biểu đồ thanh ngang hiển thị doanh thu theo **Giờ** hoặc **Ngày tr
 
 **Quy tắc đo:** Các cột cao hơn mức trung bình (`summary.doanhThu / số khung`) được tô đậm (`#0f172a`), còn lại tô nhạt (`#e2e8f0`) để chủ quán nhận diện bằng mắt ngay lập tức *"đâu là đỉnh"*.
 
+**Quy tắc đo:** Các cột cao hơn mức trung bình (`summary.doanhThu / số khung`) được tô đậm (`#0f172a`), còn lại tô nhạt (`#e2e8f0`) để chủ quán nhận diện bằng mắt ngay lập tức *"đâu là đỉnh"*.
+
 ### Nguồn dữ liệu
 - API: `/api/admin/dashboard/sla-metrics` (chi tiết)
 - API: `/api/admin/dashboard/analytics` → `peakHours`, `peakDays`
+
+---
+
+## DECK 2.5: KẾT LUẬN TỰ ĐỘNG (Auto-Insights Heuristics)
+
+### Mục đích & Nguyên tắc Kỹ thuật
+Xóa bỏ tình trạng "Data Dumping" (chỉ show số liệu) bằng cách đặt các Lời Tuyên Bố Hành Động lên ngay phần Tổng quan Hiệu suất.
+**Nguyên tắc Tuyệt đối:** KHÔNG SỬ DỤNG Machine Learning hay các lệnh SQL hạng nặng ở Backend. Toàn bộ logic Auto-Insights được xử lý bằng các hàm Heuristics (rẽ nhánh IF/ELSE) ngay trên **Frontend**, tận dụng 100% dữ liệu đã fetch từ API `analytics` và `sla-metrics`.
+
+### Các Nhãn Trạng Thái
+Bản tin vận hành luôn đưa ra 3 đầu mục phân tích:
+1. 🟢 **Tăng trưởng (Positive):** Khen ngợi điểm sáng (Dựa vào Tỉ lệ O2O hoặc AOV).
+2. 🔴 **Thắt cổ chai (Critical):** Cảnh báo nghẽn mạch (Dựa vào SLA Bếp/Phục vụ).
+3. 💡 **Hành động (Action/Warning):** Gợi ý ra lệnh (Dựa vào Tỉ lệ Hủy món hoặc Thời gian lưu trú trung bình).
+
+### Ví dụ Logic IF/ELSE trên Frontend:
+- `IF (O2O_Rate > 70%)` → In ra: *"Tỉ lệ dùng app rất cao (X%), tiết kiệm nhân sự chạy bàn."*
+- `IF (SLA_Worst_Stage_Violated_Rate > 15%)` → In ra: *"Cảnh báo: Khâu [Tên khâu] đang trễ hẹn nghiêm trọng, ảnh hưởng trải nghiệm."*
+- `IF (Cancel_Rate > 5%)` → In ra: *"Tỉ lệ hủy/hết món lớn (X%). Nhắc quản lý kiểm kê kho."*
 
 ---
 
