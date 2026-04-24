@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutTemplate, Plus, Save, ChevronUp, ChevronDown, Trash2, Settings2, Eye, X, ExternalLink, CheckCircle2, AlertTriangle, Lock, Zap, Palette, GripVertical, MonitorSmartphone, RefreshCcw, ArrowLeft, Utensils, QrCode, Store } from 'lucide-react';
+import { LayoutTemplate, Plus, Save, ChevronUp, ChevronDown, Trash2, Settings2, Eye, X, ExternalLink, CheckCircle2, AlertTriangle, Lock, Zap, Palette, GripVertical, MonitorSmartphone, RefreshCcw, ArrowLeft, Utensils, QrCode, Store, Smartphone } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { SurveyEditorInline, DEFAULT_SURVEY_CONFIG } from './SurveyEditorModal';
 import { IconDictionary } from '@/lib/icons';
 
-type ModuleType = 'menu-grid' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'support-options' | 'checkout-auth' | 'custom';
+type OperatingModel = 'post-pay' | 'pre-pay-table' | 'pre-pay-counter';
+type ModuleType = 'menu-grid' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'support-options' | 'checkout-auth' | 'custom' | 'bad-review-reasons' | 'payment-methods';
 
 interface StorefrontBlock {
     id: string;
@@ -24,15 +25,17 @@ interface StorefrontTemplate {
     blocks: StorefrontBlock[];
 }
 
-const MODULE_DEFINITIONS: Record<ModuleType, { name: string; description: string; category: 'layout' | 'action'; minTier?: 'FREE' | 'PRO' | 'PREMIUM' }> = {
+const MODULE_DEFINITIONS: Record<ModuleType, { name: string; description: string; category: 'layout' | 'action'; minTier?: 'FREE' | 'PRO' | 'PREMIUM'; supportedModels?: OperatingModel[] }> = {
     'for-you': { name: 'Món Bạn Từng Gọi', description: 'Hiển thị tối đa 5 món khách đã từng gọi nhiều nhất (Chỉ On/Off)', category: 'layout', minTier: 'FREE' },
     'combo': { name: 'Combo Tiết Kiệm', description: 'Hiển thị các gói combo giá tốt', category: 'layout', minTier: 'PRO' },
     'best-sale': { name: 'Siêu Phẩm Bán Chạy', description: 'Danh sách món bán chạy nhất', category: 'layout', minTier: 'PRO' },
     'custom': { name: 'Danh Mục Tuỳ Chỉnh', description: 'Tự cấu hình danh mục riêng', category: 'layout', minTier: 'PRO' },
     'menu-grid': { name: 'Thực Đơn Của Quán', description: 'Hiển thị mục thực đơn cốt lõi (Ghim dưới đáy menu)', category: 'layout', minTier: 'FREE' },
     'onboarding-wizard': { name: 'Khám Phá Menu (Giới thiệu)', description: 'Bật/Tắt và thiết lập Khảo sát đầu vào (V2)', category: 'action', minTier: 'PREMIUM' },
-    'support-options': { name: 'Tùy Chỉnh Yêu Cầu Hỗ Trợ', description: 'Cấu hình các nút chức năng trong modal Yêu Cầu Hỗ Trợ', category: 'action', minTier: 'PRO' },
-    'checkout-auth': { name: 'Đăng Nhập Khi Trả Trước', description: 'Bật/Tắt nút Bỏ qua đăng nhập ở màn thanh toán trả trước', category: 'action', minTier: 'FREE' },
+    'support-options': { name: 'Tùy Chỉnh Yêu Cầu Hỗ Trợ', description: 'Cấu hình các nút chức năng trong modal Yêu Cầu Hỗ Trợ', category: 'action', minTier: 'PRO', supportedModels: ['post-pay', 'pre-pay-table'] },
+    'checkout-auth': { name: 'Đăng Nhập Khi Trả Trước', description: 'Bật/Tắt nút Bỏ qua đăng nhập ở màn thanh toán trả trước', category: 'action', minTier: 'FREE', supportedModels: ['pre-pay-table', 'pre-pay-counter'] },
+    'bad-review-reasons': { name: 'Lý Do Đánh Giá Xấu', description: 'Cấu hình các lựa chọn tag khi khách hàng chọn sao thấp, phục vụ báo cáo nội bộ', category: 'action', minTier: 'PRO' },
+    'payment-methods': { name: 'Phương Thức Thanh Toán', description: 'Bật/Tắt các cổng thanh toán cho phép khách trả trước khi gọi món', category: 'action', minTier: 'FREE', supportedModels: ['pre-pay-table', 'pre-pay-counter'] }
 };
 
 const SYSTEM_TEMPLATES: StorefrontTemplate[] = [
@@ -58,7 +61,7 @@ const isBlockValid = (block: StorefrontBlock): boolean => {
     return true;
 };
 
-function ModuleConfigForm({ block, onChange, allMenuItems = [] }: { block: StorefrontBlock, onChange: (newConfig: any) => void, allMenuItems?: any[] }) {
+function ModuleConfigForm({ block, onChange, allMenuItems = [], restaurantInfo, showToast }: { block: StorefrontBlock, onChange: (newConfig: any) => void, allMenuItems?: any[], restaurantInfo?: any, showToast?: (msg: string, type: 'success'|'error'|'info') => void }) {
     const { type, config } = block;
     const [previewStyle, setPreviewStyle] = useState<'v1' | 'v2' | null>(null);
     const [iconPickerOpenForId, setIconPickerOpenForId] = useState<string | null>(null);
@@ -246,14 +249,20 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [] }: { block: Store
 
     if (type === 'support-options') {
         const options = config.options || [
-            { id: 'cutlery', label: 'Thêm bát đũa', icon: 'Utensils', isOther: false },
-            { id: 'napkin', label: 'Khăn giấy', icon: 'Sparkles', isOther: false },
-            { id: 'clean', label: 'Dọn bàn', icon: 'CheckCircle2', isOther: false },
-            { id: 'bill', label: 'Thanh toán', icon: 'Wallet', isOther: false },
-            { id: 'other', label: 'Yêu cầu khác', icon: 'MoreHorizontal', isOther: true },
+            { id: 'cutlery', label: 'Thêm bát đũa', icon: 'Utensils', isOther: false, actionType: 'normal' },
+            { id: 'napkin', label: 'Khăn giấy', icon: 'Sparkles', isOther: false, actionType: 'normal' },
+            { id: 'clean', label: 'Dọn bàn', icon: 'CheckCircle2', isOther: false, actionType: 'normal' },
+            { id: 'bill', label: 'Thanh toán', icon: 'Wallet', isOther: false, actionType: 'normal' },
+            { id: 'other', label: 'Yêu cầu khác', icon: 'MoreHorizontal', isOther: true, actionType: 'normal' },
         ];
 
         const handleOptionChange = (id: string, field: string, value: any) => {
+            if (field === 'actionType' && value === 'wifi') {
+                if (!restaurantInfo?.wifi_ssid && !restaurantInfo?.wifi_password) {
+                    if (showToast) showToast('Cửa hàng chưa có tên Wifi, vui lòng cài đặt thông tin cửa hàng.', 'error');
+                    return;
+                }
+            }
             const newOptions = options.map((opt: any) => opt.id === id ? { ...opt, [field]: value } : opt);
             onChange({ ...config, options: newOptions });
         };
@@ -261,39 +270,60 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [] }: { block: Store
         return (
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <h5 className="font-bold text-sm">Cấu hình các yêu cầu hỗ trợ</h5>
-                    <button 
-                        onClick={() => onChange({ ...config, options: [...options, { id: 'opt_' + Date.now(), label: 'Tùy chọn mới', icon: 'Star', isOther: false }] })}
-                        disabled={options.length >= 6}
-                        className="p-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 rounded-lg disabled:opacity-50"
-                    >
-                        <Plus size={16} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <h5 className="font-bold text-sm text-slate-800 dark:text-slate-200">Cấu hình các yêu cầu hỗ trợ</h5>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${options.length >= 12 ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400'}`}>
+                            {options.length}/12
+                        </span>
+                    </div>
+                    {options.length < 12 ? (
+                        <button 
+                            onClick={() => onChange({ ...config, options: [...options, { id: 'opt_' + Date.now(), label: 'Tùy chọn mới', icon: 'Star', isOther: false, actionType: 'normal' }] })}
+                            className="p-1.5 bg-[#DF1B41]/10 text-[#DF1B41] hover:bg-[#DF1B41]/20 rounded-lg transition-colors"
+                            title="Thêm yêu cầu"
+                        >
+                            <Plus size={16} className="stroke-[2.5]" />
+                        </button>
+                    ) : (
+                        <div className="text-[11px] text-amber-500 font-medium">Đã đạt giới hạn tối đa</div>
+                    )}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                     {options.map((opt: any) => {
                         const IconComp = IconDictionary[opt.icon] || IconDictionary['HelpCircle'];
                         return (
-                            <div key={opt.id} className="flex items-center gap-3 p-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl relative">
-                                <button onClick={() => setIconPickerOpenForId(iconPickerOpenForId === opt.id ? null : opt.id)} className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                                    <IconComp size={16} />
+                            <div key={opt.id} className="flex items-center gap-3 p-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl relative hover:border-slate-300 transition-all group shadow-sm hover:shadow-md">
+                                <button onClick={() => setIconPickerOpenForId(iconPickerOpenForId === opt.id ? null : opt.id)} className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10 hover:bg-slate-100 transition-colors text-slate-600 dark:text-slate-400">
+                                    <IconComp size={18} />
                                 </button>
                                 {iconPickerOpenForId === opt.id && (
-                                    <div className="absolute top-10 left-0 w-64 p-3 bg-white dark:bg-zinc-800 border rounded-xl shadow-xl z-50 grid grid-cols-6 gap-1">
+                                    <div className="absolute top-14 left-0 w-64 p-3 bg-white dark:bg-[#1A1D27] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl z-50 grid grid-cols-6 gap-1">
                                         {Object.keys(IconDictionary).slice(0, 30).map(k => (
-                                            <button key={k} onClick={() => { handleOptionChange(opt.id, 'icon', k); setIconPickerOpenForId(null); }} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded">
+                                            <button key={k} onClick={() => { handleOptionChange(opt.id, 'icon', k); setIconPickerOpenForId(null); }} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-slate-600 dark:text-slate-400 transition-colors">
                                                 {React.createElement(IconDictionary[k], { size: 14 })}
                                             </button>
                                         ))}
                                     </div>
                                 )}
-                                <input 
-                                    type="text" 
-                                    value={opt.label} 
-                                    onChange={(e) => handleOptionChange(opt.id, 'label', e.target.value)} 
-                                    className="flex-1 bg-transparent text-sm font-medium outline-none" 
-                                />
-                                <button onClick={() => onChange({ ...config, options: options.filter((o: any) => o.id !== opt.id) })} className="p-1.5 text-slate-400 hover:text-red-500"><Trash2 size={14} /></button>
+                                
+                                <div className="flex-1 flex flex-col gap-2 min-w-0">
+                                    <input 
+                                        type="text" 
+                                        value={opt.label} 
+                                        onChange={(e) => handleOptionChange(opt.id, 'label', e.target.value)} 
+                                        placeholder="Tên yêu cầu..."
+                                        className="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400" 
+                                    />
+                                    <select 
+                                        value={opt.actionType || 'normal'}
+                                        onChange={(e) => handleOptionChange(opt.id, 'actionType', e.target.value)}
+                                        className="text-xs bg-slate-50 border border-slate-200 rounded-md py-1 px-2 text-slate-600 outline-none w-fit font-medium hover:border-slate-300 cursor-pointer dark:bg-white/5 dark:border-white/10 dark:text-slate-300"
+                                    >
+                                        <option value="normal">Action: Gửi lên quán</option>
+                                        <option value="wifi">Action: Lấy mã Wifi</option>
+                                    </select>
+                                </div>
+                                <button onClick={() => onChange({ ...config, options: options.filter((o: any) => o.id !== opt.id) })} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg shrink-0 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></button>
                             </div>
                         );
                     })}
@@ -306,18 +336,145 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [] }: { block: Store
         const allowSkip = config.allowSkip !== false; // defaults to true
         return (
             <div className="space-y-4">
-                <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 gap-4">
+                <div className="flex items-center justify-between">
+                    <h5 className="font-bold text-sm text-slate-800 dark:text-slate-200">Cho phép bỏ qua đăng nhập</h5>
+                </div>
+                <div className="flex items-start justify-between p-4 bg-white dark:bg-black/20 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm gap-4 transition-all hover:border-slate-300">
                     <div>
-                        <h5 className="font-bold text-sm text-slate-800 dark:text-slate-200">Cho phép bỏ qua đăng nhập</h5>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                            Bật tùy chọn này để hiển thị nút "Bỏ qua" ở form nhập OTP lúc khách hàng checkout. <br/>
-                            Nếu tắt, khách hàng bắt buộc phải xác thực SĐT trước khi thanh toán.
+                        <h6 className="font-semibold text-sm text-slate-800 dark:text-slate-200">Hiển thị nút "Bỏ qua"</h6>
+                        <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                            Cho phép khách hàng tạm bỏ qua bước nhập mã OTP trong lúc gọi món, giúp tăng tỷ lệ chốt đơn.
+                            <br/>Nếu tắt, khách hàng sẽ bị ép buộc xác thực SĐT trước khi thanh toán.
                         </p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1 scale-[0.85] origin-right">
                         <input type="checkbox" checked={allowSkip} onChange={(e) => onChange({ ...config, allowSkip: e.target.checked })} className="sr-only peer" />
-                        <div className="w-10 h-6 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white shadow-inner"></div>
+                        <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:bg-[#DF1B41] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:border-transparent after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:after:translate-x-full peer-checked:after:border-transparent"></div>
                     </label>
+                </div>
+            </div>
+        );
+    }
+
+    if (type === 'bad-review-reasons') {
+        const TAG_OPTIONS = [
+            { id: 'service', name: 'Dịch vụ' },
+            { id: 'food', name: 'Món ăn' },
+            { id: 'price', name: 'Giá cả' },
+            { id: 'env', name: 'Không gian' },
+            { id: 'other', name: 'Khác' }
+        ];
+
+        const defaultReasons = [
+            { id: 'r1', label: 'Phục vụ chậm', tags: ['service'] },
+            { id: 'r2', label: 'Món ăn nguội', tags: ['food'] },
+            { id: 'r3', label: 'Thái độ nhân viên', tags: ['service'] },
+            { id: 'r4', label: 'Giá quá cao', tags: ['price'] },
+            { id: 'r5', label: 'Khác', tags: ['other'] }
+        ];
+
+        // Migrate string array -> object array and adapt from 'tag' to 'tags'
+        const reasons = (config.reasons || defaultReasons).map((r: any, idx: number) => {
+            if (typeof r === 'string') return { id: `mig_${idx}_${Date.now()}`, label: r, tags: ['other'] };
+            if (r.tag && !r.tags) {
+                return { ...r, tags: [r.tag] };
+            }
+            return { ...r, tags: r.tags || ['other'] };
+        });
+
+        const handleReasonChange = (index: number, field: string, val: any) => {
+            const newReasons = [...reasons];
+            newReasons[index] = { ...newReasons[index], [field]: val };
+            onChange({ ...config, reasons: newReasons });
+        }
+
+        return (
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <h5 className="font-bold text-sm text-slate-800 dark:text-slate-200">Các lựa chọn đánh giá xấu</h5>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${reasons.length >= 12 ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400'}`}>
+                            {reasons.length}/12
+                        </span>
+                    </div>
+                    {reasons.length < 12 ? (
+                        <button 
+                            onClick={() => onChange({ ...config, reasons: [...reasons, { id: 'opt_' + Date.now(), label: 'Tuỳ chọn mới', tags: ['other'] }] })} 
+                            className="p-1.5 bg-[#DF1B41]/10 text-[#DF1B41] hover:bg-[#DF1B41]/20 rounded-lg transition-colors"
+                            title="Thêm lý do"
+                        >
+                            <Plus size={16} className="stroke-[2.5]" />
+                        </button>
+                    ) : (
+                        <div className="text-[11px] text-amber-500 font-medium">Đã đạt giới hạn tối đa</div>
+                    )}
+                </div>
+                <div className="space-y-3">
+                    {reasons.map((r: any, idx: number) => (
+                        <div key={r.id || idx} className="flex flex-col gap-3 p-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-slate-300 transition-colors shadow-sm group">
+                            <div className="flex gap-2 items-center">
+                                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400">
+                                    <AlertTriangle size={18} />
+                                </div>
+                                <input 
+                                    value={r.label} 
+                                    onChange={e => handleReasonChange(idx, 'label', e.target.value)} 
+                                    className="flex-1 bg-transparent px-2 py-1 text-sm font-semibold text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 placeholder:font-normal" 
+                                    placeholder="Nhập lý do (VD: Phục vụ chậm)..." 
+                                />
+                                <button 
+                                    onClick={() => onChange({ ...config, reasons: reasons.filter((_: any, i: number) => i !== idx) })} 
+                                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                                    title="Xóa"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 pl-[3.25rem] pb-1">
+                                {TAG_OPTIONS.map(tag => {
+                                    const isActive = (r.tags || []).includes(tag.id);
+                                    return (
+                                        <button 
+                                            key={tag.id}
+                                            onClick={() => {
+                                                const currentTags = r.tags || [];
+                                                const newTags = isActive ? currentTags.filter((t: string) => t !== tag.id) : [...currentTags, tag.id];
+                                                handleReasonChange(idx, 'tags', newTags);
+                                            }}
+                                            className={`px-2.5 py-1 text-[10px] uppercase tracking-wide font-bold rounded-[8px] transition-all border ${isActive ? 'bg-[#DF1B41] text-white border-[#DF1B41] shadow-sm scale-[1.02]' : 'bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                                        >
+                                            {tag.name}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <p className="text-xs text-slate-500 mt-2 p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 tracking-wide leading-relaxed">
+                    Mỗi lý do có thể gắn nhiều Tag cùng lúc. Điều này giúp hệ thống nội bộ Report Dashboard có thể giao thoa phân tích được diện rộng các vấn đề.
+                </p>
+            </div>
+        );
+    }
+
+    if (type === 'payment-methods') {
+        const methods = config.methods || { cash: true, transfer: true, ewallet: false };
+        return (
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h5 className="font-bold text-sm text-slate-800 dark:text-slate-200">Hiển thị Phương Thức Thanh Toán</h5>
+                </div>
+                <div className="space-y-3">
+                    {Object.entries({ cash: 'Tiền mặt', transfer: 'Chuyển khoản (QR)', ewallet: 'Ví điện tử (MoMo, ZaloPay)' }).map(([k, label]) => (
+                        <div key={k} className="flex justify-between items-center p-4 border border-slate-200 dark:border-white/10 rounded-2xl bg-white dark:bg-black/20 hover:border-slate-300 transition-all shadow-sm">
+                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</span>
+                            <label className="relative inline-flex items-center cursor-pointer scale-[0.85] origin-right">
+                                <input type="checkbox" checked={methods[k]} onChange={(e) => onChange({...config, methods: {...methods, [k]: e.target.checked}})} className="sr-only peer" />
+                                <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:bg-[#DF1B41] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:border-transparent after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:after:translate-x-full peer-checked:after:border-transparent"></div>
+                            </label>
+                        </div>
+                    ))}
                 </div>
             </div>
         );
@@ -325,11 +482,11 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [] }: { block: Store
 
     if (type === 'menu-grid') {
         return (
-            <div className="text-sm text-slate-500 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border flex items-start gap-3">
-                <div className="mt-0.5 text-blue-500"><AlertTriangle size={16} /></div>
+            <div className="text-sm text-slate-500 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 flex items-start gap-4">
+                <div className="mt-0.5 text-amber-500 bg-amber-50 dark:bg-amber-500/10 p-2 rounded-xl"><AlertTriangle size={18} /></div>
                 <div>
-                    <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Danh Mục Cố Định</p>
-                    Luôn được ghim cố định ở đáy trang. Bạn không thể tắt block này.
+                    <h6 className="font-bold text-slate-800 dark:text-slate-200 mb-1">Danh Mục Cố Định</h6>
+                    <p className="text-xs leading-relaxed opacity-90">Block Menu Grid luôn được ghim cố định ở đáy trang đối với mọi sơ đồ hiển thị. Bạn không thể thay đổi hay tắt block này để đảm bảo trải nghiệm khách hàng.</p>
                 </div>
             </div>
         );
@@ -362,6 +519,14 @@ export default function DisplayConfigPage() {
     const [showSimulator, setShowSimulator] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [selectedModel, setSelectedModel] = useState<{id: string, name: string, icon: any, desc: string} | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [toastMessage, setToastMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
+    const [isConfirmSwitchModalOpen, setIsConfirmSwitchModalOpen] = useState(false);
+
+    const showToast = (text: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToastMessage({ text, type });
+        setTimeout(() => setToastMessage(null), 3000);
+    };
 
     const OPERATING_MODELS = [
         { id: 'post-pay', name: 'Mô hình Trả sau', icon: Utensils, desc: 'Khách hàng gọi món tại bàn, nhân viên phục vụ, dùng bữa xong mới thanh toán (Dine-in truyền thống).' },
@@ -372,31 +537,38 @@ export default function DisplayConfigPage() {
     const [isAddBlockModalOpen, setIsAddBlockModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'layout' | 'action'>('layout');
-    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-    const [publishScope, setPublishScope] = useState<'brand' | 'specific'>('brand');
-    const [availableRestaurants, setAvailableRestaurants] = useState<any[]>([]);
-    const [selectedRestaurants, setSelectedRestaurants] = useState<string[]>([]);
     const [allMenuItems, setAllMenuItems] = useState<any[]>([]);
+    const [restaurantInfo, setRestaurantInfo] = useState<any>(null);
 
     useEffect(() => {
         const fetchDisplay = async () => {
             try {
                 const res = await fetch('/api/admin/display?resid=100');
                 const data = await res.json();
-                if (data.success && data.data.draft && data.data.draft.length > 0) {
-                    setBlocks(data.data.draft);
-                    setActiveTemplateId('custom-db');
-                } else {
-                    setBlocks(SYSTEM_TEMPLATES[0].blocks);
-                    setActiveTemplateId(SYSTEM_TEMPLATES[0].id);
+                if (data.success) {
+                    if (data.data.operating_model) {
+                         const model = OPERATING_MODELS.find(m => m.id === data.data.operating_model);
+                         if (model) {
+                             setSelectedModel(model);
+                         }
+                    }
+                    if (data.data.draft && data.data.draft.length > 0) {
+                        setBlocks(data.data.draft);
+                        setActiveTemplateId('custom-db');
+                    } else {
+                        setBlocks(SYSTEM_TEMPLATES[0].blocks);
+                        setActiveTemplateId(SYSTEM_TEMPLATES[0].id);
+                    }
                 }
                 const resMenu = await fetch('/api/restaurants/100');
                 const menuData = await resMenu.json();
                 if (menuData?.menu?.items) setAllMenuItems(menuData.menu.items);
-                const resRest = await fetch('/api/restaurants');
-                const restData = await resRest.json();
-                if (Array.isArray(restData)) setAvailableRestaurants(restData);
-            } catch (error) { console.error(error); }
+                setRestaurantInfo(menuData);
+            } catch (error) { 
+                console.error(error); 
+            } finally {
+                setIsLoading(false);
+            }
         };
         fetchDisplay();
     }, []);
@@ -404,19 +576,19 @@ export default function DisplayConfigPage() {
     const executePublish = async () => {
         setIsSaving(true);
         try {
-            const targetIds = publishScope === 'brand' ? availableRestaurants.map(r => r.id) : selectedRestaurants;
+            const targetIds = ['100']; // Single restaurant context
             await fetch('/api/admin/display', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ res_ids: targetIds, blocks })
+                body: JSON.stringify({ res_ids: targetIds, blocks, operating_model: selectedModel?.id })
             });
             const res = await fetch('/api/admin/display', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ res_ids: targetIds })
             });
-            if (res.ok) { alert('Thành công!'); setIsPublishModalOpen(false); }
-        } catch (e) { alert('Thất bại'); }
+            if (res.ok) { showToast('Phát hành thành công!', 'success'); }
+        } catch (e) { showToast('Phát hành thất bại, vui lòng thử lại', 'error'); }
         finally { setIsSaving(false); }
     };
 
@@ -441,38 +613,49 @@ export default function DisplayConfigPage() {
         setEditingBlockId(newBlock.id);
     };
 
+    if (isLoading) {
+        return (
+            <div className="flex min-h-screen bg-slate-50 dark:bg-[#050510] justify-center items-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 border-4 border-[#DF1B41] border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-sm font-medium text-slate-500">Đang tải cấu hình...</p>
+                </div>
+            </div>
+        );
+    }
+
     if (!selectedModel) {
         return (
-            <div className="flex min-h-screen bg-slate-50 dark:bg-[#050510] justify-center items-center p-4 sm:p-8 text-slate-800 dark:text-slate-200" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.05) 1px, transparent 0)', backgroundSize: '24px 24px' }}>
-                <div className="w-full max-w-5xl">
-                    <div className="text-center mb-12 animation-slide-up" style={{ animationDuration: '0.4s' }}>
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 mb-6 shadow-inner ring-1 ring-indigo-100 dark:ring-indigo-500/20">
-                            <LayoutTemplate size={32} className="stroke-[2.5]" />
+            <div className="flex min-h-screen bg-slate-50 dark:bg-[#050510] justify-center items-center p-4">
+                <div className="w-full max-w-lg bg-white dark:bg-[#13141A] rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 p-8 relative overflow-hidden">
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#DF1B41]/10 text-[#DF1B41] mb-4">
+                            <LayoutTemplate size={24} className="stroke-[2.5]" />
                         </div>
-                        <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-3 tracking-tight">Cấu hình hiển thị</h1>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xl mx-auto border-b border-transparent">Chọn mô hình vận hành bạn muốn thiết lập. Mỗi thiết lập được lưu trữ và tối ưu riêng biệt cho kịch bản phục vụ tương ứng.</p>
+                        <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Khởi tạo Màn hình</h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">Chọn một mô hình vận hành cố định cho nhà hàng của bạn.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {OPERATING_MODELS.map((model, idx) => {
+                    <div className="space-y-4">
+                        {OPERATING_MODELS.map((model) => {
                             const IconCmp = model.icon;
                             return (
                                 <button 
                                     key={model.id}
-                                    onClick={() => setSelectedModel(model)}
-                                    className="bg-white dark:bg-[#13141A] p-8 text-left rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-white/5 hover:border-indigo-500 hover:ring-2 hover:ring-indigo-500/20 dark:hover:border-indigo-500 transition-all duration-300 hover:-translate-y-2 group relative overflow-hidden flex flex-col h-full animation-slide-up"
-                                    style={{ animationDuration: `${0.4 + idx * 0.1}s` }}
+                                    onClick={() => {
+                                        setSelectedModel(model);
+                                        fetch('/api/admin/display', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ res_ids: ['100'], blocks, operating_model: model.id }) });
+                                    }}
+                                    className="w-full flex items-center p-4 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-[#DF1B41] hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-left group box-border active:scale-[0.98]"
                                 >
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 dark:bg-indigo-500/10 rounded-bl-[100px] -z-10 transition-transform duration-500 group-hover:scale-[1.5]"></div>
-                                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-white/5 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-6 ring-1 ring-indigo-100 dark:ring-white/10 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
-                                        <IconCmp size={28} className="stroke-[2]" />
+                                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-black/20 group-hover:bg-[#DF1B41] group-hover:text-white text-slate-500 flex items-center justify-center shrink-0 transition-colors">
+                                        <IconCmp size={20} className="stroke-[2.5]" />
                                     </div>
-                                    <h3 className="text-xl font-black mb-3 text-slate-800 dark:text-slate-100">{model.name}</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium flex-1">{model.desc}</p>
-                                    
-                                    <div className="mt-8 flex items-center text-sm font-bold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform uppercase tracking-wider">
-                                        Cấu hình ngay <ArrowLeft className="ml-2 rotate-180" size={16} strokeWidth={3} />
+                                    <div className="ml-4 flex-1">
+                                        <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">{model.name}</h3>
+                                        <p className="text-[11px] text-slate-500 leading-snug mt-1 font-medium">{model.desc}</p>
                                     </div>
+                                    <ArrowLeft size={16} className="ml-2 text-slate-300 group-hover:text-[#DF1B41] rotate-180 transition-colors shrink-0" />
                                 </button>
                             );
                         })}
@@ -483,32 +666,31 @@ export default function DisplayConfigPage() {
     }
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#050510] relative text-slate-800 dark:text-slate-200 justify-center p-2 sm:p-4">
-            
-            {/* MAIN PANE: BUILDER PANEL */}
-            <div className="w-full max-w-[75rem] flex-1 flex bg-white dark:bg-[#13141A] shadow-2xl rounded-[32px] overflow-hidden border border-slate-200/60 dark:border-white/5 relative z-20 animation-slide-up transition-all duration-500">
+        <div className="flex h-screen overflow-hidden bg-[#FAFAFA] dark:bg-[#050510] relative text-slate-800 dark:text-slate-200 font-sans">
+            <div className="flex-1 flex overflow-hidden w-full">
                 
-                {/* LEFT COLUMN: List & Global Actions */}
-                <div className="flex flex-col h-full shrink-0 w-[360px] shadow-[4px_0_24px_rgba(0,0,0,0.02)] border-r border-slate-200/80 dark:border-white/5 bg-slate-50/40 dark:bg-black/10 relative z-20">
+                {/* LEFT COLUMN: Outline (320px) */}
+                <div className="flex flex-col h-full shrink-0 w-[320px] shadow-[4px_0_24px_rgba(0,0,0,0.02)] border-r border-slate-200/80 dark:border-white/5 bg-white dark:bg-[#13141A] relative z-20">
                     
                     {/* Header */}
-                <div className="h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-6 shrink-0 bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl sticky top-0 z-20">
-                    <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => setSelectedModel(null)} 
-                            className="w-8 h-8 rounded-full bg-slate-50 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors shrink-0"
-                            title="Quay lại"
-                        >
-                            <ArrowLeft size={16} className="stroke-[2.5]" />
-                        </button>
-                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 flex items-center justify-center flex-shrink-0">
-                            {React.createElement(selectedModel.icon, { size: 14, className: "stroke-[2.5]" })}
+                    <div className="h-16 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-6 shrink-0 bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl sticky top-0 z-20">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-[#DF1B41]/10 text-[#DF1B41] flex items-center justify-center flex-shrink-0">
+                                {React.createElement(selectedModel.icon, { size: 20, className: "stroke-[2.5]" })}
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <h1 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{selectedModel.name}</h1>
+                                    <button 
+                                        onClick={() => setIsConfirmSwitchModalOpen(true)} 
+                                        className="text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 dark:text-slate-300 dark:bg-white/5 dark:hover:bg-white/10 px-2 py-0.5 rounded-md transition-colors flex items-center gap-1 uppercase tracking-wider active:scale-95"
+                                    >
+                                        <RefreshCcw size={10} strokeWidth={3} /> Đổi
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium truncate">{savedTemplates.find(t => t.id === activeTemplateId)?.name || 'Cấu hình tùy chỉnh'}</p>
+                            </div>
                         </div>
-                        <div className="min-w-0">
-                            <h1 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{selectedModel.name}</h1>
-                            <p className="text-[10px] text-slate-500 font-medium truncate">{savedTemplates.find(t => t.id === activeTemplateId)?.name || 'Cấu hình tùy chỉnh'}</p>
-                        </div>
-                    </div>
                     <div className="flex items-center gap-1">
                         <button onClick={() => setShowSimulator(true)} className="w-8 h-8 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-all flex items-center justify-center" title="Xem trước">
                             <Eye size={16} className="stroke-[2]" />
@@ -525,10 +707,10 @@ export default function DisplayConfigPage() {
                     <div className="flex justify-center p-4 bg-slate-50/90 dark:bg-black/20 backdrop-blur-xl sticky top-0 z-30 border-b border-slate-100 dark:border-white/5">
                         <div className="flex p-1 bg-slate-200/50 dark:bg-white/5 rounded-[14px] w-full max-w-sm shrink-0">
                             <button onClick={() => setActiveTab('layout')} className={`flex-1 py-2 rounded-[10px] text-[12px] font-bold flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'layout' ? 'bg-white dark:bg-[#2A2E3D] text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
-                                <LayoutTemplate size={14} className={activeTab === 'layout' ? 'stroke-[2.5] text-indigo-600 dark:text-indigo-400' : ''} /> Bố cục hiển thị
+                                <LayoutTemplate size={14} className={activeTab === 'layout' ? 'stroke-[2.5] text-[#DF1B41]' : ''} /> Bố cục hiển thị
                             </button>
                             <button onClick={() => setActiveTab('action')} className={`flex-1 py-2 rounded-[10px] text-[12px] font-bold flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'action' ? 'bg-white dark:bg-[#2A2E3D] text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
-                                <Settings2 size={14} className={activeTab === 'action' ? 'stroke-[2.5] text-indigo-600 dark:text-indigo-400' : ''} /> Tính năng phụ
+                                <Settings2 size={14} className={activeTab === 'action' ? 'stroke-[2.5] text-[#DF1B41]' : ''} /> Tính năng phụ
                             </button>
                         </div>
                     </div>
@@ -538,7 +720,12 @@ export default function DisplayConfigPage() {
                         {activeTab === 'layout' && (
                             <div className="space-y-3">
                                 <div className="space-y-1">
-                                    {blocks.filter(b => MODULE_DEFINITIONS[b.type]?.category === 'layout').map((block, idx) => {
+                                    {blocks.filter(b => {
+                                        const def = MODULE_DEFINITIONS[b.type];
+                                        if (!def || def.category !== 'layout') return false;
+                                        if (def.supportedModels && !def.supportedModels.includes(selectedModel?.id as OperatingModel)) return false;
+                                        return true;
+                                    }).map((block, idx) => {
                                         const def = MODULE_DEFINITIONS[block.type];
                                         const isLocked = isModuleLocked(block.type);
                                         const isSystem = block.type !== 'custom';
@@ -607,7 +794,12 @@ export default function DisplayConfigPage() {
                         {/* ACTION TAB */}
                         {activeTab === 'action' && (
                             <div className="space-y-1">
-                                {(Object.keys(MODULE_DEFINITIONS) as ModuleType[]).filter(k => MODULE_DEFINITIONS[k].category === 'action').map((type, idx) => {
+                                {(Object.keys(MODULE_DEFINITIONS) as ModuleType[]).filter(k => {
+                                    const def = MODULE_DEFINITIONS[k];
+                                    if (def.category !== 'action') return false;
+                                    if (def.supportedModels && !def.supportedModels.includes(selectedModel?.id as OperatingModel)) return false;
+                                    return true;
+                                }).map((type, idx) => {
                                     const def = MODULE_DEFINITIONS[type];
                                     const activeBlock = blocks.find(b => b.type === type);
                                     const isLocked = isModuleLocked(type);
@@ -624,7 +816,6 @@ export default function DisplayConfigPage() {
                                                                 {def.name}
                                                                 {isLocked && <div className="flex items-center gap-1 text-[9px] font-black uppercase text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full"><Lock size={10} /> {def.minTier}</div>}
                                                             </div>
-                                                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed pr-1">{def.description}</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -654,48 +845,90 @@ export default function DisplayConfigPage() {
                     </div>
                 </div>
 
-                {/* Footer Save Area */}
-                <div className="p-4 border-t border-slate-200/60 dark:border-white/5 flex flex-col gap-3 bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl shrink-0 sticky bottom-0 z-20 px-6">
-                    <span className="text-xs text-slate-500">Cho: <strong className="text-slate-800 dark:text-slate-200">{selectedModel.name}</strong></span>
-                    <div className="flex gap-2 w-full">
-                        <button onClick={() => alert('Đã lưu nháp')} className="flex-1 py-2 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-white/10 transition-all border border-transparent shadow-sm">Lưu Nháp</button>
-                        <button onClick={() => setIsPublishModalOpen(true)} className="flex-[2] py-2 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-black dark:hover:bg-slate-200 transition-all shadow-md"><CheckCircle2 size={16} /> Phát Hành</button>
-                    </div>
-                </div>
                 </div> {/* End Left Column */}
 
-                {/* RIGHT COLUMN: Config Editor Pane */}
-                <div className="flex-1 flex flex-col bg-white dark:bg-[#13141A] min-w-0 h-full relative z-10">
+                {/* CENTER COLUMN: Workspace / Inspector Pane */}
+                <div className="flex-1 flex flex-col bg-slate-50/50 dark:bg-[#0a0a0f] min-w-0 h-full relative z-10">
                     {editingBlockId ? (
                         (() => {
-                           let activeEditorBlock = blocks.find(b => b.id === editingBlockId);
+                           const type = editingBlockId as ModuleType;
+                           let activeEditorBlock = blocks.find(b => b.id === editingBlockId || b.type === type);
+                           let isCurrentlyEnabled = true;
+                           
                            if (!activeEditorBlock) {
-                               const type = editingBlockId as ModuleType;
-                               activeEditorBlock = blocks.find(b => b.type === type) || { id: 'act-' + type, type, title: MODULE_DEFINITIONS[type]?.name, config: {} } as StorefrontBlock;
+                               activeEditorBlock = { id: 'act-' + type, type, title: MODULE_DEFINITIONS[type]?.name, config: {} } as StorefrontBlock;
+                               if (MODULE_DEFINITIONS[type]?.category === 'action') {
+                                   isCurrentlyEnabled = false;
+                               }
+                           } else if (MODULE_DEFINITIONS[activeEditorBlock.type]?.category === 'action') {
+                               isCurrentlyEnabled = activeEditorBlock.config?.isEnabled !== false;
                            }
+                           
                            const def = MODULE_DEFINITIONS[activeEditorBlock.type];
                            
                            return (
                                <div className="flex flex-col h-full animation-slide-left">
-                                <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl sticky top-0 z-20">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10"><Settings2 size={20} /></div>
-                                        <div>
-                                            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{def?.name || activeEditorBlock.title}</h2>
-                                            <p className="text-xs font-medium text-slate-500 mt-0.5">Cấu hình chi tiết thông số hiển thị</p>
+                                 <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-white/90 dark:bg-[#13141A]/90 backdrop-blur-xl sticky top-0 z-20">
+                                     <div className="flex items-center gap-4">
+                                         <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10"><Settings2 size={20} /></div>
+                                         <div>
+                                             <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{def?.name || activeEditorBlock.title}</h2>
+                                             <p className="text-xs font-medium text-slate-500 mt-0.5">Cấu hình chi tiết thông số hiển thị</p>
+                                         </div>
+                                     </div>
+                                     <button onClick={() => setEditingBlockId(null)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-500 transition-colors shrink-0">
+                                         <X size={16} />
+                                     </button>
+                                 </div>
+                                 <div className="flex-1 overflow-y-auto p-8 hidden-scroll relative">
+                                    {isCurrentlyEnabled ? (
+                                        <div className="max-w-2xl mx-auto pb-24 animation-fade-in">
+                                            <ModuleConfigForm 
+                                                block={activeEditorBlock} 
+                                                allMenuItems={allMenuItems} 
+                                                restaurantInfo={restaurantInfo} 
+                                                showToast={showToast} 
+                                                onChange={(conf) => {
+                                                    setBlocks(prev => {
+                                                        const existingIdx = prev.findIndex(b => b.id === activeEditorBlock!.id || b.type === activeEditorBlock!.type);
+                                                        if (existingIdx > -1) {
+                                                            return prev.map((b, i) => i === existingIdx ? { ...b, config: { ...b.config, ...conf } } : b);
+                                                        }
+                                                        // Auto-enable block if it wasn't enabled but user is trying to configure it
+                                                        return [...prev, { ...activeEditorBlock!, config: { ...activeEditorBlock!.config, ...conf, isEnabled: true } }];
+                                                    });
+                                                }} 
+                                            />
                                         </div>
-                                    </div>
-                                    <button onClick={() => setEditingBlockId(null)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-500 transition-colors shrink-0">
-                                        <X size={16} />
-                                    </button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-8 hidden-scroll">
-                                    <div className="max-w-2xl mx-auto pb-24">
-                                        <ModuleConfigForm block={activeEditorBlock} allMenuItems={allMenuItems} onChange={(conf) => setBlocks(blocks.map(b => b.id === activeEditorBlock!.id || b.type === activeEditorBlock!.type ? { ...b, config: { ...b.config, ...conf } } : b))} />
-                                    </div>
+                                    ) : (
+                                        <div className="max-w-md mx-auto mt-24 text-center animation-fade-in">
+                                            <div className="w-20 h-20 mx-auto rounded-[2rem] bg-slate-100 dark:bg-white/5 border-2 border-slate-200 dark:border-white/10 flex items-center justify-center mb-6 shadow-sm">
+                                                <Settings2 size={32} className="text-slate-400" />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-3">Tính năng đang Tắt</h3>
+                                            <p className="text-slate-500 text-sm leading-relaxed mb-8">Bạn cần kích hoạt tính năng <strong className="text-slate-700 dark:text-slate-300">{def?.name}</strong> này để có thể bắt đầu cài đặt và cấu hình các thông số hiển thị.</p>
+                                            
+                                            <button 
+                                                onClick={() => {
+                                                    const type = activeEditorBlock!.type;
+                                                    const newConf = { ...(activeEditorBlock!.config || {}), isEnabled: true };
+                                                    setBlocks(prev => {
+                                                        const existingIdx = prev.findIndex(b => b.type === type);
+                                                        if (existingIdx > -1) {
+                                                            return prev.map((b, i) => i === existingIdx ? { ...b, config: newConf } : b);
+                                                        }
+                                                        return [...prev, { ...activeEditorBlock!, config: newConf }];
+                                                    });
+                                                }}
+                                                className="px-8 py-3 bg-[#DF1B41] hover:bg-[#c9183a] text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(223,27,65,0.25)] hover:shadow-[0_12px_25px_rgba(223,27,65,0.35)] transition-all hover:-translate-y-1"
+                                            >
+                                                Bật tính năng này
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                </div>
-                           );
+                            );
                         })()
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
@@ -706,95 +939,31 @@ export default function DisplayConfigPage() {
                             <p className="text-sm font-medium text-slate-500 text-center max-w-sm">Chọn một module bên trái để cấu hình.</p>
                         </div>
                     )}
-                </div>
+                </div> {/* End Center Column */}
+                
+            </div> {/* END OF MAIN FLEX */}
+
+            {/* FLOATING ACTION DOCK */}
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 bg-slate-900/90 dark:bg-white/90 backdrop-blur-xl p-2 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.15)] border border-slate-700 dark:border-white/20 animation-slide-up">
+                <span className="text-xs text-slate-400 dark:text-slate-500 px-3 font-semibold hidden md:block">Cho: {selectedModel.name}</span>
+                <div className="w-px h-6 bg-slate-700 dark:bg-slate-300 mx-1 hidden md:block"></div>
+                
+                <button onClick={() => showToast('Đã lưu bản nháp an toàn', 'success')} className="px-5 py-2.5 text-slate-300 dark:text-slate-600 font-bold text-sm hover:text-white dark:hover:text-black transition-colors active:scale-95 flex items-center gap-2 relative group">
+                    <Save size={16} /> Nháp
+                </button>
+                <div className="w-px h-6 bg-slate-700 dark:bg-slate-300 mx-1"></div>
+                <button onClick={executePublish} disabled={isSaving} className="px-6 py-2.5 bg-[#DF1B41] text-white rounded-xl font-bold text-sm hover:bg-[#c41535] transition-all shadow-[0_0_15px_rgba(223,27,65,0.4)] disabled:opacity-50 active:scale-95 flex items-center gap-2">
+                    <CheckCircle2 size={16} /> {isSaving ? 'Đang xuất bản...' : 'Phát Hành Lên Quán'}
+                </button>
             </div>
 
             {/* Modals */}
-            {isAddBlockModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsAddBlockModalOpen(false)}>
-                    <div className="bg-white dark:bg-[#13141A] rounded-3xl w-full max-w-xl shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-black text-xl">Thêm Khối Hiển Thị Mới</h3>
-                            <button onClick={() => setIsAddBlockModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors"><X size={20}/></button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            {(Object.keys(MODULE_DEFINITIONS) as ModuleType[]).filter(k => MODULE_DEFINITIONS[k].category === 'layout' && k !== 'menu-grid').filter(k => k === 'custom' || !blocks.some(b => b.type === k)).map(type => {
-                                const def = MODULE_DEFINITIONS[type];
-                                const isLocked = isModuleLocked(type);
-                                return (
-                                    <div key={type} onClick={() => isLocked ? window.location.href='/admin/settings/billing' : handleAddBlock(type)} className={`p-5 rounded-2xl cursor-pointer transition-all border ${isLocked ? 'bg-slate-50/50 dark:bg-white/[0.02] border-slate-200 dark:border-white/5 opacity-70' : 'bg-white dark:bg-[#1A1D27] border-slate-200 dark:border-white/10 hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/10'}`}>
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-500 flex items-center justify-center"><LayoutTemplate size={14} /></div>
-                                            {isLocked ? <Lock size={14} className="text-amber-500" /> : <Plus size={16} className="text-rose-500 stroke-[2.5]" />}
-                                        </div>
-                                        <div className="font-bold text-sm mb-1">{def.name}</div>
-                                        <p className="text-[10px] text-slate-500 leading-relaxed">{def.description}</p>
-                                        {isLocked && <div className="mt-3 text-[9px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 dark:bg-amber-500/10 inline-block px-2 py-1 rounded-md">{def.minTier} Only</div>}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            )}
 
-            {isTemplateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsTemplateModalOpen(false)}>
-                    <div className="bg-white dark:bg-[#13141A] rounded-3xl w-full max-w-2xl shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-black text-lg">Thư viện giao diện</h3>
-                            <button onClick={() => setIsTemplateModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors"><X size={20}/></button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            {SYSTEM_TEMPLATES.map(tpl => (
-                                <div key={tpl.id} onClick={() => { setBlocks(tpl.blocks); setActiveTemplateId(tpl.id); setIsTemplateModalOpen(false); }} className="p-5 border border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/10 transition-all bg-white dark:bg-[#1A1D27] group">
-                                    <div className="font-bold mb-3 group-hover:text-rose-500 transition-colors">{tpl.name}</div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {tpl.blocks.map(b => <span key={b.type} className="text-[9px] px-2 py-1 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 rounded-md uppercase font-black tracking-widest">{MODULE_DEFINITIONS[b.type]?.name || b.type}</span>)}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {isPublishModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsPublishModalOpen(false)}>
-                    <div className="bg-white dark:bg-[#13141A] rounded-3xl w-full max-w-md shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-                        <h3 className="font-black text-xl mb-6">Xác nhận Phát Hành</h3>
-                        <div className="space-y-4 mb-8">
-                            <label className={`flex p-4 border rounded-2xl cursor-pointer transition-colors ${publishScope === 'brand' ? 'border-rose-500 bg-rose-50 dark:bg-rose-500/5' : 'border-slate-200 dark:border-white/10'}`}>
-                                <input type="radio" checked={publishScope === 'brand'} onChange={() => setPublishScope('brand')} className="mr-4 mt-1 accent-rose-500" />
-                                <div><div className="font-bold text-sm">Hệ Thống Tiêu Chuẩn</div><div className="text-xs text-slate-500 mt-1">Áp dụng đồng loạt cho mọi cửa hàng trong chuỗi</div></div>
-                            </label>
-                            <label className={`flex p-4 border rounded-2xl cursor-pointer transition-colors ${publishScope === 'specific' ? 'border-rose-500 bg-rose-50 dark:bg-rose-500/5' : 'border-slate-200 dark:border-white/10'}`}>
-                                <input type="radio" checked={publishScope === 'specific'} onChange={() => setPublishScope('specific')} className="mr-4 mt-1 accent-rose-500" />
-                                <div><div className="font-bold text-sm">Tùy Chấm Cơ Sở</div><div className="text-xs text-slate-500 mt-1">Chỉ áp dụng cho các nhà hàng được chọn</div></div>
-                            </label>
-                            {publishScope === 'specific' && (
-                                <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-white/10 rounded-xl p-2 space-y-1 bg-slate-50/50 dark:bg-black/20">
-                                    {availableRestaurants.map(r => (
-                                        <label key={r.id} className="flex items-center gap-3 p-2 hover:bg-white dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
-                                            <input type="checkbox" className="accent-rose-500" checked={selectedRestaurants.includes(r.id)} onChange={e => e.target.checked ? setSelectedRestaurants([...selectedRestaurants, r.id]) : setSelectedRestaurants(selectedRestaurants.filter(id => id !== r.id))} />
-                                            <span className="text-xs font-bold">{r.name}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex gap-3">
-                            <button onClick={() => setIsPublishModalOpen(false)} className="flex-1 py-3 bg-slate-100 dark:bg-white/5 rounded-xl font-bold text-sm">Hủy</button>
-                            <button onClick={executePublish} disabled={isSaving || (publishScope === 'specific' && selectedRestaurants.length === 0)} className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-black text-sm shadow-lg shadow-rose-500/20 disabled:opacity-50">{isSaving ? 'Đang xử lý...' : 'Đồng ý'}</button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* LIVE PREVIEW MODAL */}
             {showSimulator && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md" onClick={() => setShowSimulator(false)}>
-                    <div className="relative flex flex-col items-center" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animation-fade-in" onClick={() => setShowSimulator(false)}>
+                    <div className="relative flex flex-col items-center animation-slide-up" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center w-full max-w-[375px] mb-4">
                             <h3 className="text-white font-black text-lg">Bản xem trước</h3>
                             <button onClick={() => setShowSimulator(false)} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors backdrop-blur-md"><X size={20} /></button>
@@ -804,12 +973,50 @@ export default function DisplayConfigPage() {
                                 <div className="w-32 h-5 bg-black rounded-b-2xl"></div>
                             </div>
                             <iframe 
-                                ref={iframeRef} 
+                                title="Simulator"
                                 src="/menu?preview=1" 
                                 className="w-full h-full border-none bg-white relative z-0" 
-                                onLoad={() => iframeRef.current?.contentWindow?.postMessage({ type: 'STOREFRONT_CONFIG_UPDATE', config: blocks }, '*')} 
                             />
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CONFIRM SWITCH MODEL MODAL */}
+            {isConfirmSwitchModalOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animation-fade-in" onClick={() => setIsConfirmSwitchModalOpen(false)}>
+                    <div className="bg-white dark:bg-[#13141A] rounded-3xl w-full max-w-sm shadow-[0_16px_64px_rgba(0,0,0,0.2)] p-6 text-center animation-slide-up relative" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle size={32} className="stroke-[2]" />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">Chuyển đổi Mô hình?</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                            Việc thay đổi mô hình sẽ tải lại một môi trường cấu hình hoàn toàn mới. Các thiết lập cấu hình đặc thù dành cho mô hình hiện tại có thể bị ẩn đi.
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsConfirmSwitchModalOpen(false)} className="flex-1 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors text-slate-700 dark:text-slate-200 rounded-xl font-bold text-sm">Quay lại</button>
+                            <button 
+                                onClick={() => {
+                                    setIsConfirmSwitchModalOpen(false);
+                                    setSelectedModel(null);
+                                }} 
+                                className="flex-1 py-3 bg-[#DF1B41] hover:bg-[#c41535] transition-colors text-white rounded-xl font-bold text-sm shadow-md"
+                            >
+                                Đồng ý Đổi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* QUICK TOAST NOTIFICATION */}
+            {toastMessage && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] animation-slide-up">
+                    <div className={`px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 backdrop-blur-md border ${toastMessage.type === 'success' ? 'bg-emerald-50/90 border-emerald-200 text-emerald-800 dark:bg-emerald-950/80 dark:border-emerald-500/30 dark:text-emerald-300' : toastMessage.type === 'error' ? 'bg-rose-50/90 border-rose-200 text-rose-800 dark:bg-rose-950/80 dark:border-rose-500/30 dark:text-rose-300' : 'bg-slate-900/90 border-slate-700 text-white'}`}>
+                        {toastMessage.type === 'success' && <CheckCircle2 size={18} className="shrink-0" />}
+                        {toastMessage.type === 'error' && <AlertTriangle size={18} className="shrink-0" />}
+                        {toastMessage.type === 'info' && <Settings2 size={18} className="shrink-0" />}
+                        <span className="font-bold text-sm tracking-wide">{toastMessage.text}</span>
                     </div>
                 </div>
             )}

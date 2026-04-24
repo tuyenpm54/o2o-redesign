@@ -48,6 +48,7 @@ import { FeaturedSections } from "./components/FeaturedSections";
 import { SupportModal } from "./components/SupportModal";
 import { CheckoutSheet } from "./components/CheckoutSheet";
 import { RestaurantInfoModal } from "./components/RestaurantInfoModal";
+import FeedbackSheet from '../table-orders/FeedbackSheet';
 
 import { useUserState } from "./hooks/useUserState";
 import { useMenuContext } from "./hooks/useMenuContext";
@@ -86,6 +87,7 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
   }
   
   const [liveConfig, setLiveConfig] = useState<any[] | undefined>(displayConfig);
+  const [isFeedbackSheetOpen, setIsFeedbackSheetOpen] = useState(false);
 
   useEffect(() => {
     if (!isPreview) return;
@@ -899,6 +901,10 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
         setToast={setToast as any}
         fetchLiveTableData={fetchLiveTableData}
         supportOptionsConfig={supportOptionsBlock?.config?.options}
+        onRequestPayment={() => {
+            setIsStaffModalOpen(false);
+            setIsFeedbackSheetOpen(true);
+        }}
       />
 
       {paytype === 'PREPAID' ? (
@@ -1072,32 +1078,14 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
         }} 
       />
 
-      {isStaffModalOpen && (
-        <div className={styles.modalOverlay} style={{ zIndex: 10001, alignItems: 'flex-end' }} onClick={() => setIsStaffModalOpen(false)}>
-          <div className={styles.bottomSheet} onClick={e => e.stopPropagation()} style={{ paddingBottom: '30px' }}>
-            <div className={styles.sheetHeader}>
-              <h3 className={styles.cinematicTitle}>{t("Gọi nhân viên hỗ trợ")}</h3>
-              <p className={styles.cinematicSubtitle}>{t("Sếp cần hỗ trợ gì tại bàn ạ?")}</p>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
-              {[
-                { icon: <Utensils size={20} />, label: t("Gọi thêm món"), action: () => setIsStaffModalOpen(false) },
-                { icon: <Sparkles size={20} />, label: t("Khăn lạnh"), action: () => { setToast({ message: t("Đã gửi yêu cầu khăn lạnh") }); setIsStaffModalOpen(false); } },
-                { icon: <Check size={20} />, label: t("Thanh toán"), action: () => { setIsCartDrawerOpen(true); setIsStaffModalOpen(false); } },
-                { icon: <UserIcon size={20} />, label: t("Khác"), action: () => { setToast({ message: t("Nhân viên đang đến ngay ạ") }); setIsStaffModalOpen(false); } },
-              ].map((opt, i) => (
-                <button key={i} className={styles.cinematicCard} onClick={opt.action} style={{ height: '80px' }}>
-                  <div style={{ color: '#F59E0B', marginBottom: '4px' }}>{opt.icon}</div>
-                  <span style={{ fontSize: '14px', fontWeight: 600 }}>{opt.label}</span>
-                </button>
-              ))}
-            </div>
-            <button className={styles.cinematicActionBtn} style={{ marginTop: '20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => setIsStaffModalOpen(false)}>
-              {t("Hủy bỏ")}
-            </button>
-          </div>
-        </div>
-      )}
+      <FeedbackSheet
+        isOpen={isFeedbackSheetOpen}
+        onClose={() => setIsFeedbackSheetOpen(false)}
+        totalAmount={total}
+        resid={resid as string}
+        tableid={tableid as string}
+        userId={user?.id}
+      />
 
       <StatusToast 
         isVisible={isStatusToastOpen}

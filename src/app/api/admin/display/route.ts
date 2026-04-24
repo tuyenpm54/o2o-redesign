@@ -10,7 +10,8 @@ export async function GET(request: Request) {
     try {
         const db = await getDb();
         let config = await db.get('SELECT * FROM restaurant_display_configs WHERE res_id = ?', [reside]);
-
+        let restaurant = await db.get('SELECT operating_model FROM restaurants WHERE id = ?', [reside]);
+        
         if (!config) {
             // Initial default config if not exists
             const initialBlocks = [
@@ -26,8 +27,8 @@ export async function GET(request: Request) {
             );
             config = { id, res_id: reside, draft_blocks: JSON.stringify(initialBlocks), published_blocks: JSON.stringify(initialBlocks) };
         }
-
         return ApiSuccess({
+            operating_model: restaurant?.operating_model || null,
             draft: JSON.parse(config.draft_blocks || '[]'),
             published: JSON.parse(config.published_blocks || '[]')
         });
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { res_ids, blocks } = body;
+        const { res_ids, blocks, operating_model } = body;
 
         // Fallback backward compatibility for older payload style
         const targetIds = res_ids || (body.res_id ? [body.res_id] : []);
@@ -49,15 +50,22 @@ export async function POST(request: Request) {
         if (!blocks) return ApiError('Missing blocks data');
 
         const db = await getDb();
-        const promises = targetIds.map(resid => 
-            db.run(
+        const promises = targetIds.map(async resid => {
+            await db.run(
                 'INSERT INTO restaurant_display_configs (id, res_id, draft_blocks) VALUES (?, ?, ?) ON CONFLICT (res_id) DO UPDATE SET draft_blocks = EXCLUDED.draft_blocks, updated_at = CURRENT_TIMESTAMP',
                 [crypto.randomUUID(), resid, JSON.stringify(blocks)]
-            )
-        );
+            );
+            
+            if (operating_model !== undefined) {
+                await db.run(
+                    'UPDATE restaurants SET operating_model = ? WHERE id = ?',
+                    [operating_model, resid]
+                );
+            }
+        });
         await Promise.all(promises);
 
-        return ApiSuccess({ res_ids: targetIds, blocks }, 'Draft configurations saved successfully');
+        return ApiSuccess({ res_ids: targetIds, blocks, operating_model }, 'Draft configurations saved successfully');
     } catch (error) {
         console.error('Save display config error:', error);
         return ApiError('Failed to save display configuration', 500);

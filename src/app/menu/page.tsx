@@ -58,15 +58,34 @@ export default async function MenuPage(props: PageProps) {
         // Provide a stub config for preview mode, actual config will be fed via postMessage in ClientWrapper
         configData = [];
     } else {
+        const restoRow = await db.get('SELECT operating_model FROM restaurants WHERE id = ?', [resid]);
+        const operatingModel = restoRow?.operating_model;
+
         const configRow = await db.get('SELECT published_blocks FROM restaurant_display_configs WHERE res_id = ?', [resid]);
         if (configRow && configRow.published_blocks && configRow.published_blocks !== '[]') {
             const parsed = JSON.parse(configRow.published_blocks);
-            const validTypes = ['for-you', 'combo', 'best-sale', 'custom', 'menu-grid', 'onboarding-wizard'];
-            const validBlocks = parsed.filter((b: any) => validTypes.includes(b.type));
-            if (validBlocks.length > 0 && validBlocks.some((b: any) => b.type === 'for-you')) {
+            const validTypes = ['for-you', 'combo', 'best-sale', 'custom', 'menu-grid', 'onboarding-wizard', 'support-options', 'checkout-auth', 'bad-review-reasons', 'payment-methods'];
+            
+            const MODULE_SUPPORT_MAP: Record<string, string[]> = {
+                 'support-options': ['post-pay', 'pre-pay-table'],
+                 'checkout-auth': ['pre-pay-table', 'pre-pay-counter'],
+                 'payment-methods': ['pre-pay-table', 'pre-pay-counter']
+            };
+
+            const validBlocks = parsed.filter((b: any) => {
+                 if (!validTypes.includes(b.type)) return false;
+                 
+                 // Apply visibility filtering based on selected operating model
+                 if (operatingModel && MODULE_SUPPORT_MAP[b.type] && !MODULE_SUPPORT_MAP[b.type].includes(operatingModel)) {
+                      return false;
+                 }
+                 return true;
+            });
+
+            if (validBlocks.length > 0 && validBlocks.some((b: any) => b.type === 'menu-grid' || b.type === 'for-you')) {
                 configData = validBlocks;
             } else {
-                // Rỗng do toàn bộ block cũ (ví dụ: smart-suggestions) bị deprecated
+                // Rỗng do toàn bộ block cũ bị deprecated
                 configData = null; 
             }
         } 

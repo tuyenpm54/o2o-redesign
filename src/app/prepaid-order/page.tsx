@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Copy, Hourglass, Lock, FileText, ChevronRight, Check, Bell, Star, RefreshCw } from 'lucide-react';
 import { useMenuContext } from '../menu/hooks/useMenuContext';
+import { PrepaidReviewModal } from '../table-orders/PrepaidReviewModal';
 
 type OrderStatus = 'pending' | 'cooking' | 'ready' | 'completed';
 
@@ -16,6 +17,7 @@ function PrepaidOrderDetailContent() {
     const { theme } = useMenuContext() || { theme: { bg: '#fff', textPrimary: '#000', textSecondary: '#666', border: '#eee' } };
 
     const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
+    const [isReviewOpen, setIsReviewOpen] = useState(false);
 
     useEffect(() => {
         if (!resid || !tableid) return;
@@ -320,7 +322,10 @@ function PrepaidOrderDetailContent() {
             {/* Bottom Actions for Completed State */}
             {status === 'completed' && (
                 <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 p-4 pb-safe flex gap-3 z-50 shadow-[0_-8px_30px_rgba(0,0,0,0.04)]">
-                    <button className="flex-1 bg-amber-500 text-white shadow-lg shadow-amber-500/20 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform text-[0.95rem]">
+                    <button 
+                         onClick={() => setIsReviewOpen(true)}
+                         className="flex-1 bg-amber-500 text-white shadow-lg shadow-amber-500/20 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform text-[0.95rem]"
+                    >
                         <Star fill="white" size={18} />
                         Đánh giá
                     </button>
@@ -330,6 +335,13 @@ function PrepaidOrderDetailContent() {
                     </button>
                 </div>
             )}
+
+            <PrepaidReviewModal
+                 isOpen={isReviewOpen}
+                 resid={resid || '100'}
+                 tableid={tableid || ''}
+                 userId={undefined} // Adjust if you have access to user id here
+            />
         </div>
     );
 }

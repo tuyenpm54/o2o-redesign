@@ -161,10 +161,10 @@ export default function FeedbackSheet({
                             <CheckCircle2 size={36} strokeWidth={2.5} />
                         </div>
                         <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1E293B', textAlign: 'center', letterSpacing: '-0.5px' }}>
-                            {t("Thanh toán thành công")}
+                            {t("Đã gọi nhân viên thanh toán")}
                         </h3>
                         <p style={{ fontSize: '0.95rem', color: '#64748B', textAlign: 'center', marginTop: '8px', fontWeight: 500 }}>
-                            {t("Vui lòng đợi nhân viên hỗ trợ tại bàn nhé.")}
+                            {t("Vui lòng đợi nhân viên mang Bill đến bàn nhé.")}
                         </p>
                     </div>
 

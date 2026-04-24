@@ -224,3 +224,93 @@ export const MOCK_ANALYTICS = {
     }
   }
 };
+
+// ────────── NEW PRO MAX DASHBOARD DATA ──────────
+
+export const MOCK_TRAFFIC_HEATMAP = {
+  success: true,
+  data: {
+    days: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+    hours: ['10h', '11h', '12h', '13h', '14h', '15h', '16h', '17h', '18h', '19h', '20h', '21h', '22h'],
+    // 7 rows (days) x 13 columns (hours), value is volume
+    matrix: [
+      [10, 25, 45, 30, 10,  5,  5, 15, 35, 40, 25, 10,  5], // T2
+      [12, 28, 50, 25,  8,  5,  8, 20, 38, 45, 30, 15,  5], // T3
+      [15, 30, 48, 28, 12,  5, 10, 18, 40, 50, 35, 20,  8], // T4
+      [10, 25, 40, 30, 15, 10,  8, 25, 45, 55, 40, 25, 10], // T5
+      [20, 35, 55, 35, 15, 10, 15, 40, 75, 110, 85, 45, 20], // T6
+      [25, 45, 80, 50, 25, 15, 25, 55, 90, 140, 110, 60, 30], // T7
+      [30, 50, 85, 60, 30, 20, 20, 45, 85, 120, 90, 50, 20]  // CN
+    ]
+  }
+};
+
+export const MOCK_SLA_TREND_7D = {
+  success: true,
+  data: [
+    { date: '15/04', tiepNhan: 1, chuanBi: 4, cheBien: 15, phucVu: 2 },
+    { date: '16/04', tiepNhan: 1, chuanBi: 5, cheBien: 16, phucVu: 2 },
+    { date: '17/04', tiepNhan: 2, chuanBi: 4, cheBien: 22, phucVu: 3 }, // Bottleneck
+    { date: '18/04', tiepNhan: 1, chuanBi: 5, cheBien: 28, phucVu: 3 }, // Bottleneck peak
+    { date: '19/04', tiepNhan: 1, chuanBi: 3, cheBien: 14, phucVu: 2 }, // Fixed
+    { date: '20/04', tiepNhan: 1, chuanBi: 4, cheBien: 15, phucVu: 2 },
+    { date: '21/04', tiepNhan: 1, chuanBi: 4, cheBien: 18, phucVu: 2 }
+  ]
+};
+
+export const MOCK_O2O_ROI_7D = {
+  success: true,
+  data: [
+    { date: '15/04', o2oRate: 65, multiRoundRate: 15, orders: 45, customers: 112, revenue: 11025000 },
+    { date: '16/04', o2oRate: 68, multiRoundRate: 18, orders: 48, customers: 120, revenue: 12480000 },
+    { date: '17/04', o2oRate: 75, multiRoundRate: 25, orders: 55, customers: 140, revenue: 17050000 },
+    { date: '18/04', o2oRate: 72, multiRoundRate: 22, orders: 50, customers: 130, revenue: 14750000 },
+    { date: '19/04', o2oRate: 85, multiRoundRate: 38, orders: 68, customers: 175, revenue: 24480000 }, // O2O Peak
+    { date: '20/04', o2oRate: 82, multiRoundRate: 35, orders: 62, customers: 160, revenue: 21390000 },
+    { date: '21/04', o2oRate: 88, multiRoundRate: 42, orders: 75, customers: 190, revenue: 28500000 }
+  ]
+};
+
+export const MOCK_CSAT_SCATTER = {
+  success: true,
+  data: Array.from({length: 80}).map((_, i) => {
+    // Generate scattered points: Wait Time vs Stars
+    let wait = Math.floor(Math.random() * 45) + 5; // 5 to 50 mins
+    let stars;
+    if (wait < 15) stars = Math.random() > 0.2 ? 5 : 4;
+    else if (wait < 22) stars = Math.random() > 0.4 ? 4 : 3;
+    else if (wait < 30) stars = Math.random() > 0.6 ? 3 : 2;
+    else stars = Math.random() > 0.8 ? 2 : 1;
+    return { name: `Order ${i}`, x: wait, y: stars, type: wait > 25 && stars < 3 ? 'critical' : 'normal' };
+  }),
+  summary: { dropOffRate: 4.8, cancelRate: 6.2, avgGuestDuration: 55 }
+};
+
+export const MOCK_FUNNEL_UPSALE = {
+  success: true,
+  data: {
+    totalOrders: 450,
+    totalCustomers: 1240,
+    o2oRate: 88,
+    upsellRevenue: 8500000,
+    upsellSources: [
+      { id: '1', label: 'Gợi ý giỏ hàng (Cart Suggest)', revenue: 4200000, percent: 49, color: 'from-indigo-500 to-indigo-400' },
+      { id: '2', label: 'Nhóm Món Đặc Trưng (Signatures)', revenue: 2100000, percent: 25, color: 'from-rose-500 to-rose-400' },
+      { id: '3', label: 'Nhóm Topping / Extra', revenue: 1350000, percent: 16, color: 'from-amber-500 to-amber-400' },
+      { id: '4', label: 'Flash Sale (Banner Giờ Vàng)', revenue: 850000, percent: 10, color: 'from-emerald-500 to-emerald-400' }
+    ]
+  }
+};
+
+export const MOCK_CSAT_TREND_7D = {
+  success: true,
+  data: [
+    { date: '15/04', positive: 88, negative: 12, slowService: 5, badFood: 3, badAttitude: 2, noisy: 2 },
+    { date: '16/04', positive: 85, negative: 15, slowService: 7, badFood: 4, badAttitude: 2, noisy: 2 },
+    { date: '17/04', positive: 75, negative: 25, slowService: 15, badFood: 5, badAttitude: 3, noisy: 2 }, // Spike in complaints due to SLA bottleneck
+    { date: '18/04', positive: 72, negative: 28, slowService: 18, badFood: 5, badAttitude: 4, noisy: 1 },
+    { date: '19/04', positive: 85, negative: 15, slowService: 6, badFood: 5, badAttitude: 2, noisy: 2 },
+    { date: '20/04', positive: 89, negative: 11, slowService: 4, badFood: 4, badAttitude: 2, noisy: 1 },
+    { date: '21/04', positive: 91, negative: 9,  slowService: 3, badFood: 3, badAttitude: 2, noisy: 1 }
+  ]
+};

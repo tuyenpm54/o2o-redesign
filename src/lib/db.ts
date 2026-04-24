@@ -198,8 +198,10 @@ async function initDb(database: DBWrapper) {
       wifi_ssid TEXT,
       wifi_password TEXT,
       chain_id TEXT,
+      operating_model TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS operating_model TEXT;
 
     -- User_Restaurants (Phân quyền quản trị viên)
     CREATE TABLE IF NOT EXISTS user_restaurants (

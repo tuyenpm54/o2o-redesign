@@ -27,36 +27,39 @@ export function PrepaidReviewModal({
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // Push feedback securely
-    await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            resid, tableid, user_id: userId,
-            content: `Đánh giá: ${rating} sao. ${comment ? `Bình luận: ${comment}. ` : ''}${tags.length ? `Tags: ${tags.join(', ')}` : ''}`,
-            type: 'SUPPORT'
-        })
-    });
-    
-    // Write feedback to KV store to be grabbed by complete flow if needed (optional since we're completing it)
-    await fetch('/api/admin/dashboard/health-index', { // Or a specific API if we want to store it formally
-        // mock logic for storing review
-    }).catch(() => {});
+    try {
+      // Push feedback securely
+      await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              resid, tableid, user_id: userId,
+              content: `Đánh giá: ${rating} sao. ${comment ? `Bình luận: ${comment}. ` : ''}${tags.length ? `Tags: ${tags.join(', ')}` : ''}`,
+              type: 'SUPPORT'
+          })
+      }).catch(e => console.error(e));
+      
+      // Write feedback to KV store to be grabbed by complete flow if needed
+      await fetch('/api/admin/dashboard/health-index', { 
+          // mock logic for storing review
+      }).catch(() => {});
 
-    // Complete session
-    await fetch('/api/sessions/complete_prepaid', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resid, tableid })
-    });
-
-    setIsSubmitting(false);
-    
-    // Redirect out and finish session
-    if (userId) {
-       router.push(`/menu?resid=${resid}&tableid=${tableid}&ratingCompleted=true`);
-    } else {
-       router.push(`/`);
+      // Complete session
+      await fetch('/api/sessions/complete_prepaid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resid, tableid })
+      }).catch(e => console.error(e));
+    } catch (error) {
+      console.error('Lỗi khi nộp đánh giá:', error);
+    } finally {
+      setIsSubmitting(false);
+      // Redirect out and finish session
+      if (userId) {
+         router.push(`/menu?resid=${resid}&tableid=${tableid}&ratingCompleted=true`);
+      } else {
+         router.push(`/`);
+      }
     }
   };
 
