@@ -22,6 +22,7 @@ interface SupportModalProps {
   fetchLiveTableData: () => void;
   supportOptionsConfig?: any[] | null;
   onShowWifi?: () => void;
+  onRequestPayment?: () => void;
 }
 
 export const SupportModal: React.FC<SupportModalProps> = ({
@@ -42,6 +43,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({
   fetchLiveTableData,
   supportOptionsConfig,
   onShowWifi,
+  onRequestPayment,
 }) => {
   if (!isStaffModalOpen) return null;
 
@@ -154,10 +156,10 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                         const elapsedMin = Math.floor((Date.now() - reqTs) / 60000);
                         if (!isCompleted) {
                           if (latestRelevantReq.status === 'Đã gửi') {
-                            isDisabled = true;
+                            if (action.id !== 'bill') isDisabled = true;
                             reqStatus = t('Đã gửi');
                           } else if (latestRelevantReq.status === 'Đã nhận' && elapsedMin < 5) {
-                            isDisabled = true;
+                            if (action.id !== 'bill') isDisabled = true;
                             reqStatus = t('Đang xử lý'); 
                           }
                         }
@@ -187,6 +189,21 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                           onClick={() => {
                             if ((action as any).action === 'show_wifi') {
                                 if (onShowWifi) onShowWifi();
+                                return;
+                            }
+                            if (action.id === 'bill') {
+                                if (reqStatus !== t('Đã gửi') && reqStatus !== t('Đang xử lý')) {
+                                    fetch('/api/chat', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            resid, tableid, user_id: user?.id,
+                                            content: action.label,
+                                            type: 'SUPPORT'
+                                        })
+                                    }).catch(()=>{});
+                                }
+                                if (onRequestPayment) onRequestPayment();
                                 return;
                             }
                             setSelectedSupportOptions(prev => 

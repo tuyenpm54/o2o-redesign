@@ -507,17 +507,17 @@ export const OrderHubCard: React.FC<OrderHubCardProps> = ({
               {/* Prominent Status Banner */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div 
-                  className={`${styles.prominentStatusBanner} ${(isDelay && !hasReminded) || (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') || (allServed && tableid?.toUpperCase() === 'COUNTER') ? styles.interactiveBanner : ''} ${isDelay && !hasReminded && !(hasReady && tableid?.toUpperCase() === 'COUNTER') ? styles.blinkAttention : ''}`} 
+                  className={`${styles.prominentStatusBanner} ${(isDelay && !hasReminded) || (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') || allServed ? styles.interactiveBanner : ''} ${isDelay && !hasReminded && !(hasReady && tableid?.toUpperCase() === 'COUNTER') ? styles.blinkAttention : ''}`} 
                   style={{ 
                     backgroundColor: `${contextColor}10`, 
                     border: `1px solid ${contextColor}30`, 
-                    cursor: (isDelay && !hasReminded) || (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') || (allServed && tableid?.toUpperCase() === 'COUNTER') ? 'pointer' : 'default',
-                    borderRadius: (isDelay || (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') || (allServed && tableid?.toUpperCase() === 'COUNTER')) ? '16px' : undefined,
+                    cursor: (isDelay && !hasReminded) || (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') || allServed ? 'pointer' : 'default',
+                    borderRadius: (isDelay || (hasReady && !allServed && tableid?.toUpperCase() === 'COUNTER') || allServed) ? '16px' : undefined,
                     opacity: isReminding ? 0.7 : 1,
                     pointerEvents: isReminding || (hasReminded && !hasReady && !allServed) ? 'none' : 'auto'
                   }}
                   onClick={async () => {
-                    if (allServed && tableid?.toUpperCase() === 'COUNTER') {
+                    if (allServed) {
                       setIsReviewSheetOpen(true);
                       return;
                     }
