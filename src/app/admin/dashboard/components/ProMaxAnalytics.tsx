@@ -627,8 +627,8 @@ export default function ProMaxAnalytics() {
         </div>
 
         {/* ── BỔ SUNG YÊU CẦU: ROW 3 - Phễu Khám Phá & Xếp Hạng ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 pb-12">
-            <div className="xl:col-span-12 2xl:col-span-5 bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 flex flex-col transition-transform active:scale-[0.99] cursor-pointer">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-12">
+            <div className="lg:col-span-5 bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 flex flex-col transition-transform active:scale-[0.99] cursor-pointer">
                 <div className="mb-6">
                     <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                         <MousePointerClick size={18} className="text-cyan-500" /> Phễu Khám Phá Đầu Tiên
@@ -656,7 +656,7 @@ export default function ProMaxAnalytics() {
                 </div>
             </div>
 
-            <div className="xl:col-span-12 2xl:col-span-7 bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 flex flex-col transition-transform active:scale-[0.99] cursor-pointer">
+            <div className="lg:col-span-7 bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 flex flex-col transition-transform active:scale-[0.99] cursor-pointer">
                 <div className="mb-6">
                     <div className="flex items-start justify-between flex-col sm:flex-row gap-4">
                         <div>
