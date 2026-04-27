@@ -83,13 +83,14 @@ export default function ProMaxAnalytics() {
       <section className="relative group">
         <div className="absolute -inset-4 bg-gradient-to-br from-indigo-500/10 via-transparent to-transparent blur-3xl -z-10 pointer-events-none rounded-3xl opacity-50 dark:opacity-100" />
         
-        <div className="mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full mb-3 backdrop-blur-md">
-            <ShoppingCart size={14} className="text-indigo-600 dark:text-indigo-400" />
-            <span className="text-[11px] font-bold tracking-widest uppercase text-slate-900 dark:text-white">Trụ Cột 1</span>
+        <div className="mb-6 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-[14px] bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-500/20 shadow-sm">
+            <ShoppingCart size={22} className="text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Đòn Bẩy O2O & Doanh Thu Up-Sale</h2>
-          <p className="text-slate-500 mt-2 font-medium text-[15px]">Phễu đóng góp doanh thu và Tương quan O2O với Tổng Giao dịch.</p>
+          <div>
+            <h2 className="text-[22px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">Đòn Bẩy O2O & Doanh Thu Up-Sale</h2>
+            <p className="text-slate-500 mt-1 font-medium text-[14px] leading-tight">Phễu đóng góp doanh thu và Tương quan O2O với Tổng Giao dịch.</p>
+          </div>
         </div>
 
         {/* Hero Metric Cards */}
@@ -196,14 +197,13 @@ export default function ProMaxAnalytics() {
       <section className="relative group">
         <div className="absolute -inset-4 bg-gradient-to-br from-rose-500/10 via-transparent to-transparent blur-3xl -z-10 pointer-events-none rounded-3xl opacity-50 dark:opacity-100" />
         
-        <div className="mb-6 flex items-start justify-between">
+        <div className="mb-6 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-[14px] bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center shrink-0 border border-rose-100 dark:border-rose-500/20 shadow-sm">
+            <Activity size={22} className="text-rose-600 dark:text-rose-400" />
+          </div>
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full mb-3 backdrop-blur-md">
-              <Activity size={14} className="text-rose-600 dark:text-rose-400" />
-              <span className="text-[11px] font-bold tracking-widest uppercase text-slate-900 dark:text-white">Trụ Cột 2</span>
-            </div>
-            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Báo Cáo Vận Hành Bếp</h2>
-            <p className="text-slate-500 mt-2 font-medium text-[15px]">Phân tích điểm nghẽn (Bottlenecks) và năng lực chịu tải của hệ thống qua các khung giờ.</p>
+            <h2 className="text-[22px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">Báo Cáo Vận Hành Bếp</h2>
+            <p className="text-slate-500 mt-1 font-medium text-[14px] leading-tight">Phân tích điểm nghẽn (Bottlenecks) và năng lực chịu tải của hệ thống.</p>
           </div>
         </div>
 
@@ -304,13 +304,14 @@ export default function ProMaxAnalytics() {
       <section className="relative group">
         <div className="absolute -inset-4 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent blur-3xl -z-10 pointer-events-none rounded-3xl opacity-50 dark:opacity-100" />
         
-        <div className="mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full mb-3 backdrop-blur-md">
-            <Star size={14} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-[11px] font-bold tracking-widest uppercase text-slate-900 dark:text-white">Trụ Cột 3</span>
+        <div className="mb-6 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-[14px] bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-500/20 shadow-sm">
+            <Star size={22} className="text-emerald-600 dark:text-emerald-400" />
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Trải Nghiệm & Phễu Chăm Sóc</h2>
-          <p className="text-slate-500 mt-2 font-medium text-[15px]">Mật độ phản hồi, bóc tách nguyên nhân tỷ lệ phàn nàn và biến động hài lòng.</p>
+          <div>
+            <h2 className="text-[22px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">Trải Nghiệm & Phễu Chăm Sóc</h2>
+            <p className="text-slate-500 mt-1 font-medium text-[14px] leading-tight">Mật độ phản hồi, bóc tách nguyên nhân tỷ lệ phàn nàn và biến động hài lòng.</p>
+          </div>
         </div>
 
         {/* ROW 1: Hero CSAT Summary */}
@@ -484,13 +485,14 @@ export default function ProMaxAnalytics() {
       <section className="relative group">
         <div className="absolute -inset-4 bg-gradient-to-br from-cyan-500/10 via-transparent to-transparent blur-3xl -z-10 pointer-events-none rounded-3xl opacity-50 dark:opacity-100" />
         
-        <div className="mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full mb-3 backdrop-blur-md">
-            <Users size={14} className="text-cyan-600 dark:text-cyan-400" />
-            <span className="text-[11px] font-bold tracking-widest uppercase text-slate-900 dark:text-white">Trụ Cột 4</span>
+        <div className="mb-6 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-[14px] bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center shrink-0 border border-cyan-100 dark:border-cyan-500/20 shadow-sm">
+            <Users size={22} className="text-cyan-600 dark:text-cyan-400" />
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Hành Vi Gọi Món Của Khách</h2>
-          <p className="text-slate-500 mt-2 font-medium text-[15px]">Phân tích thói quen gọi món theo vòng và độ phụ thuộc vào tính năng tiện lợi.</p>
+          <div>
+            <h2 className="text-[22px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">Hành Vi Gọi Món Của Khách</h2>
+            <p className="text-slate-500 mt-1 font-medium text-[14px] leading-tight">Phân tích thói quen gọi món theo vòng và sự phụ thuộc vào tính năng tiện lợi.</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
