@@ -36,6 +36,23 @@ const DeltaBadge = ({ value, suffix = '%', inverse = false, hideArrow = false }:
     );
 };
 
+export const CHART_COLORS = {
+  // 1. Nhóm Kinh doanh & Điểm chạm (Tích cực)
+  revenue: '#8b5cf6',   // Violet 500
+  orders: '#3b82f6',    // Blue 500
+  customers: '#06b6d4', // Cyan 500
+  success: '#10b981',   // Emerald 500
+
+  // 2. Nhóm Vận hành & Cảnh báo (Nóng) -> Áp dụng cho SLA và Phàn nàn
+  critical: '#f43f5e',  // Rose 500 - Báo động đỏ
+  warning: '#f97316',   // Orange 500 - Cảnh báo mức 2
+  notice: '#f59e0b',    // Amber 500 - Lưu ý
+  
+  // 3. Nhóm Phụ trợ (Passive)
+  neutral: '#94a3b8',   // Slate 400
+  baseItem: '#cbd5e1',  // Slate 300
+};
+
 export default function ProMaxAnalytics() {
   const trafficData = MOCK_TRAFFIC_HEATMAP.data;
   const slaTrend = MOCK_SLA_TREND_7D.data;
@@ -142,8 +159,8 @@ export default function ProMaxAnalytics() {
                     <ComposedChart data={o2oRoi} margin={{ top: 10, left: -20, right: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor={CHART_COLORS.revenue} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={CHART_COLORS.revenue} stopOpacity={0}/>
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" strokeOpacity={0.4} />
@@ -159,10 +176,10 @@ export default function ProMaxAnalytics() {
                         contentStyle={{ borderRadius: '16px', border: 'none', background: '#0f172a', color: '#fff', fontSize: '13px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}
                       />
                       <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 600 }} />
-                      <Bar yAxisId="left" dataKey="o2oRate" name="Tỉ lệ dùng O2O (%)" fill="#cbd5e1" radius={[6, 6, 0, 0]} maxBarSize={32} />
-                      <Line yAxisId="left" type="monotone" dataKey="customers" name="Lượt Khách" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }} />
-                      <Line yAxisId="left" type="monotone" dataKey="orders" name="Số Đơn Hàng" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, fill: "#f59e0b", strokeWidth: 2, stroke: "#fff" }} />
-                      <Area yAxisId="right" type="monotone" dataKey="revenue" name="Tổng Doanh thu" stroke="#8b5cf6" strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" />
+                      <Bar yAxisId="left" dataKey="o2oRate" name="Tỉ lệ dùng O2O (%)" fill={CHART_COLORS.baseItem} radius={[6, 6, 0, 0]} maxBarSize={32} />
+                      <Line yAxisId="left" type="monotone" dataKey="customers" name="Lượt Khách" stroke={CHART_COLORS.customers} strokeWidth={3} dot={{ r: 4, fill: CHART_COLORS.customers, strokeWidth: 2, stroke: "#fff" }} />
+                      <Line yAxisId="left" type="monotone" dataKey="orders" name="Số Đơn Hàng" stroke={CHART_COLORS.orders} strokeWidth={3} dot={{ r: 4, fill: CHART_COLORS.orders, strokeWidth: 2, stroke: "#fff" }} />
+                      <Area yAxisId="right" type="monotone" dataKey="revenue" name="Tổng Doanh thu" stroke={CHART_COLORS.revenue} strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
@@ -291,13 +308,13 @@ export default function ProMaxAnalytics() {
                         />
                         <Legend verticalAlign="top" iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingBottom: 20 }} />
                         
-                        <ReferenceLine y={10} stroke="#f43f5e" strokeDasharray="4 4" strokeOpacity={0.5} label={{ position: 'insideBottomLeft', value: 'SLA Chế biến (10p)', fill: '#f43f5e', fontSize: 11, fontWeight: 'bold' }} />
-                        <ReferenceLine y={5} stroke="#f59e0b" strokeDasharray="4 4" strokeOpacity={0.5} label={{ position: 'insideBottomLeft', value: 'SLA Chuẩn bị (5p)', fill: '#f59e0b', fontSize: 11, fontWeight: 'bold' }} />
-                        <ReferenceLine y={3} stroke="#3b82f6" strokeDasharray="4 4" strokeOpacity={0.5} label={{ position: 'insideBottomLeft', value: 'SLA Phục vụ (3p)', fill: '#3b82f6', fontSize: 11, fontWeight: 'bold' }} />
+                        <ReferenceLine y={10} stroke={CHART_COLORS.critical} strokeDasharray="4 4" strokeOpacity={0.5} label={{ position: 'insideBottomLeft', value: 'SLA Chế biến (10p)', fill: CHART_COLORS.critical, fontSize: 11, fontWeight: 'bold' }} />
+                        <ReferenceLine y={5} stroke={CHART_COLORS.warning} strokeDasharray="4 4" strokeOpacity={0.5} label={{ position: 'insideBottomLeft', value: 'SLA Chuẩn bị (5p)', fill: CHART_COLORS.warning, fontSize: 11, fontWeight: 'bold' }} />
+                        <ReferenceLine y={3} stroke={CHART_COLORS.notice} strokeDasharray="4 4" strokeOpacity={0.5} label={{ position: 'insideBottomLeft', value: 'SLA Phục vụ (3p)', fill: CHART_COLORS.notice, fontSize: 11, fontWeight: 'bold' }} />
 
-                        <Line type="monotone" dataKey="cheBien" name="Biến động Chế biến" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#f43f5e' }} activeDot={{ r: 6 }} />
-                        <Line type="monotone" dataKey="chuanBi" name="Biến động Chuẩn bị" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#f59e0b' }} activeDot={{ r: 6 }} />
-                        <Line type="monotone" dataKey="phucVu" name="Biến động Phục vụ" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
+                        <Line type="monotone" dataKey="cheBien" name="Biến động Chế biến" stroke={CHART_COLORS.critical} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: CHART_COLORS.critical }} activeDot={{ r: 6 }} />
+                        <Line type="monotone" dataKey="chuanBi" name="Biến động Chuẩn bị" stroke={CHART_COLORS.warning} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: CHART_COLORS.warning }} activeDot={{ r: 6 }} />
+                        <Line type="monotone" dataKey="phucVu" name="Biến động Phục vụ" stroke={CHART_COLORS.notice} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: CHART_COLORS.notice }} activeDot={{ r: 6 }} />
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
@@ -393,10 +410,10 @@ export default function ProMaxAnalytics() {
                 
                 <div className="space-y-4 mb-6">
                     {[
-                        { label: 'Vấn đề làm đồ lâu', count: 12, ratio: 43, color: 'bg-rose-500', delta: 5.4 },
-                        { label: 'Vấn đề về nhân viên', count: 7, ratio: 25, color: 'bg-orange-500', delta: -1.2 },
-                        { label: 'Vấn đề về vệ sinh/chất lượng', count: 5, ratio: 18, color: 'bg-amber-500', delta: -2.5 },
-                        { label: 'Vấn đề khác', count: 4, ratio: 14, color: 'bg-slate-400 dark:bg-slate-500', delta: 0.5 }
+                        { label: 'Vấn đề làm đồ lâu', count: 12, ratio: 43, color: CHART_COLORS.critical, delta: 5.4 },
+                        { label: 'Vấn đề về nhân viên', count: 7, ratio: 25, color: CHART_COLORS.warning, delta: -1.2 },
+                        { label: 'Vấn đề về vệ sinh/chất lượng', count: 5, ratio: 18, color: CHART_COLORS.notice, delta: -2.5 },
+                        { label: 'Vấn đề khác', count: 4, ratio: 14, color: CHART_COLORS.neutral, delta: 0.5 }
                     ].map(reason => (
                         <div key={reason.label}>
                             <div className="flex justify-between items-center mb-1.5 gap-4">
@@ -407,7 +424,7 @@ export default function ProMaxAnalytics() {
                                 </div>
                             </div>
                             <div className="w-full h-2 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full transition-all duration-700 ${reason.color}`} style={{ width: `${reason.ratio}%` }} />
+                                <div className={`h-full rounded-full transition-all duration-700`} style={{ width: `${reason.ratio}%`, backgroundColor: reason.color }} />
                             </div>
                         </div>
                     ))}
@@ -443,11 +460,11 @@ export default function ProMaxAnalytics() {
                                 itemStyle={{ fontWeight: 600 }}
                             />
                             <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 600 }} />
-                            <Bar yAxisId="left" stackId="negative" dataKey="slowService" name="Vấn đề làm đồ lâu" fill="#ef4444" radius={[0, 0, 4, 4]} maxBarSize={32} />
-                            <Bar yAxisId="left" stackId="negative" dataKey="badAttitude" name="Vấn đề về nhân viên" fill="#f59e0b" maxBarSize={32} />
-                            <Bar yAxisId="left" stackId="negative" dataKey="badFood" name="Vấn đề về vệ sinh" fill="#f97316" maxBarSize={32} />
-                            <Bar yAxisId="left" stackId="negative" dataKey="noisy" name="Vấn đề khác" fill="#eab308" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                            <Line yAxisId="right" type="monotone" dataKey="positive" name="Tỷ lệ Hài lòng (%)" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }} activeDot={{ r: 6 }} />
+                            <Bar yAxisId="left" stackId="negative" dataKey="slowService" name="Vấn đề làm đồ lâu" fill={CHART_COLORS.critical} radius={[0, 0, 4, 4]} maxBarSize={32} />
+                            <Bar yAxisId="left" stackId="negative" dataKey="badAttitude" name="Vấn đề về nhân viên" fill={CHART_COLORS.warning} maxBarSize={32} />
+                            <Bar yAxisId="left" stackId="negative" dataKey="badFood" name="Vấn đề về vệ sinh" fill={CHART_COLORS.notice} maxBarSize={32} />
+                            <Bar yAxisId="left" stackId="negative" dataKey="noisy" name="Vấn đề khác" fill={CHART_COLORS.neutral} radius={[4, 4, 0, 0]} maxBarSize={32} />
+                            <Line yAxisId="right" type="monotone" dataKey="positive" name="Tỷ lệ Hài lòng (%)" stroke={CHART_COLORS.success} strokeWidth={3} dot={{ r: 4, fill: CHART_COLORS.success, strokeWidth: 2, stroke: "#fff" }} activeDot={{ r: 6 }} />
                         </ComposedChart>
                     </ResponsiveContainer>
                 </div>
@@ -462,9 +479,9 @@ export default function ProMaxAnalytics() {
                 </div>
                 <div className="space-y-6 flex-1">
                     {[
-                        { label: 'Khung 11h - 13h (Trưa)', count: 45, color: '#f97316', percent: 55 },
-                        { label: 'Khung 19h - 21h (Tối)', count: 28, color: '#f59e0b', percent: 35 },
-                        { label: 'Các khung giờ khác', count: 8, color: '#fbbf24', percent: 10 },
+                        { label: 'Khung 11h - 13h (Trưa)', count: 45, color: CHART_COLORS.critical, percent: 55 },
+                        { label: 'Khung 19h - 21h (Tối)', count: 28, color: CHART_COLORS.warning, percent: 35 },
+                        { label: 'Các khung giờ khác', count: 8, color: CHART_COLORS.notice, percent: 10 },
                     ].map((issue, idx) => (
                         <div key={idx} className="flex flex-col gap-2">
                             <div className="flex justify-between items-end">
@@ -617,12 +634,12 @@ export default function ProMaxAnalytics() {
                         <AreaChart data={menuEff.trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="gradBrowse" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                    <stop offset="5%" stopColor={CHART_COLORS.orders} stopOpacity={0.2} />
+                                    <stop offset="95%" stopColor={CHART_COLORS.orders} stopOpacity={0} />
                                 </linearGradient>
                                 <linearGradient id="gradDecide" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
-                                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                                    <stop offset="5%" stopColor={CHART_COLORS.customers} stopOpacity={0.2} />
+                                    <stop offset="95%" stopColor={CHART_COLORS.customers} stopOpacity={0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" strokeOpacity={0.3} />
@@ -633,8 +650,8 @@ export default function ProMaxAnalytics() {
                                 formatter={(val: any, name: any) => [`${Math.floor(Number(val) / 60)}:${(Number(val) % 60).toString().padStart(2, '0')}`, name]}
                             />
                             <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingBottom: 20 }} />
-                            <Area type="monotone" dataKey="browse" name="Duyệt menu" stroke="#6366f1" strokeWidth={2.5} fill="url(#gradBrowse)" dot={{ r: 4, fill: '#fff', stroke: '#6366f1', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                            <Area type="monotone" dataKey="decide" name="Quyết định" stroke="#f59e0b" strokeWidth={2.5} fill="url(#gradDecide)" dot={{ r: 4, fill: '#fff', stroke: '#f59e0b', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                            <Area type="monotone" dataKey="browse" name="Duyệt menu" stroke={CHART_COLORS.orders} strokeWidth={2.5} fill="url(#gradBrowse)" dot={{ r: 4, fill: '#fff', stroke: CHART_COLORS.orders, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                            <Area type="monotone" dataKey="decide" name="Quyết định" stroke={CHART_COLORS.customers} strokeWidth={2.5} fill="url(#gradDecide)" dot={{ r: 4, fill: '#fff', stroke: CHART_COLORS.customers, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>

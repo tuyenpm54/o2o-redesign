@@ -20,9 +20,12 @@ export const MOCK_LIVE_PULSE = {
       { name: "Bò lúc lắc", qty: 6 }
     ],
     urgentFeed: [
-      { id: "1", type: "review", tableid: "A-12", content: "Đánh giá 1 sao: Lên món quá chậm, đồ ăn thì nguội.", timestamp: Date.now() - 5 * 60000, label: "5 phút trước" },
-      { id: "2", type: "request", tableid: "T-05", content: "Khách hối xuất món (Quá 25 phút chưa lên thức ăn).", timestamp: Date.now() - 12 * 60000, label: "12 phút trước" },
-      { id: "3", type: "request", tableid: "VIP-2", content: "Yêu cầu dọn dẹp bàn do đổ nước.", timestamp: Date.now() - 25 * 60000, label: "25 phút trước" }
+      { id: "1", type: "late_order", severity: "critical", tableid: "B-03", content: "Đơn trễ (>20p): Lẩu Thái Tomyum (1), Cơm chiên (2)", timestamp: Date.now() - 22 * 60000, label: "22 phút trước" },
+      { id: "2", type: "late_order", severity: "critical", tableid: "A-05", content: "Cảnh báo trễ: 3 món đang nấu quá 18 phút", timestamp: Date.now() - 18 * 60000, label: "18 phút trước" },
+      { id: "3", type: "review", severity: "warning", tableid: "T-02", content: "Đánh giá 1⭐: Phục vụ thái độ không tốt, đồ ăn nguội", timestamp: Date.now() - 5 * 60000, label: "5 phút trước" },
+      { id: "4", type: "request", severity: "warning", tableid: "B-12", content: "Yêu cầu dọn dẹp bàn đổ nước (Duy trì > 12 phút chưa xử lý)", timestamp: Date.now() - 12 * 60000, label: "12 phút trước" },
+      { id: "5", type: "request", severity: "info", tableid: "VIP-1", content: "Yêu cầu thêm khăn giấy và đá lạnh", timestamp: Date.now() - 2 * 60000, label: "2 phút trước" },
+      { id: "6", type: "request", severity: "info", tableid: "C-05", content: "Khách gọi thanh toán tại bàn", timestamp: Date.now() - 3 * 60000, label: "3 phút trước" }
     ]
   }
 };

@@ -60,7 +60,7 @@ interface LivePulse {
         ready_to_served: number;
     };
     hotItems: { name: string; qty: number; }[];
-    urgentFeed: { id: string; type: string; tableid: string; content: string; timestamp: number; label: string; }[];
+    urgentFeed: { id: string; type: string; tableid: string; content: string; timestamp: number; label: string; severity?: 'critical' | 'warning' | 'info'; }[];
 }
 
 // ── Model C: Counter Dispatch Center types ──
@@ -138,6 +138,7 @@ export default function LiveOperationsPage() {
     }, [fetchRealtime]);
 
     const [selectedArea, setSelectedArea] = useState<string>('ALL');
+    const [urgentTab, setUrgentTab] = useState<'all' | 'critical' | 'warning' | 'info'>('all');
 
     const activeAreas = useMemo(() => {
         if (!occupancy?.activeTablesList) return ['ALL'];
@@ -185,6 +186,11 @@ export default function LiveOperationsPage() {
 
     type SlaStatus = 'ok' | 'warning' | 'critical';
     const slaStatus: SlaStatus = totalViolations === 0 ? 'ok' : totalViolations < 5 ? 'warning' : 'critical';
+
+    const filteredUrgentFeed = useMemo(() => {
+        if (urgentTab === 'all') return livePulse.urgentFeed;
+        return livePulse.urgentFeed.filter(f => f.severity === urgentTab);
+    }, [livePulse.urgentFeed, urgentTab]);
 
     const formatVND = (v: number) => {
         if (!v || isNaN(v)) return '0 ₫';
@@ -538,44 +544,9 @@ export default function LiveOperationsPage() {
                                       {/* ── COL 2: OPERATIONS FLOW (4 columns) ── */}
                 <div className="lg:col-span-4 flex flex-col gap-5 overflow-y-auto pr-2 pb-4 scrollbar-hide">
                     
-                    {/* CRITICAL ALERTS: DUAL STRIP */}
-                    <div className="grid grid-cols-2 gap-3 shrink-0">
-                        <div className={`p-3.5 rounded-[16px] flex items-center justify-between border ${livePulse.kitchenLagCount > 0 ? 'bg-rose-500 border-rose-600 text-white shadow-sm' : 'bg-white dark:bg-[#0c0c0e] border-slate-100 dark:border-white/5'}`}>
-                            <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-[10px] flex items-center justify-center ${livePulse.kitchenLagCount > 0 ? 'bg-white/20' : 'bg-slate-50 dark:bg-white/5 text-slate-500'}`}>
-                                    <Siren size={16} strokeWidth={2} />
-                                </div>
-                                <div>
-                                    <h4 className={`text-[11px] font-bold leading-tight ${livePulse.kitchenLagCount > 0 ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Đơn Trễ<br/>(&gt;15p)</h4>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 align-bottom">
-                                {livePulse.kitchenLagCount > 0 && (
-                                    <span className="flex h-1.5 w-1.5 relative mb-0.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-70"></span>
-                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
-                                    </span>
-                                )}
-                                <span className={`text-xl font-black tracking-tight leading-none ${livePulse.kitchenLagCount > 0 ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`}>{livePulse.kitchenLagCount}</span>
-                            </div>
-                        </div>
-
-                        <div className={`p-3.5 rounded-[16px] flex items-center justify-between border ${livePulse.stockoutCount > 0 ? 'bg-orange-50 border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/20 shadow-sm' : 'bg-white dark:bg-[#0c0c0e] border-slate-100 dark:border-white/5'}`}>
-                            <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-[10px] flex items-center justify-center ${livePulse.stockoutCount > 0 ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400' : 'bg-slate-50 dark:bg-white/5 text-slate-500'}`}>
-                                    <XCircle size={16} strokeWidth={2} />
-                                </div>
-                                <div>
-                                    <h4 className={`text-[11px] font-bold leading-tight ${livePulse.stockoutCount > 0 ? 'text-orange-900 dark:text-orange-100' : 'text-slate-900 dark:text-white'}`}>Hết Món<br/>Hủy</h4>
-                                </div>
-                            </div>
-                            <span className={`text-xl font-black tracking-tight leading-none ${livePulse.stockoutCount > 0 ? 'text-orange-700 dark:text-orange-400' : 'text-slate-700 dark:text-slate-300'}`}>{livePulse.stockoutCount}</span>
-                        </div>
-                    </div>
-
-                    {/* SLA OVERVIEW (Compact Grid) */}
-                    <div className="bg-white dark:bg-[#0c0c0e] rounded-[24px] p-5 shadow-[0_2px_14px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 flex flex-col shrink-0">
-                        <div className="flex items-center justify-between mb-4">
+                    {/* SLA OVERVIEW (Compact Grid & Critical Alerts) */}
+                    <div className="bg-white dark:bg-[#0c0c0e] rounded-[24px] p-5 shadow-[0_2px_14px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 flex flex-col shrink-0 gap-4">
+                        <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <ShieldCheck size={16} className="text-slate-600 dark:text-slate-400" />
                                 <span className="text-[13px] font-bold text-slate-900 dark:text-white">Hiệu Suất Bếp</span>
@@ -586,6 +557,41 @@ export default function LiveOperationsPage() {
                                 : 'text-rose-700 bg-rose-50 dark:bg-rose-500/10'}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${slaStatus === 'ok' ? 'bg-emerald-500' : slaStatus === 'warning' ? 'bg-amber-500' : 'bg-rose-500'}`} />
                                 {slaStatus === 'ok' ? 'Tốt' : slaStatus === 'warning' ? 'Chú Ý' : 'Quá Tải'}
+                            </div>
+                        </div>
+
+                        {/* CRITICAL ALERTS: DUAL STRIP - MOVED INSIDE */}
+                        <div className="grid grid-cols-2 gap-3 shrink-0">
+                            <div className={`p-3.5 rounded-[12px] flex items-center justify-between border ${livePulse.kitchenLagCount > 0 ? 'bg-rose-500 border-rose-600 text-white shadow-md' : 'bg-slate-50 dark:bg-white/[0.02] border-slate-100 dark:border-white/5'}`}>
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-8 h-8 rounded-[8px] flex items-center justify-center ${livePulse.kitchenLagCount > 0 ? 'bg-white/20' : 'bg-white dark:bg-white/5 text-slate-500 shadow-sm'}`}>
+                                        <Siren size={16} strokeWidth={2} />
+                                    </div>
+                                    <div>
+                                        <h4 className={`text-[11px] font-bold leading-tight ${livePulse.kitchenLagCount > 0 ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Đơn Trễ<br/>(&gt;15p)</h4>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 align-bottom">
+                                    {livePulse.kitchenLagCount > 0 && (
+                                        <span className="flex h-1.5 w-1.5 relative mb-0.5">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-70"></span>
+                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                                        </span>
+                                    )}
+                                    <span className={`text-xl font-black tracking-tight leading-none ${livePulse.kitchenLagCount > 0 ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`}>{livePulse.kitchenLagCount}</span>
+                                </div>
+                            </div>
+
+                            <div className={`p-3.5 rounded-[12px] flex items-center justify-between border ${livePulse.stockoutCount > 0 ? 'bg-orange-50 border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/20 shadow-sm' : 'bg-slate-50 dark:bg-white/[0.02] border-slate-100 dark:border-white/5'}`}>
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-8 h-8 rounded-[8px] flex items-center justify-center ${livePulse.stockoutCount > 0 ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400' : 'bg-white dark:bg-white/5 text-slate-500 shadow-sm'}`}>
+                                        <XCircle size={16} strokeWidth={2} />
+                                    </div>
+                                    <div>
+                                        <h4 className={`text-[11px] font-bold leading-tight ${livePulse.stockoutCount > 0 ? 'text-orange-900 dark:text-orange-100' : 'text-slate-900 dark:text-white'}`}>Hết Món<br/>Hủy</h4>
+                                    </div>
+                                </div>
+                                <span className={`text-xl font-black tracking-tight leading-none ${livePulse.stockoutCount > 0 ? 'text-orange-700 dark:text-orange-400' : 'text-slate-700 dark:text-slate-300'}`}>{livePulse.stockoutCount}</span>
                             </div>
                         </div>
 
@@ -654,41 +660,102 @@ export default function LiveOperationsPage() {
 
                 {/* ── COL 3: URGENT INBOX (3 columns) ── */}
                 <div className="lg:col-span-3 flex flex-col overflow-hidden bg-white dark:bg-[#0c0c0e] rounded-[24px] shadow-[0_2px_20px_rgb(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
-                    <div className="p-5 px-6 border-b border-slate-100 dark:border-white/5 shrink-0 flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 flex items-center justify-center shrink-0">
-                                <BellRing size={16} className="animate-pulse" />
+                    <div className="p-5 px-6 border-b border-slate-100 dark:border-white/5 shrink-0">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 flex items-center justify-center shrink-0">
+                                    <BellRing size={16} className="animate-pulse" />
+                                </div>
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Cần Xử Lý Ngay</h3>
                             </div>
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Cần Xử Lý Ngay</h3>
+                            {livePulse.urgentFeed.length > 0 && (
+                                <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none">
+                                    {livePulse.urgentFeed.length}
+                                </span>
+                            )}
                         </div>
-                        {livePulse.urgentFeed.length > 0 && (
-                            <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none">
-                                {livePulse.urgentFeed.length}
-                            </span>
-                        )}
+
+                        {/* Severity Tag Filters */}
+                        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1">
+                            {[
+                                { key: 'all', label: 'Tất cả', color: 'slate' },
+                                { key: 'critical', label: 'Gấp', color: 'rose' },
+                                { key: 'warning', label: 'Lưu ý', color: 'amber' },
+                                { key: 'info', label: 'Tin mới', color: 'blue' }
+                            ].map(tab => {
+                                const count = tab.key === 'all' 
+                                    ? livePulse.urgentFeed.length 
+                                    : livePulse.urgentFeed.filter(f => f.severity === tab.key).length;
+                                
+                                const isActive = urgentTab === tab.key;
+                                
+                                return (
+                                    <button
+                                        key={tab.key}
+                                        onClick={() => setUrgentTab(tab.key as any)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer border ${
+                                            isActive
+                                                ? tab.key === 'critical' ? 'bg-rose-500 border-rose-500 text-white shadow-sm' :
+                                                  tab.key === 'warning' ? 'bg-amber-500 border-amber-500 text-white shadow-sm' :
+                                                  tab.key === 'info' ? 'bg-blue-500 border-blue-500 text-white shadow-sm' :
+                                                  'bg-slate-800 border-slate-800 text-white dark:bg-white dark:text-slate-900'
+                                                : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        <span>{tab.label}</span>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full leading-none ${
+                                            isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-white/10 text-slate-400'
+                                        }`}>{count}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                     
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar">
-                        {livePulse.urgentFeed.length > 0 ? (
-                            livePulse.urgentFeed.map(feed => (
-                                <div key={feed.id} className="bg-slate-50 dark:bg-[#13141A] rounded-[16px] p-3.5 border border-slate-100 dark:border-white/5 hover:border-rose-200 dark:hover:border-rose-500/40 transition-colors group cursor-pointer">
+                        {filteredUrgentFeed.length > 0 ? (
+                            filteredUrgentFeed.map(feed => {
+                                const isCritical = feed.severity === 'critical';
+                                const isWarning = feed.severity === 'warning';
+                                const isInfo = feed.severity === 'info' || !feed.severity;
+
+                                return (
+                                <div key={feed.id} className={`rounded-[16px] p-3.5 border transition-all duration-300 group cursor-pointer ${
+                                    isCritical ? 'bg-rose-500 border-rose-600 shadow-[0_4px_12px_rgba(244,63,94,0.3)]' :
+                                    isWarning ? 'bg-amber-50 dark:bg-amber-500/5 border-amber-200 dark:border-amber-500/30 shadow-sm' :
+                                    'bg-slate-50 dark:bg-[#13141A] border-slate-100 dark:border-white/5 hover:border-slate-200'
+                                }`}>
                                     <div className="flex items-start justify-between mb-2 gap-2">
                                         <div className="flex flex-wrap items-center gap-1.5">
-                                            <span className="text-[10px] font-black text-white bg-slate-800 dark:bg-white/20 px-1.5 py-0.5 rounded uppercase leading-none">{feed.tableid}</span>
-                                            <span className="text-[10px] font-semibold text-slate-400 leading-none whitespace-nowrap">{feed.label}</span>
+                                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase leading-none ${
+                                                isCritical ? 'bg-white text-rose-600' : 
+                                                isWarning ? 'bg-amber-500 text-white' : 
+                                                'text-white bg-slate-800 dark:bg-white/20'
+                                            }`}>{feed.tableid}</span>
+                                            <span className={`text-[10px] font-semibold leading-none whitespace-nowrap ${isCritical ? 'text-rose-100' : 'text-slate-400'}`}>{feed.label}</span>
                                         </div>
-                                        <div className={`p-1 rounded flex shrink-0 ${feed.type === 'review' ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'}`}>
-                                            {feed.type === 'review' ? <XCircle size={12} strokeWidth={3} /> : <AlertTriangle size={12} strokeWidth={3} />}
+                                        <div className={`p-1 rounded flex shrink-0 ${
+                                            isCritical ? 'bg-white/20 text-white' :
+                                            isWarning ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
+                                            'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
+                                        }`}>
+                                            {isCritical ? <Siren size={12} strokeWidth={3} className="animate-pulse" /> : 
+                                             isWarning ? <AlertTriangle size={12} strokeWidth={3} /> : 
+                                             <BellRing size={12} strokeWidth={3} />}
                                         </div>
                                     </div>
-                                    <p className="text-[12px] font-medium text-slate-700 dark:text-slate-300 leading-relaxed mb-3 line-clamp-3">{feed.content}</p>
+                                    <p className={`text-[12px] font-medium leading-relaxed mb-3 line-clamp-3 ${isCritical ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`}>{feed.content}</p>
                                     <div className="flex justify-end">
-                                        <button className="text-[10px] font-bold text-rose-600 dark:text-rose-400 opacity-80 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-rose-50 dark:hover:bg-rose-500/20">
+                                        <button className={`text-[10px] font-bold opacity-80 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2 py-1.5 rounded-lg border ${
+                                            isCritical ? 'text-rose-600 bg-white border-white hover:bg-rose-50' :
+                                            isWarning ? 'text-amber-700 dark:text-amber-400 bg-white dark:bg-white/5 border-amber-200 dark:border-amber-500/20 hover:bg-amber-50' :
+                                            'text-blue-600 dark:text-blue-400 bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-blue-50'
+                                        }`}>
                                             Tiếp nhận xử lý <span className="text-[14px] leading-none mb-0.5">→</span>
                                         </button>
                                     </div>
                                 </div>
-                            ))
+                            )})
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center py-10 px-4 text-center opacity-40">
                                 <ShieldCheck size={36} strokeWidth={1} className="text-slate-500 mb-3" />
@@ -700,16 +767,16 @@ export default function LiveOperationsPage() {
                 </div>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .custom-scrollbar::-webkit-scrollbar,
                 .scrollbar-hide::-webkit-scrollbar {
                     display: none;
                 }
                 .custom-scrollbar, .scrollbar-hide {
-                    -ms-overflow-style: none;  /* IE and Edge */
-                    scrollbar-width: none;  /* Firefox */
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

@@ -121,10 +121,25 @@ export async function GET(request: Request) {
             AND ${condition}
         `;
 
+        // Late Orders (items pending/cooking > 15 mins)
+        // Group by table_session to consolidate if multiple items are late
+        const lateOrdersQuery = `
+            SELECT o.table_session_id as id, 'late_order' as type, t.id as tableid, 
+                   GROUP_CONCAT(o.item_name, ', ') as content,
+                   MIN(o.timestamp) as timestamp_raw
+            FROM order_items o
+            LEFT JOIN table_sessions t ON o.table_session_id = t.id
+            WHERE o.status IN ('Chờ xác nhận', 'Đang chuẩn bị', 'Đang nấu', 'pending', 'cooking') 
+            AND (${nowMs} - o.timestamp) > 900000 AND o.timestamp > 0 
+            AND o.${condition.replace('resid', 'o.resid')}
+            GROUP BY o.table_session_id
+        `;
+
         try {
-            const [revs, reqs] = await Promise.all([
+            const [revs, reqs, late] = await Promise.all([
                 db.all(badReviewsQuery),
-                db.all(reqQuery, params)
+                db.all(reqQuery, params),
+                db.all(lateOrdersQuery, params)
             ]);
             
             const rawFeed = [
@@ -141,13 +156,34 @@ export async function GET(request: Request) {
                     tableid: r.tableid || '?', 
                     content: `Cần xử lý: ${r.content || 'Yêu cầu phục vụ'}`, 
                     timestamp: Number(r.timestamp_raw)
+                })),
+                ...late.map((r: any) => ({
+                    id: r.id,
+                    type: r.type,
+                    tableid: r.tableid || '?',
+                    content: `Đơn trễ: ${r.content}`,
+                    timestamp: Number(r.timestamp_raw)
                 }))
             ].sort((a, b) => b.timestamp - a.timestamp); // latest first
             
             urgentFeed = rawFeed.map(f => {
                 const diffMs = nowMs - f.timestamp;
                 const diffMins = Math.floor(diffMs / 60000);
-                return { ...f, label: diffMins < 1 ? 'Vừa xong' : `${diffMins} phút trước` };
+                
+                // Categorize severity
+                let severity: 'critical' | 'warning' | 'info' = 'info';
+                if (f.type === 'late_order') severity = 'critical';
+                else if (f.type === 'review') severity = 'warning';
+                else if (f.type === 'request') {
+                    if (diffMins > 10) severity = 'warning';
+                    else severity = 'info';
+                }
+
+                return { 
+                    ...f, 
+                    severity,
+                    label: diffMins < 1 ? 'Vừa xong' : `${diffMins} phút trước` 
+                };
             });
         } catch (e) {
             console.error("Failed to fetch urgent feed:", e);
