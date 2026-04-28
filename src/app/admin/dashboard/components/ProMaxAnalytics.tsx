@@ -380,10 +380,10 @@ export default function ProMaxAnalytics() {
                 
                 <div className="space-y-4 mb-6">
                     {[
-                        { label: 'Thời gian chờ phục vụ lâu', count: 12, ratio: 43, color: 'bg-rose-500', delta: 5.4 },
-                        { label: 'Nhân viên chậm, thái độ chưa tốt', count: 7, ratio: 25, color: 'bg-orange-500', delta: -1.2 },
-                        { label: 'Món ăn không ngon / dở / nguội', count: 5, ratio: 18, color: 'bg-amber-500', delta: -2.5 },
-                        { label: 'Vệ sinh kém', count: 4, ratio: 14, color: 'bg-slate-400 dark:bg-slate-500', delta: 0.5 }
+                        { label: 'Vấn đề làm đồ lâu', count: 12, ratio: 43, color: 'bg-rose-500', delta: 5.4 },
+                        { label: 'Vấn đề về nhân viên', count: 7, ratio: 25, color: 'bg-orange-500', delta: -1.2 },
+                        { label: 'Vấn đề về vệ sinh/chất lượng', count: 5, ratio: 18, color: 'bg-amber-500', delta: -2.5 },
+                        { label: 'Vấn đề khác', count: 4, ratio: 14, color: 'bg-slate-400 dark:bg-slate-500', delta: 0.5 }
                     ].map(reason => (
                         <div key={reason.label}>
                             <div className="flex justify-between items-center mb-1.5 gap-4">
@@ -430,10 +430,10 @@ export default function ProMaxAnalytics() {
                                 itemStyle={{ fontWeight: 600 }}
                             />
                             <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 600 }} />
-                            <Bar yAxisId="left" stackId="negative" dataKey="slowService" name="Phục vụ rùa bò" fill="#ef4444" radius={[0, 0, 4, 4]} maxBarSize={32} />
-                            <Bar yAxisId="left" stackId="negative" dataKey="badFood" name="Thức ăn tệ" fill="#f97316" maxBarSize={32} />
-                            <Bar yAxisId="left" stackId="negative" dataKey="badAttitude" name="Thái độ lồi lõm" fill="#f59e0b" maxBarSize={32} />
-                            <Bar yAxisId="left" stackId="negative" dataKey="noisy" name="Tiếng ồn/Môi trường" fill="#eab308" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                            <Bar yAxisId="left" stackId="negative" dataKey="slowService" name="Vấn đề làm đồ lâu" fill="#ef4444" radius={[0, 0, 4, 4]} maxBarSize={32} />
+                            <Bar yAxisId="left" stackId="negative" dataKey="badAttitude" name="Vấn đề về nhân viên" fill="#f59e0b" maxBarSize={32} />
+                            <Bar yAxisId="left" stackId="negative" dataKey="badFood" name="Vấn đề về vệ sinh" fill="#f97316" maxBarSize={32} />
+                            <Bar yAxisId="left" stackId="negative" dataKey="noisy" name="Vấn đề khác" fill="#eab308" radius={[4, 4, 0, 0]} maxBarSize={32} />
                             <Line yAxisId="right" type="monotone" dataKey="positive" name="Tỷ lệ Hài lòng (%)" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }} activeDot={{ r: 6 }} />
                         </ComposedChart>
                     </ResponsiveContainer>
