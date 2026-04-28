@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Activity, Clock, ThermometerSun, TrendingUp, Star, AlertCircle, ShoppingCart, ShieldAlert,
   ArrowUpRight, ArrowDownRight, SplitSquareHorizontal, Megaphone, Smile, Frown, Users, Inbox, Flame, BellRing, Utensils, XCircle, Timer, MousePointerClick, LayoutDashboard, Banknote, MessageSquare, BookOpen
@@ -42,11 +42,24 @@ export default function ProMaxAnalytics() {
   const o2oRoi = MOCK_O2O_ROI_7D.data;
   const csatData = MOCK_CSAT_SCATTER.data;
   const csatTrendData = MOCK_CSAT_TREND_7D.data;
-  
   const upsaleData = MOCK_FUNNEL_UPSALE.data;
+  
+  const [sortSuggestedBy, setSortSuggestedBy] = useState<'qty' | 'revenue'>('qty');
+
+  const {
+      trend, peakHours, peakDays, suggestedItems, summary
+  } = MOCK_ANALYTICS.data;
+
+  const sortedSuggestedItems = useMemo(() => {
+    if (!suggestedItems) return [];
+    return [...suggestedItems].sort((a, b) => {
+        if (sortSuggestedBy === 'qty') return b.qty - a.qty;
+        return b.revenue - a.revenue;
+    });
+  }, [suggestedItems, sortSuggestedBy]);
+
   const menuEff = MOCK_MENU_EFFICIENCY.data;
   const orderingBehavior = menuEff.orderingBehavior;
-  const suggestedItems = MOCK_ANALYTICS.data.suggestedItems;
   const firstItemSource = menuEff.firstItemSource;
   
   const lastDayO2O = o2oRoi[o2oRoi.length - 1];
@@ -667,6 +680,20 @@ export default function ProMaxAnalytics() {
                             </h3>
                             <p className="text-[13px] font-medium text-slate-500 mt-1">Các sản phẩm đóng góp nhiều nhất qua AI Suggester.</p>
                         </div>
+                        <div className="flex bg-slate-100 dark:bg-white/5 rounded-lg p-1 shrink-0 self-start sm:self-auto">
+                            <button
+                                onClick={() => setSortSuggestedBy('qty')}
+                                className={`px-3 py-1.5 text-[12px] font-bold rounded-md transition-[background-color,color,box-shadow] duration-200 ${sortSuggestedBy === 'qty' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            >
+                                Theo lượt bán
+                            </button>
+                            <button
+                                onClick={() => setSortSuggestedBy('revenue')}
+                                className={`px-3 py-1.5 text-[12px] font-bold rounded-md transition-[background-color,color,box-shadow] duration-200 ${sortSuggestedBy === 'revenue' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            >
+                                Theo doanh thu
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div className="flex-1 overflow-x-auto">
@@ -680,7 +707,7 @@ export default function ProMaxAnalytics() {
                             </tr>
                         </thead>
                         <tbody>
-                            {suggestedItems?.slice(0, 8).map((item: any, idx: number) => {
+                            {sortedSuggestedItems.slice(0, 8).map((item: any, idx: number) => {
                                 const sourceMatch = firstItemSource.find((s:any) => s.source === item.source);
                                 let sLabel = sourceMatch ? sourceMatch.label : item.source;
                                 let sColor = sourceMatch ? sourceMatch.color : '#94a3b8';
