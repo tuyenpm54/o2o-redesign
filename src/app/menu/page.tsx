@@ -64,7 +64,7 @@ export default async function MenuPage(props: PageProps) {
         const configRow = await db.get('SELECT published_blocks FROM restaurant_display_configs WHERE res_id = ?', [resid]);
         if (configRow && configRow.published_blocks && configRow.published_blocks !== '[]') {
             const parsed = JSON.parse(configRow.published_blocks);
-            const validTypes = ['for-you', 'combo', 'best-sale', 'custom', 'menu-grid', 'onboarding-wizard', 'support-options', 'checkout-auth', 'bad-review-reasons', 'payment-methods'];
+            const validTypes = ['flash-sale', 'for-you', 'combo', 'best-sale', 'custom', 'menu-grid', 'onboarding-wizard', 'support-options', 'checkout-auth', 'bad-review-reasons', 'payment-methods'];
             
             const MODULE_SUPPORT_MAP: Record<string, string[]> = {
                  'support-options': ['post-pay', 'pre-pay-table'],

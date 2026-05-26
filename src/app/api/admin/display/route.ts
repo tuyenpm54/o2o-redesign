@@ -15,6 +15,37 @@ export async function GET(request: Request) {
         if (!config) {
             // Initial default config if not exists
             const initialBlocks = [
+                {
+                    id: 'b0',
+                    type: 'flash-sale',
+                    title: 'Ưu Đãi Giới Hạn',
+                    config: {
+                        isEnabled: true,
+                        displayTitle: 'Ưu đãi giới hạn',
+                        subtitle: 'Món ngon giá tốt theo từng khung giờ',
+                        showCountdown: true,
+                        showRemainingQuantity: true,
+                        campaigns: [
+                            {
+                                id: 'campaign_1',
+                                name: 'Sáng - Ưu đãi món nhanh',
+                                isEnabled: true,
+                                objective: 'clear_today',
+                                runMode: 'daily',
+                                weekdays: [1, 2, 3, 4, 5, 6, 0],
+                                quickDurationMinutes: 120,
+                                startedAt: '',
+                                startDate: new Date().toISOString().slice(0, 10),
+                                startTime: '14:00',
+                                endTime: '17:00',
+                                autoHideWhenEnded: true,
+                                autoHideWhenSoldOut: true,
+                                resetQuantityDaily: true,
+                                items: []
+                            }
+                        ]
+                    }
+                },
                 { id: 'b1', type: 'for-you', title: 'Món Bạn Từng Gọi', config: { isEnabled: true } },
                 { id: 'b2', type: 'combo', title: 'Combo Tiết Kiệm', config: { isEnabled: true, limit: 10, itemIds: [701, 702, 703, 704, 705, 706] } },
                 { id: 'b3', type: 'best-sale', title: 'Siêu Phẩm Bán Chạy', config: { isEnabled: true } },

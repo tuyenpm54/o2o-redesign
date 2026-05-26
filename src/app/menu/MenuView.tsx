@@ -73,6 +73,253 @@ const BanIcon = ({ size, color = "currentColor" }: any) => (
   </svg>
 );
 
+const normalizeRunMode = (runMode?: string) => runMode === 'weekly' ? 'weekly' : runMode === 'once' ? 'once' : 'daily';
+
+const normalizeFlashSaleConfig = (config: any = {}) => {
+  const legacyRunMode = config.runMode || (config.repeatMode === 'daily' ? 'daily' : 'once');
+  const legacyCampaign = {
+    id: 'campaign_1',
+    name: config.displayTitle || 'Ưu đãi giới hạn',
+    isEnabled: config.isEnabled !== false,
+    objective: config.objective || 'clear_today',
+    runMode: normalizeRunMode(legacyRunMode),
+    weekdays: config.weekdays || [1, 2, 3, 4, 5, 6, 0],
+    quickDurationMinutes: Number(config.quickDurationMinutes || 120),
+    startedAt: config.startedAt || '',
+    startDate: config.startDate,
+    startTime: config.startTime,
+    endTime: config.endTime,
+    autoHideWhenEnded: config.autoHideWhenEnded !== false,
+    autoHideWhenSoldOut: config.autoHideWhenSoldOut !== false,
+    items: config.items || []
+  };
+  const campaigns = Array.isArray(config.campaigns) && config.campaigns.length > 0 ? config.campaigns : [legacyCampaign];
+  return {
+    ...config,
+    showCountdown: config.showCountdown !== false,
+    showRemainingQuantity: config.showRemainingQuantity !== false,
+    campaigns: campaigns.map((campaign: any, index: number) => ({
+      ...legacyCampaign,
+      ...campaign,
+      id: campaign.id || `campaign_${index + 1}`,
+      isEnabled: campaign.isEnabled !== false,
+      runMode: normalizeRunMode(campaign.runMode),
+      weekdays: campaign.weekdays || [1, 2, 3, 4, 5, 6, 0],
+      quickDurationMinutes: Number(campaign.quickDurationMinutes || 120),
+      autoHideWhenEnded: campaign.autoHideWhenEnded !== false,
+      autoHideWhenSoldOut: campaign.autoHideWhenSoldOut !== false,
+      items: campaign.items || []
+    }))
+  };
+};
+
+const normalizeScheduledGroupConfig = (config: any = {}) => {
+  const groups = Array.isArray(config.scheduleGroups) && config.scheduleGroups.length > 0
+    ? config.scheduleGroups
+    : [{ id: 'group_1', name: 'Khung giờ mặc định', isEnabled: true, runMode: 'daily', weekdays: [1, 2, 3, 4, 5, 6, 0], startTime: '00:00', endTime: '23:59', itemIds: config.itemIds || [] }];
+  return {
+    ...config,
+    scheduleGroups: groups.map((group: any, index: number) => ({
+      id: group.id || `group_${index + 1}`,
+      name: group.name || `Khung giờ ${index + 1}`,
+      isEnabled: group.isEnabled !== false,
+      runMode: normalizeRunMode(group.runMode),
+      weekdays: group.weekdays || [1, 2, 3, 4, 5, 6, 0],
+      startDate: group.startDate,
+      startTime: group.startTime,
+      endTime: group.endTime,
+      itemIds: group.itemIds || []
+    }))
+  };
+};
+
+const getActiveScheduleGroups = (config: any) => {
+  if (!Array.isArray(config?.scheduleGroups) || config.scheduleGroups.length === 0) return null;
+  const nowMs = Date.now();
+  return normalizeScheduledGroupConfig(config).scheduleGroups
+    .filter((group: any) => group.isEnabled !== false)
+    .filter((group: any) => getFlashCampaignStatus(group, nowMs).active);
+};
+
+const filterItemsByScheduleGroups = (config: any, items: any[]) => {
+  const groups = getActiveScheduleGroups(config);
+  if (!groups) return items;
+  const ids = groups.flatMap((group: any) => group.itemIds || []).map(String);
+  if (ids.length === 0) return [];
+  return items.filter((item: any) => ids.includes(String(item.id)));
+};
+
+const getLocalDateKey = (date: Date) => {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
+const getTimeDate = (base: Date, value?: string) => {
+  if (!value) return null;
+  const [hour, minute] = String(value).split(':').map(Number);
+  const date = new Date(base);
+  date.setHours(hour || 0, minute || 0, 0, 0);
+  return date;
+};
+
+const getFlashCampaignStatus = (campaign: any, nowMs: number | null) => {
+  if (!nowMs) return { active: false, deadlineMs: null, campaign };
+
+  const now = new Date(nowMs);
+  const runMode = campaign.runMode;
+
+  if (runMode === 'once') {
+    const today = getLocalDateKey(now);
+    const date = campaign.startDate || today;
+    const start = getTimeDate(now, campaign.startTime);
+    const end = getTimeDate(now, campaign.endTime);
+    return { active: date === today && !!start && !!end && now >= start && now <= end, deadlineMs: end?.getTime() || null, campaign };
+  }
+
+  if (runMode === 'daily') {
+    const start = getTimeDate(now, campaign.startTime);
+    const end = getTimeDate(now, campaign.endTime);
+    return { active: !!start && !!end && now >= start && now <= end, deadlineMs: end?.getTime() || null, campaign };
+  }
+
+  if (runMode === 'weekly') {
+    const weekdays = campaign.weekdays || [];
+    const start = getTimeDate(now, campaign.startTime);
+    const end = getTimeDate(now, campaign.endTime);
+    return { active: weekdays.includes(now.getDay()) && !!start && !!end && now >= start && now <= end, deadlineMs: end?.getTime() || null, campaign };
+  }
+
+  return { active: false, deadlineMs: null, campaign };
+};
+
+const formatRemainingTime = (deadlineMs: number | null, nowMs: number | null) => {
+  if (!deadlineMs || !nowMs || deadlineMs <= nowMs) return '';
+  const totalSeconds = Math.floor((deadlineMs - nowMs) / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+};
+
+function FlashSaleSection({ block, menuItems, searchQuery, setSelectedItem, proceedAddToCart, theme }: any) {
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    const updateNow = () => setNowMs(Date.now());
+    updateNow();
+    const timer = window.setInterval(updateNow, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const config = normalizeFlashSaleConfig(block?.config || {});
+  const activeCampaigns = (config.campaigns || [])
+    .filter((campaign: any) => campaign.isEnabled !== false)
+    .map((campaign: any) => ({ ...getFlashCampaignStatus(campaign, nowMs), campaign }))
+    .filter((status: any) => status.active || status.campaign.autoHideWhenEnded === false);
+
+  const campaignGroups = activeCampaigns
+    .map((status: any) => {
+      const campaign = status.campaign;
+      const items = (campaign.items || []).map((sale: any) => {
+        const item = menuItems.find((menuItem: any) => String(menuItem.id) === String(sale.itemId));
+        if (!item) return null;
+        const originalPrice = Number(sale.originalPrice || item.originalPrice || item.price || 0);
+        const salePrice = Number(sale.salePrice || item.price || 0);
+        const quantityLimit = Number(sale.quantityLimit || 0);
+        const soldCount = Number(sale.soldCount || 0);
+        const remaining = quantityLimit > 0 ? Math.max(quantityLimit - soldCount, 0) : null;
+        return { ...item, originalPrice, price: salePrice, flashSale: sale, flashCampaign: campaign, flashDeadlineMs: status.deadlineMs, remaining, isSoldOut: remaining === 0 };
+      })
+        .filter(Boolean)
+        .filter((item: any) => {
+          if (!searchQuery?.trim()) return true;
+          const q = searchQuery.toLowerCase();
+          return item.name.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q);
+        });
+
+      return { campaign, deadlineMs: status.deadlineMs, items };
+    })
+    .filter((group: any) => group.items.length > 0);
+
+  if (campaignGroups.length === 0) return null;
+  const nearestDeadline = campaignGroups
+    .map((group: any) => group.deadlineMs)
+    .filter(Boolean)
+    .sort((a: number, b: number) => a - b)[0] || null;
+  const countdown = config.showCountdown !== false ? formatRemainingTime(nearestDeadline, nowMs) : '';
+
+  return (
+    <section className={styles.comboSection} id={`flash-sale-${block.id}`}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <span className={styles.sectionEyebrow}>Ưu đãi giới hạn</span>
+          <h2 className={styles.sectionTitle}>{config.displayTitle || block.title || 'Ưu đãi giới hạn'}</h2>
+          {config.subtitle && <p className={styles.sectionSubtitle}>{config.subtitle}</p>}
+        </div>
+        {countdown && <span className={styles.sectionEyebrow}>Còn {countdown}</span>}
+      </div>
+
+      <div className="space-y-5">
+        {campaignGroups.map((group: any) => {
+          const groupCountdown = config.showCountdown !== false ? formatRemainingTime(group.deadlineMs, nowMs) : '';
+          return (
+            <div key={`${block.id}-${group.campaign.id}`} className="space-y-3">
+              {campaignGroups.length > 1 && (
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{group.campaign.name}</p>
+                    <p className="text-xs text-slate-500">{group.items.length} món ưu đãi</p>
+                  </div>
+                  {groupCountdown && <span className={styles.sectionEyebrow}>Còn {groupCountdown}</span>}
+                </div>
+              )}
+
+              <div className={styles.comboScroll}>
+                {group.items.map((item: any) => {
+                  const discount = item.originalPrice > item.price ? Math.round((1 - item.price / item.originalPrice) * 100) : 0;
+                  return (
+                    <div key={`${block.id}-${group.campaign.id}-${item.id}`} className={`${styles.comboCard} ${item.isSoldOut ? styles.dimmed : ''}`} onClick={() => setSelectedItem(item)}>
+                      <div className={styles.comboImgWrapper}>
+                        <img src={item.img} alt={item.name} className={styles.comboImg} />
+                        {discount > 0 && <div className={styles.saveBadge}>Giảm {discount}%</div>}
+                      </div>
+                      <div className={styles.comboInfo}>
+                        <h3 className={styles.comboName}>{item.name}</h3>
+                        <p className={styles.comboDesc}>
+                          {item.isSoldOut ? 'Đã hết' : `${campaignGroups.length > 1 ? '' : `${item.flashCampaign?.name} · `}${config.showRemainingQuantity !== false && item.remaining !== null ? `Còn ${item.remaining} suất` : 'Số lượng có hạn'}`}
+                        </p>
+                        <div className={styles.comboPriceRow}>
+                          <div>
+                            <span className={styles.comboPrice}>{item.price.toLocaleString('vi-VN')}đ</span>
+                            {item.originalPrice > item.price && <span className={styles.comboOriginal}>{item.originalPrice.toLocaleString('vi-VN')}đ</span>}
+                          </div>
+                          <button
+                            className={styles.addComboBtn}
+                            disabled={item.isSoldOut}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (item.isSoldOut) return;
+                              proceedAddToCart(item, 1);
+                            }}
+                            style={{ background: theme.accent, color: theme.cartBarText }}
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 
 function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { isV3?: boolean, displayConfig?: any[], isPreview?: boolean }) {
   const router = useRouter();
@@ -396,7 +643,10 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
 
   const manualBestSaleIds = useMemo(() => {
     const block = currentDisplayConfig?.find(b => b.type === 'best-sale' && b.config?.isEnabled !== false);
-    return block?.config?.itemIds || [];
+    if (!block?.config) return [];
+    const groups = getActiveScheduleGroups(block.config);
+    if (groups) return groups.flatMap((group: any) => group.itemIds || []);
+    return block.config.itemIds || [];
   }, [currentDisplayConfig]);
 
   const finalTopItems = useMemo(() => {
@@ -778,6 +1028,18 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
         {/* --- DYNAMIC MODULE RENDERING LOOP --- */}
         {currentDisplayConfig?.filter((block: any) => block.config?.isEnabled !== false).map((block: any) => {
           switch (block.type) {
+            case 'flash-sale':
+              return (
+                <FlashSaleSection
+                  key={block.id}
+                  block={block}
+                  menuItems={menuItems}
+                  searchQuery={searchQuery}
+                  setSelectedItem={setSelectedItem}
+                  proceedAddToCart={proceedAddToCart}
+                  theme={theme}
+                />
+              );
             case 'for-you':
               return (
                 <FeaturedSections
@@ -813,12 +1075,14 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
                   customTitle={block.title || "Món bán chạy"}
                 />
               );
-            case 'combo':
+            case 'combo': {
+              const activeCombos = filterItemsByScheduleGroups(block.config, COMBOS);
+              if (activeCombos.length === 0) return null;
               return (
                 <ComboSection 
                   key={block.id}
                   filteredCategories={filteredCategories}
-                  COMBOS={COMBOS}
+                  COMBOS={activeCombos}
                   selectedPeopleCount={selectedPeopleCount}
                   setSelectedPeopleCount={setSelectedPeopleCount}
                   setSelectedItem={setSelectedItem}
@@ -828,6 +1092,7 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
                   categoryRefs={categoryRefs}
                 />
               );
+            }
             case 'custom':
               // Render as a Mini MenuGrid but filtered to custom items
               return null; // TODO: Implement Custom category display

@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutTemplate, Plus, Save, ChevronUp, ChevronDown, Trash2, Settings2, Eye, X, ExternalLink, CheckCircle2, AlertTriangle, Lock, Zap, Palette, GripVertical, MonitorSmartphone, RefreshCcw, ArrowLeft, Utensils, QrCode, Store, Smartphone } from 'lucide-react';
+import { LayoutTemplate, Plus, Save, ChevronUp, ChevronDown, Trash2, Settings2, Eye, X, ExternalLink, CheckCircle2, AlertTriangle, Lock, Palette, GripVertical, MonitorSmartphone, RefreshCcw, ArrowLeft, Utensils, QrCode, Store, Smartphone } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { SurveyEditorInline, DEFAULT_SURVEY_CONFIG } from './SurveyEditorModal';
 import { IconDictionary } from '@/lib/icons';
 
 type OperatingModel = 'post-pay' | 'pre-pay-table' | 'pre-pay-counter';
-type ModuleType = 'menu-grid' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'support-options' | 'checkout-auth' | 'custom' | 'bad-review-reasons' | 'payment-methods';
+type ModuleType = 'menu-grid' | 'flash-sale' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'support-options' | 'checkout-auth' | 'custom' | 'bad-review-reasons' | 'payment-methods';
 
 interface StorefrontBlock {
     id: string;
@@ -26,6 +26,7 @@ interface StorefrontTemplate {
 }
 
 const MODULE_DEFINITIONS: Record<ModuleType, { name: string; description: string; category: 'layout' | 'action'; minTier?: 'FREE' | 'PRO' | 'PREMIUM'; supportedModels?: OperatingModel[] }> = {
+    'flash-sale': { name: 'Flash Sale / Ưu Đãi Giới Hạn', description: 'Đẩy món cần bán nhanh lên đầu menu trong một khung giờ nhất định', category: 'layout', minTier: 'PRO' },
     'for-you': { name: 'Món Bạn Từng Gọi', description: 'Hiển thị tối đa 5 món khách đã từng gọi nhiều nhất (Chỉ On/Off)', category: 'layout', minTier: 'FREE' },
     'combo': { name: 'Combo Tiết Kiệm', description: 'Hiển thị các gói combo giá tốt', category: 'layout', minTier: 'PRO' },
     'best-sale': { name: 'Siêu Phẩm Bán Chạy', description: 'Danh sách món bán chạy nhất', category: 'layout', minTier: 'PRO' },
@@ -38,12 +39,246 @@ const MODULE_DEFINITIONS: Record<ModuleType, { name: string; description: string
     'payment-methods': { name: 'Phương Thức Thanh Toán', description: 'Bật/Tắt các cổng thanh toán cho phép khách trả trước khi gọi món', category: 'action', minTier: 'FREE', supportedModels: ['pre-pay-table', 'pre-pay-counter'] }
 };
 
+const createDefaultFlashSaleBlock = (): StorefrontBlock => ({
+    id: 'b0',
+    type: 'flash-sale',
+    title: 'Ưu Đãi Giới Hạn',
+    config: {
+        isEnabled: true,
+        displayTitle: 'Ưu đãi giới hạn',
+        subtitle: 'Món ngon giá tốt theo từng khung giờ',
+        showCountdown: true,
+        showRemainingQuantity: true,
+        campaigns: [createDefaultFlashSaleCampaign(1)]
+    }
+});
+
+const createDefaultFlashSaleCampaign = (index = 1) => ({
+    id: `campaign_${index}`,
+    name: index === 1 ? 'Sáng - Ưu đãi món nhanh' : `Chương trình ${index}`,
+    isEnabled: true,
+    objective: 'clear_today',
+    runMode: 'daily',
+    weekdays: [1, 2, 3, 4, 5, 6, 0],
+    quickDurationMinutes: 120,
+    startedAt: '',
+    startDate: new Date().toISOString().slice(0, 10),
+    startTime: '14:00',
+    endTime: '17:00',
+    autoHideWhenEnded: true,
+    autoHideWhenSoldOut: true,
+    resetQuantityDaily: true,
+    items: []
+});
+
+const normalizeRunMode = (runMode?: string) => runMode === 'weekly' ? 'weekly' : runMode === 'once' ? 'once' : 'daily';
+
+const ensureFlashSaleBlock = (incomingBlocks: StorefrontBlock[]) => {
+    if (incomingBlocks.some(block => block.type === 'flash-sale')) return incomingBlocks;
+    return [createDefaultFlashSaleBlock(), ...incomingBlocks];
+};
+
+const normalizeFlashSaleConfig = (config: any = {}) => {
+    const legacyRunMode = config.runMode || (config.repeatMode === 'daily' ? 'daily' : 'once');
+    const legacyCampaign = {
+        id: 'campaign_1',
+        name: config.displayTitle || 'Ưu đãi giới hạn',
+        isEnabled: config.isEnabled !== false,
+        objective: config.objective || 'clear_today',
+        runMode: normalizeRunMode(legacyRunMode),
+        weekdays: config.weekdays || [1, 2, 3, 4, 5, 6, 0],
+        quickDurationMinutes: Number(config.quickDurationMinutes || 120),
+        startedAt: config.startedAt || '',
+        startDate: config.startDate || new Date().toISOString().slice(0, 10),
+        startTime: config.startTime || '14:00',
+        endTime: config.endTime || '17:00',
+        autoHideWhenEnded: config.autoHideWhenEnded !== false,
+        autoHideWhenSoldOut: config.autoHideWhenSoldOut !== false,
+        resetQuantityDaily: config.resetQuantityDaily !== false,
+        items: config.items || []
+    };
+    const campaigns = Array.isArray(config.campaigns) && config.campaigns.length > 0 ? config.campaigns : [legacyCampaign];
+    return {
+        ...config,
+        showCountdown: config.showCountdown !== false,
+        showRemainingQuantity: config.showRemainingQuantity !== false,
+        campaigns: campaigns.map((campaign: any, idx: number) => ({
+            ...createDefaultFlashSaleCampaign(idx + 1),
+            ...campaign,
+            id: campaign.id || `campaign_${idx + 1}`,
+            name: campaign.name || `Chương trình ${idx + 1}`,
+            isEnabled: campaign.isEnabled !== false,
+            runMode: normalizeRunMode(campaign.runMode),
+            weekdays: campaign.weekdays || [1, 2, 3, 4, 5, 6, 0],
+            quickDurationMinutes: Number(campaign.quickDurationMinutes || 120),
+            autoHideWhenEnded: campaign.autoHideWhenEnded !== false,
+            autoHideWhenSoldOut: campaign.autoHideWhenSoldOut !== false,
+            resetQuantityDaily: campaign.resetQuantityDaily !== false,
+            items: campaign.items || []
+        }))
+    };
+};
+
+const createDefaultScheduleGroup = (type: ModuleType, index = 1) => ({
+    id: `group_${index}`,
+    name: index === 1
+        ? (type === 'combo' ? 'Khung giờ combo' : 'Khung giờ món bán chạy')
+        : `Khung giờ ${index}`,
+    isEnabled: true,
+    runMode: 'daily',
+    weekdays: [1, 2, 3, 4, 5, 6, 0],
+    startDate: new Date().toISOString().slice(0, 10),
+    startTime: '09:00',
+    endTime: '17:00',
+    specialDatesText: '',
+    itemIds: [] as number[]
+});
+
+const normalizeScheduledGroupConfig = (config: any = {}, type: ModuleType) => {
+    const legacyIds = config.itemIds || [];
+    const groups = Array.isArray(config.scheduleGroups) && config.scheduleGroups.length > 0
+        ? config.scheduleGroups
+        : [{ ...createDefaultScheduleGroup(type, 1), itemIds: legacyIds }];
+    return {
+        ...config,
+        scheduleGroups: groups.map((group: any, idx: number) => ({
+            ...createDefaultScheduleGroup(type, idx + 1),
+            ...group,
+            id: group.id || `group_${idx + 1}`,
+            name: group.name || `Khung giờ ${idx + 1}`,
+            isEnabled: group.isEnabled !== false,
+            runMode: normalizeRunMode(group.runMode),
+            weekdays: group.weekdays || [1, 2, 3, 4, 5, 6, 0],
+            itemIds: group.itemIds || []
+        }))
+    };
+};
+
+const WEEKDAY_LABELS = [
+    { id: 1, label: 'T2' },
+    { id: 2, label: 'T3' },
+    { id: 3, label: 'T4' },
+    { id: 4, label: 'T5' },
+    { id: 5, label: 'T6' },
+    { id: 6, label: 'T7' },
+    { id: 0, label: 'CN' }
+];
+
+const ALL_WEEKDAYS = WEEKDAY_LABELS.map(day => day.id);
+
+const getTodayKey = () => new Date().toISOString().slice(0, 10);
+
+const getTimeMs = (value?: string) => {
+    if (!value) return null;
+    const [hour, minute] = String(value).split(':').map(Number);
+    const date = new Date();
+    date.setHours(hour || 0, minute || 0, 0, 0);
+    return date.getTime();
+};
+
+const describeSchedule = (group: any) => {
+    if (group.runMode === 'once') return `${group.startDate || 'Chưa chọn ngày'} · ${group.startTime || '--:--'}-${group.endTime || '--:--'}`;
+    if (group.runMode === 'daily') return `Hằng ngày · ${group.startTime || '--:--'}-${group.endTime || '--:--'}`;
+    const days = (group.weekdays || []).map((day: number) => WEEKDAY_LABELS.find(w => w.id === day)?.label).filter(Boolean).join(', ') || 'Chưa chọn thứ';
+    return `${days} · ${group.startTime || '--:--'}-${group.endTime || '--:--'}`;
+};
+
+const getScheduleIssues = (group: any, variant: 'flash-sale' | 'combo' | 'best-sale') => {
+    const issues: string[] = [];
+    if (!group.name?.trim()) issues.push('Thiếu tên');
+    if (group.runMode === 'once' && !group.startDate) issues.push('Thiếu ngày');
+    if (group.runMode === 'weekly' && (!Array.isArray(group.weekdays) || group.weekdays.length === 0)) issues.push('Chưa chọn thứ');
+    if (!group.startTime || !group.endTime || group.endTime <= group.startTime) issues.push('Sai giờ');
+    if (variant === 'flash-sale') {
+        const items = group.items || [];
+        if (items.length === 0) issues.push('Thiếu món');
+        if (items.some((item: any) => Number(item.salePrice || 0) <= 0 || Number(item.originalPrice || 0) <= Number(item.salePrice || 0))) issues.push('Sai giá');
+    } else if ((group.itemIds || []).length === 0) {
+        issues.push('Thiếu món');
+    }
+    return issues;
+};
+
+const getScheduleStatus = (group: any, variant: 'flash-sale' | 'combo' | 'best-sale') => {
+    if (group.isEnabled === false) return { label: 'Tạm tắt', tone: 'slate' };
+    const issues = getScheduleIssues(group, variant);
+    if (issues.length > 0) return { label: 'Cần cấu hình', tone: 'red', detail: issues[0] };
+    const now = Date.now();
+    if (group.runMode === 'once' && group.startDate !== getTodayKey()) return { label: 'Sắp chạy', tone: 'amber' };
+    if (group.runMode === 'weekly' && !(group.weekdays || []).includes(new Date().getDay())) return { label: 'Sắp chạy', tone: 'amber' };
+    const start = getTimeMs(group.startTime);
+    const end = getTimeMs(group.endTime);
+    if (start && end && now >= start && now <= end) return { label: 'Đang chạy', tone: 'green' };
+    return { label: 'Sắp chạy', tone: 'amber' };
+};
+
+const statusClass = (tone: string) => {
+    if (tone === 'green') return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20';
+    if (tone === 'red') return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20';
+    if (tone === 'amber') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20';
+    return 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/5 dark:text-slate-300 dark:border-white/10';
+};
+
+const getScheduleItemCount = (group: any, variant: 'flash-sale' | 'combo' | 'best-sale') => {
+    return variant === 'flash-sale' ? (group.items || []).length : (group.itemIds || []).length;
+};
+
+const getSchedulePreviewItems = (group: any, variant: 'flash-sale' | 'combo' | 'best-sale', allMenuItems: any[]) => {
+    const flashItems = group.items || [];
+    const itemIds = variant === 'flash-sale' ? flashItems.map((item: any) => item.itemId) : (group.itemIds || []);
+    return itemIds.map((id: number | string) => {
+        const menuItem = allMenuItems.find(item => String(item.id) === String(id));
+        const saleItem = flashItems.find((item: any) => String(item.itemId) === String(id));
+        return {
+            id,
+            name: menuItem?.name || saleItem?.name || `Món #${id}`,
+            img: menuItem?.img || menuItem?.image || menuItem?.imageUrl || ''
+        };
+    });
+};
+
+const statusDotClass = (tone: string) => {
+    if (tone === 'green') return 'bg-emerald-500';
+    if (tone === 'red') return 'bg-rose-500';
+    if (tone === 'amber') return 'bg-amber-500';
+    return 'bg-slate-300';
+};
+
+function SchedulePreviewItem({ item }: { item: any }) {
+    const [hasImage, setHasImage] = useState(Boolean(item.img));
+
+    return (
+        <div className="group/item w-[148px] shrink-0 snap-start overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-950/40 dark:hover:border-white/20">
+            <div className="relative aspect-[5/4] w-full overflow-hidden bg-slate-100 dark:bg-white/10">
+                {hasImage ? (
+                    <img
+                        src={item.img}
+                        alt={item.name}
+                        loading="lazy"
+                        onError={() => setHasImage(false)}
+                        className="h-full w-full object-cover transition-transform duration-200 group-hover/item:scale-105"
+                    />
+                ) : (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-slate-300 dark:text-slate-600">
+                        <Utensils size={22} />
+                        <span className="text-[10px] font-bold uppercase tracking-wide">Chưa có ảnh</span>
+                    </div>
+                )}
+            </div>
+            <div className="p-2.5">
+                <p className="line-clamp-2 min-h-[36px] text-[12px] font-bold leading-snug text-slate-800 dark:text-slate-100">{item.name}</p>
+            </div>
+        </div>
+    );
+}
+
 const SYSTEM_TEMPLATES: StorefrontTemplate[] = [
     {
         id: 'sys-dining',
         name: 'Mẫu Ăn Tại Bàn (Dining)',
         isSystem: true,
         blocks: [
+            createDefaultFlashSaleBlock(),
             { id: 'b1', type: 'for-you', title: 'Món Bạn Từng Gọi', config: { isEnabled: true } },
             { id: 'b2', type: 'combo', title: 'Combo Tiết Kiệm', config: { isEnabled: true, limit: 10, itemIds: [701, 702, 703, 704, 705, 706] } },
             { id: 'b3', type: 'best-sale', title: 'Siêu Phẩm Bán Chạy', config: { isEnabled: true } },
@@ -58,13 +293,890 @@ const isBlockValid = (block: StorefrontBlock): boolean => {
     if (type === 'custom') {
         return !!config.groupName && config.groupName.trim() !== '';
     }
+    if (type === 'flash-sale') {
+        const flashConfig = normalizeFlashSaleConfig(config);
+        const enabledCampaigns = (flashConfig.campaigns || []).filter((campaign: any) => campaign.isEnabled !== false);
+        if (enabledCampaigns.length === 0) return false;
+        return enabledCampaigns.every((campaign: any) => getScheduleIssues(campaign, 'flash-sale').length === 0);
+    }
+    if (type === 'combo' || type === 'best-sale') {
+        const scheduledConfig = normalizeScheduledGroupConfig(config, type);
+        const enabledGroups = (scheduledConfig.scheduleGroups || []).filter((group: any) => group.isEnabled !== false);
+        if (enabledGroups.length === 0) return false;
+        return enabledGroups.every((group: any) => getScheduleIssues(group, type).length === 0);
+    }
     return true;
 };
+
+function ScheduleGroupList({
+    title,
+    subtitle,
+    variant,
+    groups,
+    allMenuItems,
+    onCreate,
+    onEdit,
+    onToggle,
+    onDelete
+}: {
+    title: string;
+    subtitle: string;
+    variant: 'flash-sale' | 'combo' | 'best-sale';
+    groups: any[];
+    allMenuItems: any[];
+    onCreate: () => void;
+    onEdit: (group: any) => void;
+    onToggle: (groupId: string, enabled: boolean) => void;
+    onDelete: (groupId: string) => void;
+}) {
+    return (
+        <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-slate-100 dark:border-white/10">
+                <div>
+                    <h5 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h5>
+                    <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+                </div>
+                <button
+                    onClick={onCreate}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DF1B41] text-white hover:bg-[#c81739] rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                >
+                    <Plus size={14} /> Tạo khung giờ
+                </button>
+            </div>
+
+            <div className="space-y-4 bg-slate-50/80 dark:bg-white/[0.02] p-4">
+                {groups.map((group: any) => {
+                    const status = getScheduleStatus(group, variant);
+                    const itemCount = getScheduleItemCount(group, variant);
+                    const previewItems = getSchedulePreviewItems(group, variant, allMenuItems);
+                    const visibleItems = previewItems.slice(0, 10);
+                    const hiddenCount = Math.max(previewItems.length - visibleItems.length, 0);
+                    return (
+                        <div key={group.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_28px_rgba(15,23,42,0.045)] transition-all duration-200 hover:border-slate-300 hover:shadow-[0_14px_34px_rgba(15,23,42,0.07)] dark:border-white/10 dark:bg-black/20 dark:hover:border-white/20">
+                            <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div className="flex min-w-0 items-start gap-3">
+                                    <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${statusDotClass(status.tone)}`} />
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <p className="text-sm font-black text-slate-950 dark:text-white">{group.name || 'Chưa đặt tên'}</p>
+                                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-white/10 dark:text-slate-300">{group.isEnabled === false ? 'Tắt' : 'Bật'}</span>
+                                        </div>
+                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                            <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">{describeSchedule(group)}</span>
+                                            <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">{itemCount} món</span>
+                                            <span className={`rounded-lg border px-2.5 py-1 text-[10px] font-black ${statusClass(status.tone)}`}>{status.label}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <label className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-bold text-slate-600 cursor-pointer dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                                        <input
+                                            type="checkbox"
+                                            checked={group.isEnabled !== false}
+                                            onChange={(e) => onToggle(group.id, e.target.checked)}
+                                            className="h-4 w-4 shrink-0 accent-[#DF1B41] cursor-pointer"
+                                            title="Bật/tắt khung giờ"
+                                        />
+                                        Bật
+                                    </label>
+                                    <button onClick={() => onEdit(group)} className="h-9 rounded-lg px-3 text-xs font-black text-slate-700 transition-colors hover:bg-rose-50 hover:text-[#DF1B41] dark:text-slate-300 dark:hover:bg-rose-500/10 cursor-pointer">
+                                        Sửa
+                                    </button>
+                                    <button
+                                        onClick={() => onDelete(group.id)}
+                                        disabled={groups.length <= 1}
+                                        aria-label="Xóa khung giờ"
+                                        className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title={groups.length <= 1 ? 'Cần giữ ít nhất 1 khung giờ' : 'Xóa khung giờ'}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-white/10 dark:bg-white/[0.03]">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Món trong khung giờ</p>
+                                    {visibleItems.length > 4 && <p className="text-[11px] font-semibold text-slate-400">Kéo ngang để xem thêm</p>}
+                                </div>
+                                <div className="flex snap-x gap-3 overflow-x-auto pb-1 hidden-scroll">
+                                {visibleItems.length > 0 ? visibleItems.map((item: any) => (
+                                    <SchedulePreviewItem key={String(item.id)} item={item} />
+                                )) : (
+                                    <div className="flex min-h-[142px] w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-400 dark:border-white/10 dark:bg-black/20">
+                                        Chưa chọn món
+                                    </div>
+                                )}
+                                {hiddenCount > 0 && (
+                                    <button onClick={() => onEdit(group)} className="flex min-h-[142px] w-[148px] shrink-0 snap-start flex-col items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-200 hover:text-[#DF1B41] hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-950/40 dark:hover:border-rose-500/30 cursor-pointer">
+                                        <span className="text-xl font-black">+{hiddenCount}</span>
+                                        <span>món khác</span>
+                                    </button>
+                                )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+                {groups.length === 0 && (
+                    <div className="p-8 text-center text-sm text-slate-400 border border-dashed border-slate-200 dark:border-white/10 m-4 rounded-xl">
+                        Chưa có khung giờ. Tạo khung giờ đầu tiên để hiển thị nhóm này.
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function ScheduleGroupDrawer({
+    open,
+    variant,
+    title,
+    draft,
+    setDraft,
+    allMenuItems,
+    onClose,
+    onSave,
+    onDelete,
+    canDelete
+}: {
+    open: boolean;
+    variant: 'flash-sale' | 'combo' | 'best-sale';
+    title: string;
+    draft: any;
+    setDraft: (draft: any) => void;
+    allMenuItems: any[];
+    onClose: () => void;
+    onSave: () => void;
+    onDelete?: () => void;
+    canDelete?: boolean;
+}) {
+    if (!open || !draft || typeof document === 'undefined') return null;
+
+    const reasonLabels: Record<string, string> = {
+        made_today: 'Sản xuất trong ngày',
+        near_expiry: 'Sắp hết hạn',
+        slow_hour: 'Kích cầu giờ thấp điểm',
+        clear_stock: 'Xả tồn',
+        new_item: 'Đẩy món mới'
+    };
+    const isRepeating = draft.runMode === 'daily' || draft.runMode === 'weekly';
+    const issues = getScheduleIssues(draft, variant);
+    const selectedIds = variant === 'flash-sale'
+        ? (draft.items || []).map((item: any) => String(item.itemId))
+        : (draft.itemIds || []).map(String);
+    const itemCount = getScheduleItemCount(draft, variant);
+
+    const updateDraft = (patch: any) => setDraft({ ...draft, ...patch });
+    const setRepeating = (checked: boolean) => {
+        updateDraft(checked
+            ? { runMode: 'weekly', weekdays: draft.weekdays || ALL_WEEKDAYS }
+            : { runMode: 'once', startDate: draft.startDate || getTodayKey() });
+    };
+
+    const addMenuItem = (rawId: string) => {
+        const selected = allMenuItems.find(item => String(item.id) === rawId);
+        if (!selected) return;
+        if (variant === 'flash-sale') {
+            const originalPrice = Number(selected.originalPrice || selected.price || 0);
+            updateDraft({
+                items: [
+                    ...(draft.items || []),
+                    {
+                        id: `sale_${selected.id}_${Date.now()}`,
+                        itemId: selected.id,
+                        originalPrice,
+                        salePrice: Math.max(1000, Math.round(originalPrice * 0.8)),
+                        quantityLimit: 20,
+                        soldCount: 0,
+                        reason: draft.objective === 'clear_stock' ? 'near_expiry' : 'made_today',
+                        visibility: { mode: 'inherit' }
+                    }
+                ]
+            });
+            return;
+        }
+        updateDraft({ itemIds: [...(draft.itemIds || []), selected.id] });
+    };
+
+    const removeMenuItem = (rowId: string | number) => {
+        if (variant === 'flash-sale') {
+            updateDraft({ items: (draft.items || []).filter((item: any) => item.id !== rowId) });
+            return;
+        }
+        updateDraft({ itemIds: (draft.itemIds || []).filter((id: number) => String(id) !== String(rowId)) });
+    };
+
+    const drawer = (
+        <div className="fixed inset-0 z-[9999] flex justify-end bg-slate-950/40 backdrop-blur-sm" onClick={onClose}>
+            <div className="h-full w-full sm:max-w-[620px] bg-white dark:bg-[#11131A] shadow-2xl border-l border-slate-200 dark:border-white/10 flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-100 dark:border-white/10">
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</p>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">Chỉnh khung giờ</h3>
+                    </div>
+                    <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-500 cursor-pointer">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                    {issues.length > 0 && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300 px-3 py-2 text-xs font-bold">
+                            Cần cấu hình: {issues.join(', ')}
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Tên khung giờ</label>
+                        <input
+                            type="text"
+                            value={draft.name || ''}
+                            onChange={(e) => updateDraft({ name: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-bold"
+                            placeholder="VD: Combo chiều T2/T4/T6"
+                        />
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 space-y-3">
+                        <label className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl cursor-pointer">
+                            <div>
+                                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Có lặp lại</span>
+                                <p className="text-xs text-slate-500 mt-0.5">Bật để chọn thứ trong tuần.</p>
+                            </div>
+                            <input type="checkbox" checked={isRepeating} onChange={(e) => setRepeating(e.target.checked)} className="w-4 h-4 accent-[#DF1B41]" />
+                        </label>
+
+                        {isRepeating ? (
+                            <div className="space-y-3">
+                                <div className="inline-flex rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-1">
+                                    <button onClick={() => updateDraft({ runMode: 'daily', weekdays: ALL_WEEKDAYS })} className={`px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer ${draft.runMode === 'daily' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950' : 'text-slate-500'}`}>Hằng ngày</button>
+                                    <button onClick={() => updateDraft({ runMode: 'weekly' })} className={`px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer ${draft.runMode === 'weekly' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950' : 'text-slate-500'}`}>Chọn thứ</button>
+                                </div>
+                                {draft.runMode === 'weekly' && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {WEEKDAY_LABELS.map(day => {
+                                            const selected = (draft.weekdays || []).includes(day.id);
+                                            return (
+                                                <button
+                                                    key={day.id}
+                                                    onClick={() => {
+                                                        const current = draft.weekdays || [];
+                                                        const weekdays = selected ? current.filter((id: number) => id !== day.id) : [...current, day.id];
+                                                        updateDraft({ weekdays });
+                                                    }}
+                                                    className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${selected ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white' : 'bg-white dark:bg-black/20 border-slate-200 dark:border-white/10 text-slate-500'}`}
+                                                >
+                                                    {day.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Ngày chạy</label>
+                                <input type="date" value={draft.startDate || ''} onChange={(e) => updateDraft({ startDate: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" />
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Bắt đầu</label>
+                                <input type="time" value={draft.startTime || ''} onChange={(e) => updateDraft({ startTime: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Kết thúc</label>
+                                <input type="time" value={draft.endTime || ''} onChange={(e) => updateDraft({ endTime: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" />
+                            </div>
+                        </div>
+
+                        <details>
+                            <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Ngày đặc biệt</summary>
+                            <textarea
+                                value={draft.specialDatesText || ''}
+                                onChange={(e) => updateDraft({ specialDatesText: e.target.value })}
+                                rows={2}
+                                className="mt-2 w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm resize-none"
+                                placeholder="VD: 2026-09-02: dùng danh sách món riêng cho ngày lễ"
+                            />
+                        </details>
+                    </div>
+
+                    <div>
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Món hiển thị ({itemCount})</label>
+                        </div>
+                        <select
+                            className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm"
+                            onChange={(e) => {
+                                addMenuItem(e.target.value);
+                                e.target.value = '';
+                            }}
+                        >
+                            <option value="">-- Tìm món trong thực đơn --</option>
+                            {allMenuItems.filter(item => !selectedIds.includes(String(item.id))).map(item => (
+                                <option key={item.id} value={item.id}>{item.name} - {Number(item.price || 0).toLocaleString('vi-VN')}đ</option>
+                            ))}
+                        </select>
+
+                        <div className="mt-3 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-black/20">
+                            {variant === 'flash-sale' ? (
+                                (draft.items || []).length > 0 ? (
+                                    <div className="divide-y divide-slate-100 dark:divide-white/5">
+                                        {(draft.items || []).map((sale: any) => {
+                                            const menuItem = allMenuItems.find(item => String(item.id) === String(sale.itemId));
+                                            const discount = Number(sale.originalPrice) > Number(sale.salePrice) ? Math.round((1 - Number(sale.salePrice) / Number(sale.originalPrice)) * 100) : 0;
+                                            return (
+                                                <div key={sale.id} className="p-3">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 overflow-hidden shrink-0">
+                                                            {menuItem?.img ? <img src={menuItem.img} alt="" className="w-full h-full object-cover" /> : null}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-start justify-between gap-3 mb-3">
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{menuItem?.name || `Món #${sale.itemId}`}</p>
+                                                                    <p className={`text-xs font-bold mt-0.5 ${discount > 0 ? 'text-rose-500' : 'text-amber-600'}`}>{discount > 0 ? `Giảm ${discount}%` : 'Cần sửa giá sale'}</p>
+                                                                </div>
+                                                                <button onClick={() => removeMenuItem(sale.id)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg cursor-pointer">
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                                <input type="number" value={sale.originalPrice || ''} onChange={(e) => updateDraft({ items: (draft.items || []).map((item: any) => item.id === sale.id ? { ...item, originalPrice: Number(e.target.value) } : item) })} className="min-w-0 px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold" placeholder="Giá gốc" />
+                                                                <input type="number" value={sale.salePrice || ''} onChange={(e) => updateDraft({ items: (draft.items || []).map((item: any) => item.id === sale.id ? { ...item, salePrice: Number(e.target.value) } : item) })} className="min-w-0 px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-rose-600" placeholder="Giá sale" />
+                                                                <input type="number" value={sale.quantityLimit || ''} onChange={(e) => updateDraft({ items: (draft.items || []).map((item: any) => item.id === sale.id ? { ...item, quantityLimit: Number(e.target.value) } : item) })} className="min-w-0 px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold" placeholder="Số suất" />
+                                                                <select value={sale.reason || 'made_today'} onChange={(e) => updateDraft({ items: (draft.items || []).map((item: any) => item.id === sale.id ? { ...item, reason: e.target.value } : item) })} className="min-w-0 px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold">
+                                                                    {Object.entries(reasonLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center text-slate-400 italic text-sm">Chưa có món trong khung giờ này.</div>
+                                )
+                            ) : (
+                                (draft.itemIds || []).length > 0 ? (
+                                    <div className="divide-y divide-slate-100 dark:divide-white/5">
+                                        {(draft.itemIds || []).map((id: number) => {
+                                            const item = allMenuItems.find(menuItem => String(menuItem.id) === String(id));
+                                            return (
+                                                <div key={id} className="flex items-center justify-between p-3">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 overflow-hidden shrink-0">
+                                                            {item?.img ? <img src={item.img} alt="" className="w-full h-full object-cover" /> : null}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{item?.name || `Món #${id}`}</p>
+                                                            <p className="text-xs text-slate-500 font-bold">{Number(item?.price || 0).toLocaleString('vi-VN')}đ</p>
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => removeMenuItem(id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center text-slate-400 italic text-sm">Chưa có món trong khung giờ này.</div>
+                                )
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="px-5 py-4 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-3 bg-white/95 dark:bg-[#11131A]/95">
+                    {canDelete && onDelete ? (
+                        <button onClick={onDelete} className="px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg cursor-pointer">Xóa khung giờ</button>
+                    ) : (
+                        <span className="text-[11px] text-slate-400 font-semibold">Cần giữ ít nhất 1 khung giờ.</span>
+                    )}
+                    <div className="flex items-center gap-2">
+                        <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer">Huỷ</button>
+                        <button onClick={onSave} className="px-4 py-2 rounded-lg bg-[#DF1B41] text-white text-sm font-bold hover:bg-[#c81739] cursor-pointer">Lưu khung giờ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    return createPortal(drawer, document.body);
+}
 
 function ModuleConfigForm({ block, onChange, allMenuItems = [], restaurantInfo, showToast }: { block: StorefrontBlock, onChange: (newConfig: any) => void, allMenuItems?: any[], restaurantInfo?: any, showToast?: (msg: string, type: 'success'|'error'|'info') => void }) {
     const { type, config } = block;
     const [previewStyle, setPreviewStyle] = useState<'v1' | 'v2' | null>(null);
     const [iconPickerOpenForId, setIconPickerOpenForId] = useState<string | null>(null);
+    const [selectedFlashCampaignId, setSelectedFlashCampaignId] = useState<string | null>(null);
+    const [selectedScheduleGroupId, setSelectedScheduleGroupId] = useState<string | null>(null);
+    const [scheduleDrawer, setScheduleDrawer] = useState<{ variant: 'flash-sale' | 'combo' | 'best-sale'; mode: 'create' | 'edit'; draft: any } | null>(null);
+
+    if (type === 'flash-sale') {
+        {
+            const flashConfig = normalizeFlashSaleConfig(config);
+            const campaigns = flashConfig.campaigns || [];
+            const enabledCount = campaigns.filter((campaign: any) => campaign.isEnabled !== false).length;
+            const invalidCount = campaigns.filter((campaign: any) => campaign.isEnabled !== false && getScheduleIssues(campaign, 'flash-sale').length > 0).length;
+            const runningCount = campaigns.filter((campaign: any) => getScheduleStatus(campaign, 'flash-sale').label === 'Đang chạy').length;
+            const updateCampaigns = (nextCampaigns: any[]) => onChange({ ...flashConfig, campaigns: nextCampaigns });
+            const getNextCampaignId = () => {
+                let next = campaigns.length + 1;
+                while (campaigns.some((campaign: any) => campaign.id === `campaign_${next}`)) next += 1;
+                return `campaign_${next}`;
+            };
+            const openCreate = () => {
+                const id = getNextCampaignId();
+                setScheduleDrawer({
+                    variant: 'flash-sale',
+                    mode: 'create',
+                    draft: { ...createDefaultFlashSaleCampaign(campaigns.length + 1), id, name: `Chương trình ${campaigns.length + 1}` }
+                });
+            };
+            const openEdit = (campaign: any) => setScheduleDrawer({ variant: 'flash-sale', mode: 'edit', draft: JSON.parse(JSON.stringify(campaign)) });
+            const closeDrawer = () => setScheduleDrawer(null);
+            const saveDrawer = () => {
+                if (!scheduleDrawer) return;
+                const draft = scheduleDrawer.draft;
+                updateCampaigns(scheduleDrawer.mode === 'create'
+                    ? [...campaigns, draft]
+                    : campaigns.map((campaign: any) => campaign.id === draft.id ? draft : campaign));
+                closeDrawer();
+            };
+            const deleteCampaign = (campaignId: string) => {
+                if (campaigns.length <= 1) return;
+                updateCampaigns(campaigns.filter((campaign: any) => campaign.id !== campaignId));
+                if (scheduleDrawer?.draft?.id === campaignId) closeDrawer();
+            };
+
+            return (
+                <div className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {[
+                            ['Đang chạy', runningCount, 'green'],
+                            ['Đang bật', enabledCount, 'blue'],
+                            ['Cần xử lý', invalidCount, invalidCount ? 'red' : 'slate']
+                        ].map(([label, value, tone]) => (
+                            <div key={String(label)} className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-3">
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+                                <p className={`mt-1 text-2xl font-black ${tone === 'red' ? 'text-rose-600' : tone === 'green' ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>{String(value)}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <ScheduleGroupList
+                        title="Chương trình Flash Sale"
+                        subtitle="Quản lý các khung giờ ưu đãi. Bấm Sửa để cấu hình lịch và món."
+                        variant="flash-sale"
+                        groups={campaigns}
+                        allMenuItems={allMenuItems}
+                        onCreate={openCreate}
+                        onEdit={openEdit}
+                        onToggle={(campaignId, enabled) => updateCampaigns(campaigns.map((campaign: any) => campaign.id === campaignId ? { ...campaign, isEnabled: enabled } : campaign))}
+                        onDelete={deleteCampaign}
+                    />
+                    <ScheduleGroupDrawer
+                        open={scheduleDrawer?.variant === 'flash-sale'}
+                        variant="flash-sale"
+                        title="Flash Sale"
+                        draft={scheduleDrawer?.draft}
+                        setDraft={(draft) => setScheduleDrawer(prev => prev ? { ...prev, draft } : prev)}
+                        allMenuItems={allMenuItems}
+                        onClose={closeDrawer}
+                        onSave={saveDrawer}
+                        onDelete={scheduleDrawer?.draft ? () => deleteCampaign(scheduleDrawer.draft.id) : undefined}
+                        canDelete={campaigns.length > 1}
+                    />
+                </div>
+            );
+        }
+        const flashConfig = normalizeFlashSaleConfig(config);
+        const reasonLabels: Record<string, string> = {
+            made_today: 'Sản xuất trong ngày',
+            near_expiry: 'Sắp hết hạn',
+            slow_hour: 'Kích cầu giờ thấp điểm',
+            clear_stock: 'Xả tồn',
+            new_item: 'Đẩy món mới'
+        };
+        const campaigns = flashConfig.campaigns || [];
+        const activeCampaign = campaigns.find((campaign: any) => campaign.id === selectedFlashCampaignId) || campaigns[0] || createDefaultFlashSaleCampaign(1);
+        const activeItems = activeCampaign.items || [];
+        const activeItemIds = activeItems.map((item: any) => String(item.itemId));
+        const activeTotalLimit = activeItems.reduce((sum: number, item: any) => sum + Number(item.quantityLimit || 0), 0);
+        const activeAvgDiscount = activeItems.length
+            ? Math.round(activeItems.reduce((sum: number, item: any) => {
+                const original = Number(item.originalPrice || 0);
+                const sale = Number(item.salePrice || 0);
+                if (!original || !sale || sale >= original) return sum;
+                return sum + ((original - sale) / original * 100);
+            }, 0) / activeItems.length)
+            : 0;
+        const weekdayLabels = [
+            { id: 1, label: 'T2' },
+            { id: 2, label: 'T3' },
+            { id: 3, label: 'T4' },
+            { id: 4, label: 'T5' },
+            { id: 5, label: 'T6' },
+            { id: 6, label: 'T7' },
+            { id: 0, label: 'CN' }
+        ];
+        const allWeekdays = weekdayLabels.map(day => day.id);
+
+        const updateCampaign = (campaignId: string, patch: any) => {
+            onChange({
+                ...flashConfig,
+                campaigns: campaigns.map((campaign: any) => campaign.id === campaignId ? { ...campaign, ...patch } : campaign)
+            });
+        };
+        const updateActiveItem = (rowId: string, field: string, value: any) => {
+            updateCampaign(activeCampaign.id, {
+                items: activeItems.map((item: any) => item.id === rowId ? { ...item, [field]: value } : item)
+            });
+        };
+        const getNextCampaignId = () => {
+            let next = campaigns.length + 1;
+            while (campaigns.some((campaign: any) => campaign.id === `campaign_${next}`)) next += 1;
+            return `campaign_${next}`;
+        };
+
+        const getCampaignIssues = (campaign: any) => {
+            const items = campaign.items || [];
+            const issues: string[] = [];
+            if (items.length === 0) issues.push('Thiếu món');
+            if (items.some((item: any) => Number(item.salePrice || 0) <= 0 || Number(item.originalPrice || 0) <= Number(item.salePrice || 0))) issues.push('Sai giá');
+            if (campaign.runMode === 'once' && (!campaign.startDate || !campaign.startTime || !campaign.endTime || campaign.endTime <= campaign.startTime)) issues.push('Sai lịch');
+            if ((campaign.runMode === 'daily' || campaign.runMode === 'weekly') && (!campaign.startTime || !campaign.endTime || campaign.endTime <= campaign.startTime)) issues.push('Sai giờ');
+            if (campaign.runMode === 'weekly' && (!Array.isArray(campaign.weekdays) || campaign.weekdays.length === 0)) issues.push('Chưa chọn thứ');
+            return issues;
+        };
+
+        const getTodayKey = () => new Date().toISOString().slice(0, 10);
+        const getTimeMs = (value?: string) => {
+            if (!value) return null;
+            const [hour, minute] = String(value).split(':').map(Number);
+            const date = new Date();
+            date.setHours(hour || 0, minute || 0, 0, 0);
+            return date.getTime();
+        };
+
+        const getCampaignStatus = (campaign: any) => {
+            if (campaign.isEnabled === false) return { label: 'Tạm tắt', tone: 'slate' };
+            const issues = getCampaignIssues(campaign);
+            if (issues.length > 0) return { label: issues[0], tone: 'red' };
+            const now = Date.now();
+            if (campaign.runMode === 'once' && campaign.startDate !== getTodayKey()) return { label: 'Sắp chạy', tone: 'amber' };
+            if (campaign.runMode === 'weekly' && !(campaign.weekdays || []).includes(new Date().getDay())) return { label: 'Sắp chạy', tone: 'amber' };
+            if (campaign.runMode === 'daily' || campaign.runMode === 'weekly' || campaign.runMode === 'once') {
+                const start = getTimeMs(campaign.startTime);
+                const end = getTimeMs(campaign.endTime);
+                if (start && end && now >= start && now <= end) return { label: 'Đang chạy', tone: 'green' };
+                return { label: 'Sắp chạy', tone: 'amber' };
+            }
+            return { label: 'Sắp chạy', tone: 'amber' };
+        };
+
+        const statusClass = (tone: string) => {
+            if (tone === 'green') return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20';
+            if (tone === 'red') return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20';
+            if (tone === 'amber') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20';
+            if (tone === 'blue') return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/20';
+            return 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/5 dark:text-slate-300 dark:border-white/10';
+        };
+
+        const describeCampaignSchedule = (campaign: any) => {
+            if (campaign.runMode === 'once') return `${campaign.startDate || 'Chưa chọn ngày'} · ${campaign.startTime || '--:--'}-${campaign.endTime || '--:--'}`;
+            if (campaign.runMode === 'daily') return `Hằng ngày · ${campaign.startTime || '--:--'}-${campaign.endTime || '--:--'}`;
+            if (campaign.runMode === 'weekly') {
+                const days = (campaign.weekdays || []).map((day: number) => weekdayLabels.find(w => w.id === day)?.label).filter(Boolean).join(', ') || 'Chưa chọn thứ';
+                return `${days} · ${campaign.startTime || '--:--'}-${campaign.endTime || '--:--'}`;
+            }
+            return `${campaign.startTime || '--:--'}-${campaign.endTime || '--:--'}`;
+        };
+        const isRepeating = activeCampaign.runMode === 'daily' || activeCampaign.runMode === 'weekly';
+        const activeStatus = getCampaignStatus(activeCampaign);
+        const enabledCount = campaigns.filter((campaign: any) => campaign.isEnabled !== false).length;
+        const invalidCount = campaigns.filter((campaign: any) => campaign.isEnabled !== false && getCampaignIssues(campaign).length > 0).length;
+        const runningCount = campaigns.filter((campaign: any) => getCampaignStatus(campaign).label === 'Đang chạy').length;
+
+        const setRepeating = (checked: boolean) => {
+            if (checked) {
+                updateCampaign(activeCampaign.id, { runMode: 'weekly', weekdays: activeCampaign.weekdays || allWeekdays });
+                return;
+            }
+            updateCampaign(activeCampaign.id, { runMode: 'once', startDate: activeCampaign.startDate || getTodayKey() });
+        };
+
+        return (
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {[
+                        ['Đang chạy', runningCount, 'green'],
+                        ['Đang bật', enabledCount, 'blue'],
+                        ['Cần xử lý', invalidCount, invalidCount ? 'red' : 'slate']
+                    ].map(([label, value, tone]) => (
+                        <div key={String(label)} className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-3">
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+                            <p className={`mt-1 text-2xl font-black ${tone === 'red' ? 'text-rose-600' : tone === 'green' ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>{String(value)}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)] gap-4 items-start">
+                    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-3 space-y-3 xl:sticky xl:top-4">
+                        <div className="flex items-center justify-between gap-3 px-1">
+                            <div>
+                                <h5 className="text-sm font-bold text-slate-900 dark:text-white">Chương trình</h5>
+                                <p className="text-xs text-slate-500">{campaigns.length} lịch Flash Sale</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const id = getNextCampaignId();
+                                    const nextCampaign = { ...createDefaultFlashSaleCampaign(campaigns.length + 1), id, name: `Chương trình ${campaigns.length + 1}` };
+                                    onChange({ ...flashConfig, campaigns: [...campaigns, nextCampaign] });
+                                    setSelectedFlashCampaignId(id);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DF1B41] text-white hover:bg-[#c81739] rounded-lg text-xs font-bold transition-colors"
+                            >
+                                <Plus size={14} /> Tạo
+                            </button>
+                        </div>
+
+                        <div className="space-y-2">
+                            {campaigns.map((campaign: any) => {
+                                const selected = activeCampaign.id === campaign.id;
+                                const status = getCampaignStatus(campaign);
+                                const itemCount = (campaign.items || []).length;
+                                return (
+                                    <button
+                                        key={campaign.id}
+                                        onClick={() => setSelectedFlashCampaignId(campaign.id)}
+                                        className={`w-full text-left rounded-xl border p-3 transition-all cursor-pointer ${selected ? 'border-rose-300 bg-rose-50 dark:bg-rose-500/10 dark:border-rose-500/30 shadow-sm' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-slate-300'}`}
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{campaign.name}</p>
+                                                <p className="text-[11px] text-slate-500 mt-1 truncate">{describeCampaignSchedule(campaign)}</p>
+                                            </div>
+                                            <span className={`shrink-0 px-2 py-1 rounded-full border text-[10px] font-bold ${statusClass(status.tone)}`}>{status.label}</span>
+                                        </div>
+                                        <div className="mt-3 flex items-center justify-between gap-3">
+                                                <span className="text-[11px] font-semibold text-slate-500">{itemCount} món · {campaign.isEnabled === false ? 'Off' : 'On'}</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={campaign.isEnabled !== false}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onChange={(e) => updateCampaign(campaign.id, { isEnabled: e.target.checked })}
+                                                className="w-4 h-4 accent-[#DF1B41]"
+                                            />
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-4">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="min-w-0 flex-1">
+                                <div className="mb-2 flex flex-wrap items-center gap-2">
+                                    <span className={`px-2 py-1 rounded-full border text-[10px] font-bold ${statusClass(activeStatus.tone)}`}>{activeStatus.label}</span>
+                                    <span className="text-xs font-semibold text-slate-500">{describeCampaignSchedule(activeCampaign)}</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={activeCampaign.name || ''}
+                                    onChange={(e) => updateCampaign(activeCampaign.id, { name: e.target.value })}
+                                    className="w-full max-w-xl px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-bold"
+                                    placeholder="Tên chương trình, VD: Sáng T2/T4/T6"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
+                                    <input type="checkbox" checked={activeCampaign.isEnabled !== false} onChange={(e) => updateCampaign(activeCampaign.id, { isEnabled: e.target.checked })} className="w-4 h-4 accent-[#DF1B41]" />
+                                    {activeCampaign.isEnabled === false ? 'Đang tắt' : 'Đang bật'}
+                                </label>
+                                {campaigns.length > 1 && (
+                                    <button
+                                        onClick={() => {
+                                            const remaining = campaigns.filter((campaign: any) => campaign.id !== activeCampaign.id);
+                                            onChange({ ...flashConfig, campaigns: remaining });
+                                            setSelectedFlashCampaignId(remaining[0]?.id || null);
+                                        }}
+                                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg cursor-pointer"
+                                        title="Xoá chương trình"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h5 className="text-sm font-bold text-slate-900 dark:text-white">Lịch chạy chương trình</h5>
+                                    <p className="text-xs text-slate-500 mt-0.5">Tất cả món trong chương trình dùng lịch này.</p>
+                                </div>
+                                <span className="rounded-lg bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 px-2 py-1 text-[11px] font-bold text-slate-500">{activeItems.length} món</span>
+                            </div>
+                            <label className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl cursor-pointer">
+                                <div>
+                                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Có lặp lại</span>
+                                    <p className="text-xs text-slate-500 mt-0.5">Bật để chọn các thứ trong tuần như lịch hẹn giờ.</p>
+                                </div>
+                                <input type="checkbox" checked={isRepeating} onChange={(e) => setRepeating(e.target.checked)} className="w-4 h-4 accent-[#DF1B41]" />
+                            </label>
+
+                            {isRepeating && (
+                                <div className="space-y-3">
+                                    <div className="inline-flex rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-1">
+                                        <button onClick={() => updateCampaign(activeCampaign.id, { runMode: 'daily', weekdays: allWeekdays })} className={`px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer ${activeCampaign.runMode === 'daily' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950' : 'text-slate-500'}`}>Hằng ngày</button>
+                                        <button onClick={() => updateCampaign(activeCampaign.id, { runMode: 'weekly' })} className={`px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer ${activeCampaign.runMode === 'weekly' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950' : 'text-slate-500'}`}>Chọn thứ</button>
+                                    </div>
+                                    {activeCampaign.runMode === 'weekly' && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {weekdayLabels.map(day => {
+                                                const selected = (activeCampaign.weekdays || []).includes(day.id);
+                                                return (
+                                                    <button
+                                                        key={day.id}
+                                                        onClick={() => {
+                                                            const current = activeCampaign.weekdays || [];
+                                                            const weekdays = selected ? current.filter((id: number) => id !== day.id) : [...current, day.id];
+                                                            updateCampaign(activeCampaign.id, { weekdays });
+                                                        }}
+                                                        className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${selected ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white' : 'bg-white dark:bg-black/20 border-slate-200 dark:border-white/10 text-slate-500'}`}
+                                                    >
+                                                        {day.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {!isRepeating && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Ngày chạy</label>
+                                    <input type="date" value={activeCampaign.startDate || ''} onChange={(e) => updateCampaign(activeCampaign.id, { startDate: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" />
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Bắt đầu</label>
+                                    <input type="time" value={activeCampaign.startTime || ''} onChange={(e) => updateCampaign(activeCampaign.id, { startTime: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Kết thúc</label>
+                                    <input type="time" value={activeCampaign.endTime || ''} onChange={(e) => updateCampaign(activeCampaign.id, { endTime: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" />
+                                </div>
+                            </div>
+
+                            <details>
+                                <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Ngày đặc biệt</summary>
+                                <textarea
+                                    value={activeCampaign.specialDatesText || ''}
+                                    onChange={(e) => updateCampaign(activeCampaign.id, { specialDatesText: e.target.value })}
+                                    rows={2}
+                                    className="mt-2 w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm resize-none"
+                                    placeholder="VD: 2026-09-02: chỉ hiện Combo Quốc khánh"
+                                />
+                            </details>
+                        </div>
+
+                        <div className="space-y-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h5 className="text-sm font-bold text-slate-900 dark:text-white">Món trong nhóm</h5>
+                                <p className="text-xs text-slate-500">Các món này chỉ hiện khi chương trình đang chạy.</p>
+                            </div>
+                                <div className="flex gap-2 text-[11px] font-bold text-slate-500">
+                                    <span className="rounded-lg bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 px-2 py-1">Giảm TB {activeAvgDiscount}%</span>
+                                    <span className="rounded-lg bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 px-2 py-1">{activeTotalLimit} suất</span>
+                                </div>
+                            </div>
+                            <select
+                                className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm"
+                                onChange={(e) => {
+                                    const selected = allMenuItems.find(item => String(item.id) === e.target.value);
+                                    if (!selected) return;
+                                    const originalPrice = Number(selected.originalPrice || selected.price || 0);
+                                    updateCampaign(activeCampaign.id, {
+                                        items: [
+                                            ...activeItems,
+                                            {
+                                                id: `sale_${selected.id}_${activeItems.length + 1}`,
+                                                itemId: selected.id,
+                                                originalPrice,
+                                                salePrice: Math.max(1000, Math.round(originalPrice * 0.8)),
+                                                quantityLimit: 20,
+                                                soldCount: 0,
+                                                reason: activeCampaign.objective === 'clear_stock' ? 'near_expiry' : 'made_today',
+                                                visibility: { mode: 'inherit' }
+                                            }
+                                        ]
+                                    });
+                                    e.target.value = '';
+                                }}
+                            >
+                                <option value="">-- Thêm món vào chương trình --</option>
+                                {allMenuItems.filter(item => !activeItemIds.includes(String(item.id))).map(item => (
+                                    <option key={item.id} value={item.id}>{item.name} - {Number(item.price || 0).toLocaleString('vi-VN')}đ</option>
+                                ))}
+                            </select>
+
+                            <div className="space-y-3">
+                            {activeItems.length > 0 ? activeItems.map((sale: any) => {
+                                const menuItem = allMenuItems.find(item => String(item.id) === String(sale.itemId));
+                                const discount = Number(sale.originalPrice) > Number(sale.salePrice)
+                                    ? Math.round((1 - Number(sale.salePrice) / Number(sale.originalPrice)) * 100)
+                                    : 0;
+                                return (
+                                    <div key={sale.id} className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-white/10 overflow-hidden shrink-0">
+                                                {menuItem?.img ? <img src={menuItem.img} alt="" className="w-full h-full object-cover" /> : null}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-start justify-between gap-3 mb-3">
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{menuItem?.name || `Món #${sale.itemId}`}</p>
+                                                        <p className={`text-xs font-bold mt-0.5 ${discount > 0 ? 'text-rose-500' : 'text-amber-600'}`}>{discount > 0 ? `Giảm ${discount}%` : 'Cần sửa giá sale'} · Theo lịch chương trình</p>
+                                                    </div>
+                                                    <button onClick={() => updateCampaign(activeCampaign.id, { items: activeItems.filter((item: any) => item.id !== sale.id) })} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg cursor-pointer">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    <input type="number" value={sale.originalPrice || ''} onChange={(e) => updateActiveItem(sale.id, 'originalPrice', Number(e.target.value))} className="min-w-0 px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold" placeholder="Giá gốc" />
+                                                    <input type="number" value={sale.salePrice || ''} onChange={(e) => updateActiveItem(sale.id, 'salePrice', Number(e.target.value))} className="min-w-0 px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-rose-600" placeholder="Giá sale" />
+                                                    <input type="number" value={sale.quantityLimit || ''} onChange={(e) => updateActiveItem(sale.id, 'quantityLimit', Number(e.target.value))} className="min-w-0 px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold" placeholder="Số suất" />
+                                                    <select value={sale.reason || 'made_today'} onChange={(e) => updateActiveItem(sale.id, 'reason', e.target.value)} className="min-w-0 px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold">
+                                                        {Object.entries(reasonLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            }) : (
+                                <div className="p-6 text-center text-slate-400 text-sm border border-dashed border-slate-200 dark:border-white/10 rounded-xl">
+                                    Chưa có món sale. Chọn ít nhất 1 món để chương trình có thể chạy.
+                                </div>
+                            )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (type === 'for-you') {
         return (
@@ -81,83 +1193,309 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [], restaurantInfo, 
     }
 
     if (type === 'best-sale' || type === 'combo') {
-        const itemIds = config.itemIds || [];
+        {
+            const scheduledConfig = normalizeScheduledGroupConfig(config, type);
+            const groups = scheduledConfig.scheduleGroups || [];
+            const title = type === 'combo' ? 'Combo Tiết Kiệm' : 'Món Bán Chạy';
+            const updateGroups = (nextGroups: any[]) => onChange({ ...scheduledConfig, scheduleGroups: nextGroups, itemIds: nextGroups[0]?.itemIds || [] });
+            const getNextGroupId = () => {
+                let next = groups.length + 1;
+                while (groups.some((group: any) => group.id === `group_${next}`)) next += 1;
+                return `group_${next}`;
+            };
+            const openCreate = () => {
+                const id = getNextGroupId();
+                setScheduleDrawer({
+                    variant: type,
+                    mode: 'create',
+                    draft: { ...createDefaultScheduleGroup(type, groups.length + 1), id, name: `Khung giờ ${groups.length + 1}` }
+                });
+            };
+            const openEdit = (group: any) => setScheduleDrawer({ variant: type, mode: 'edit', draft: JSON.parse(JSON.stringify(group)) });
+            const closeDrawer = () => setScheduleDrawer(null);
+            const saveDrawer = () => {
+                if (!scheduleDrawer) return;
+                const draft = scheduleDrawer.draft;
+                updateGroups(scheduleDrawer.mode === 'create'
+                    ? [...groups, draft]
+                    : groups.map((group: any) => group.id === draft.id ? draft : group));
+                closeDrawer();
+            };
+            const deleteGroup = (groupId: string) => {
+                if (groups.length <= 1) return;
+                updateGroups(groups.filter((group: any) => group.id !== groupId));
+                if (scheduleDrawer?.draft?.id === groupId) closeDrawer();
+            };
+
+            return (
+                <div className="space-y-5">
+                    <div className="text-sm text-slate-500 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 flex items-start gap-3">
+                        <div className="mt-0.5 text-blue-500"><Settings2 size={16} /></div>
+                        <div>
+                            <p className="font-semibold text-slate-900 dark:text-slate-100 mb-1">Thiết lập {title} theo khung giờ</p>
+                            Trang chính chỉ hiển thị danh sách để quản lý nhanh. Bấm Sửa để mở drawer cấu hình chi tiết.
+                        </div>
+                    </div>
+                    <ScheduleGroupList
+                        title="Khung giờ hiển thị"
+                        subtitle={`${groups.length} khung giờ cho ${title.toLowerCase()}`}
+                        variant={type}
+                        groups={groups}
+                        allMenuItems={allMenuItems}
+                        onCreate={openCreate}
+                        onEdit={openEdit}
+                        onToggle={(groupId, enabled) => updateGroups(groups.map((group: any) => group.id === groupId ? { ...group, isEnabled: enabled } : group))}
+                        onDelete={deleteGroup}
+                    />
+                    <ScheduleGroupDrawer
+                        open={scheduleDrawer?.variant === type}
+                        variant={type}
+                        title={title}
+                        draft={scheduleDrawer?.draft}
+                        setDraft={(draft) => setScheduleDrawer(prev => prev ? { ...prev, draft } : prev)}
+                        allMenuItems={allMenuItems}
+                        onClose={closeDrawer}
+                        onSave={saveDrawer}
+                        onDelete={scheduleDrawer?.draft ? () => deleteGroup(scheduleDrawer.draft.id) : undefined}
+                        canDelete={groups.length > 1}
+                    />
+                </div>
+            );
+        }
+        const scheduledConfig = normalizeScheduledGroupConfig(config, type);
+        const groups = scheduledConfig.scheduleGroups || [];
+        const activeGroup = groups.find((group: any) => group.id === selectedScheduleGroupId) || groups[0] || createDefaultScheduleGroup(type, 1);
+        const itemIds = activeGroup.itemIds || [];
         const limit = config.limit || 10;
         const selectedItems = allMenuItems.filter(item => itemIds.includes(item.id));
         const colorClass = type === 'best-sale' ? 'amber' : 'blue';
+        const weekdayLabels = [
+            { id: 1, label: 'T2' },
+            { id: 2, label: 'T3' },
+            { id: 3, label: 'T4' },
+            { id: 4, label: 'T5' },
+            { id: 5, label: 'T6' },
+            { id: 6, label: 'T7' },
+            { id: 0, label: 'CN' }
+        ];
+        const allWeekdays = weekdayLabels.map(day => day.id);
+        const isRepeating = activeGroup.runMode === 'daily' || activeGroup.runMode === 'weekly';
+
+        const describeGroupSchedule = (group: any) => {
+            if (group.runMode === 'once') return `${group.startDate || 'Chưa chọn ngày'} · ${group.startTime || '--:--'}-${group.endTime || '--:--'}`;
+            if (group.runMode === 'daily') return `Hằng ngày · ${group.startTime || '--:--'}-${group.endTime || '--:--'}`;
+            const days = (group.weekdays || []).map((day: number) => weekdayLabels.find(w => w.id === day)?.label).filter(Boolean).join(', ') || 'Chưa chọn thứ';
+            return `${days} · ${group.startTime || '--:--'}-${group.endTime || '--:--'}`;
+        };
+
+        const updateGroups = (nextGroups: any[]) => {
+            onChange({ ...scheduledConfig, scheduleGroups: nextGroups, itemIds: nextGroups[0]?.itemIds || [] });
+        };
+        const updateGroup = (groupId: string, patch: any) => {
+            updateGroups(groups.map((group: any) => group.id === groupId ? { ...group, ...patch } : group));
+        };
+        const setGroupRepeating = (checked: boolean) => {
+            if (checked) {
+                updateGroup(activeGroup.id, { runMode: 'weekly', weekdays: activeGroup.weekdays || allWeekdays });
+                return;
+            }
+            updateGroup(activeGroup.id, { runMode: 'once', startDate: activeGroup.startDate || new Date().toISOString().slice(0, 10) });
+        };
+        const getNextGroupId = () => {
+            let next = groups.length + 1;
+            while (groups.some((group: any) => group.id === `group_${next}`)) next += 1;
+            return `group_${next}`;
+        };
 
         return (
             <div className="space-y-6">
                 <div className={`text-sm text-slate-500 p-4 bg-${colorClass}-50/50 dark:bg-${colorClass}-500/5 rounded-xl border border-${colorClass}-100 dark:border-${colorClass}-500/20 flex items-start gap-3`}>
                     <div className={`mt-0.5 text-${colorClass}-500`}><Settings2 size={16} /></div>
                     <div>
-                        <p className={`font-semibold text-${colorClass}-900 dark:text-${colorClass}-300 mb-1`}>Thiết lập {type === 'best-sale' ? 'Món Bán Chạy' : 'Combo'} thủ công</p>
-                        Chọn tối đa {limit} món từ thực đơn để hiển thị nổi bật.
+                        <p className={`font-semibold text-${colorClass}-900 dark:text-${colorClass}-300 mb-1`}>Thiết lập {type === 'best-sale' ? 'Món bán chạy' : 'Combo tiết kiệm'} theo khung giờ</p>
+                        Tạo nhiều khung giờ, chọn món cho từng khung và bật lặp lại nếu cần.
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Số lượng tối đa ({limit})</label>
-                        <input 
-                            type="number" 
-                            className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-bold opacity-50"
-                            value={limit}
-                            disabled
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Chọn món ({itemIds.length}/{limit})</label>
-                    <div className="flex gap-2 mb-4">
-                        <select 
-                            className="flex-1 px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm"
-                            onChange={(e) => {
-                                const id = parseInt(e.target.value);
-                                if (id && !itemIds.includes(id) && itemIds.length < limit) {
-                                    onChange({ ...config, itemIds: [...itemIds, id] });
-                                }
-                                e.target.value = "";
-                            }}
-                            disabled={itemIds.length >= limit}
-                        >
-                            <option value="">{itemIds.length >= limit ? "-- Đã đạt giới hạn --" : "-- Tìm món trong thực đơn --"}</option>
-                            {allMenuItems
-                                .filter(item => !itemIds.includes(item.id))
-                                .map(item => (
-                                    <option key={item.id} value={item.id}>{item.name} - {item.price.toLocaleString()}đ</option>
-                                ))
-                            }
-                        </select>
-                    </div>
-
-                    <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-black/20">
-                        {selectedItems.length > 0 ? (
-                            <div className="divide-y divide-slate-100 dark:divide-white/5">
-                                {selectedItems.map((item) => (
-                                    <div key={item.id} className="flex items-center justify-between p-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 overflow-hidden shrink-0 border border-slate-200 dark:border-white/5">
-                                                <img src={item.img} alt="" className="w-full h-full object-cover" />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.name}</div>
-                                                <div className={`text-xs text-${colorClass}-600 dark:text-${colorClass}-400 font-bold`}>{item.price.toLocaleString()}đ</div>
-                                            </div>
-                                        </div>
-                                        <button 
-                                            onClick={() => onChange({ ...config, itemIds: itemIds.filter((id: number) => id !== item.id) })}
-                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                ))}
+                <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-4 items-start">
+                    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-3 space-y-3">
+                        <div className="flex items-center justify-between gap-3 px-1">
+                            <div>
+                                <h5 className="text-sm font-bold text-slate-900 dark:text-white">Khung giờ</h5>
+                                <p className="text-xs text-slate-500">{groups.length} lịch hiển thị</p>
                             </div>
-                        ) : (
-                            <div className="p-8 text-center text-slate-400 italic text-sm">Chưa có món nào được chọn.</div>
-                        )}
+                            <button
+                                onClick={() => {
+                                    const id = getNextGroupId();
+                                    const nextGroup = { ...createDefaultScheduleGroup(type, groups.length + 1), id };
+                                    updateGroups([...groups, nextGroup]);
+                                    setSelectedScheduleGroupId(id);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DF1B41] text-white hover:bg-[#c81739] rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                            >
+                                <Plus size={14} /> Tạo
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {groups.map((group: any) => {
+                                const selected = activeGroup.id === group.id;
+                                return (
+                                    <button
+                                        key={group.id}
+                                        onClick={() => setSelectedScheduleGroupId(group.id)}
+                                        className={`w-full text-left rounded-xl border p-3 transition-all cursor-pointer ${selected ? `border-${colorClass}-300 bg-${colorClass}-50 dark:bg-${colorClass}-500/10 dark:border-${colorClass}-500/30 shadow-sm` : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-slate-300'}`}
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{group.name}</p>
+                                                <p className="text-[11px] text-slate-500 mt-1 truncate">{describeGroupSchedule(group)}</p>
+                                            </div>
+                                            <input type="checkbox" checked={group.isEnabled !== false} onClick={(e) => e.stopPropagation()} onChange={(e) => updateGroup(group.id, { isEnabled: e.target.checked })} className="w-4 h-4 accent-[#DF1B41]" />
+                                        </div>
+                                        <p className="mt-3 text-[11px] font-semibold text-slate-500">{(group.itemIds || []).length} món</p>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <input
+                                type="text"
+                                value={activeGroup.name || ''}
+                                onChange={(e) => updateGroup(activeGroup.id, { name: e.target.value })}
+                                className="w-full max-w-xl px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-bold"
+                            />
+                            {groups.length > 1 && (
+                                <button
+                                    onClick={() => {
+                                        const remaining = groups.filter((group: any) => group.id !== activeGroup.id);
+                                        updateGroups(remaining);
+                                        setSelectedScheduleGroupId(remaining[0]?.id || null);
+                                    }}
+                                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg cursor-pointer"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 space-y-3">
+                            <label className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl cursor-pointer">
+                                <div>
+                                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Có lặp lại</span>
+                                    <p className="text-xs text-slate-500 mt-0.5">Bật để chọn thứ trong tuần.</p>
+                                </div>
+                                <input type="checkbox" checked={isRepeating} onChange={(e) => setGroupRepeating(e.target.checked)} className="w-4 h-4 accent-[#DF1B41]" />
+                            </label>
+                            {isRepeating ? (
+                                <div className="space-y-3">
+                                    <div className="inline-flex rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-1">
+                                        <button onClick={() => updateGroup(activeGroup.id, { runMode: 'daily', weekdays: allWeekdays })} className={`px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer ${activeGroup.runMode === 'daily' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950' : 'text-slate-500'}`}>Hằng ngày</button>
+                                        <button onClick={() => updateGroup(activeGroup.id, { runMode: 'weekly' })} className={`px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer ${activeGroup.runMode === 'weekly' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950' : 'text-slate-500'}`}>Chọn thứ</button>
+                                    </div>
+                                    {activeGroup.runMode === 'weekly' && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {weekdayLabels.map(day => {
+                                                const selected = (activeGroup.weekdays || []).includes(day.id);
+                                                return (
+                                                    <button
+                                                        key={day.id}
+                                                        onClick={() => {
+                                                            const current = activeGroup.weekdays || [];
+                                                            const weekdays = selected ? current.filter((id: number) => id !== day.id) : [...current, day.id];
+                                                            updateGroup(activeGroup.id, { weekdays });
+                                                        }}
+                                                        className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${selected ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white' : 'bg-white dark:bg-black/20 border-slate-200 dark:border-white/10 text-slate-500'}`}
+                                                    >
+                                                        {day.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Ngày chạy</label>
+                                    <input type="date" value={activeGroup.startDate || ''} onChange={(e) => updateGroup(activeGroup.id, { startDate: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" />
+                                </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Bắt đầu</label>
+                                    <input type="time" value={activeGroup.startTime || ''} onChange={(e) => updateGroup(activeGroup.id, { startTime: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Kết thúc</label>
+                                    <input type="time" value={activeGroup.endTime || ''} onChange={(e) => updateGroup(activeGroup.id, { endTime: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm" />
+                                </div>
+                            </div>
+                            <details>
+                                <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Ngày đặc biệt</summary>
+                                <textarea
+                                    value={activeGroup.specialDatesText || ''}
+                                    onChange={(e) => updateGroup(activeGroup.id, { specialDatesText: e.target.value })}
+                                    rows={2}
+                                    className="mt-2 w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm resize-none"
+                                    placeholder="VD: 2026-09-02: dùng danh sách món riêng cho ngày lễ"
+                                />
+                            </details>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Chọn món ({itemIds.length}/{limit})</label>
+                            <div className="flex gap-2 mb-4">
+                                <select
+                                    className="flex-1 px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm"
+                                    onChange={(e) => {
+                                        const id = parseInt(e.target.value);
+                                        if (id && !itemIds.includes(id) && itemIds.length < limit) {
+                                            updateGroup(activeGroup.id, { itemIds: [...itemIds, id] });
+                                        }
+                                        e.target.value = "";
+                                    }}
+                                    disabled={itemIds.length >= limit}
+                                >
+                                    <option value="">{itemIds.length >= limit ? "-- Đã đạt giới hạn --" : "-- Tìm món trong thực đơn --"}</option>
+                                    {allMenuItems
+                                        .filter(item => !itemIds.includes(item.id))
+                                        .map(item => (
+                                            <option key={item.id} value={item.id}>{item.name} - {item.price.toLocaleString()}đ</option>
+                                        ))
+                                    }
+                                </select>
+                            </div>
+
+                            <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-black/20">
+                                {selectedItems.length > 0 ? (
+                                    <div className="divide-y divide-slate-100 dark:divide-white/5">
+                                        {selectedItems.map((item) => (
+                                            <div key={item.id} className="flex items-center justify-between p-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 overflow-hidden shrink-0 border border-slate-200 dark:border-white/5">
+                                                        <img src={item.img} alt="" className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.name}</div>
+                                                        <div className={`text-xs text-${colorClass}-600 dark:text-${colorClass}-400 font-bold`}>{item.price.toLocaleString()}đ</div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => updateGroup(activeGroup.id, { itemIds: itemIds.filter((id: number) => id !== item.id) })}
+                                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center text-slate-400 italic text-sm">Chưa có món nào trong khung giờ này.</div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -553,10 +1891,10 @@ export default function DisplayConfigPage() {
                          }
                     }
                     if (data.data.draft && data.data.draft.length > 0) {
-                        setBlocks(data.data.draft);
+                        setBlocks(ensureFlashSaleBlock(data.data.draft));
                         setActiveTemplateId('custom-db');
                     } else {
-                        setBlocks(SYSTEM_TEMPLATES[0].blocks);
+                        setBlocks(ensureFlashSaleBlock(SYSTEM_TEMPLATES[0].blocks));
                         setActiveTemplateId(SYSTEM_TEMPLATES[0].id);
                     }
                 }
@@ -604,7 +1942,9 @@ export default function DisplayConfigPage() {
     };
 
     const handleAddBlock = (type: ModuleType) => {
-        const newBlock = { id: 'block-' + Date.now(), type, title: MODULE_DEFINITIONS[type].name, config: {} };
+        const newBlock = type === 'flash-sale'
+            ? { ...createDefaultFlashSaleBlock(), id: 'block-' + Date.now() }
+            : { id: 'block-' + Date.now(), type, title: MODULE_DEFINITIONS[type].name, config: {} };
         const menuIdx = blocks.findIndex(b => b.type === 'menu-grid');
         const newBlocks = [...blocks];
         if (menuIdx !== -1) newBlocks.splice(menuIdx, 0, newBlock); else newBlocks.push(newBlock);
@@ -731,6 +2071,7 @@ export default function DisplayConfigPage() {
                                         const isSystem = block.type !== 'custom';
                                         const isCore = block.type === 'menu-grid';
                                         const isEnabled = block.config?.isEnabled !== false; // default true
+                                        const needsConfig = isEnabled && !isBlockValid(block);
                                         
                                         return (
                                             <div key={block.id} className={`group relative transition-all rounded-xl ${isLocked ? 'opacity-80' : ''} ${!isEnabled && !isCore ? 'opacity-50 grayscale-[30%]' : ''} ${isSystem ? 'bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/10' : 'bg-slate-50/50 dark:bg-black/20 border border-dashed border-slate-300 dark:border-white/20'} ${editingBlockId === block.id ? 'ring-1 ring-slate-300 dark:ring-white/20 shadow-md' : 'hover:shadow-sm'}`}>
@@ -751,6 +2092,7 @@ export default function DisplayConfigPage() {
                                                             {isLocked && <Lock size={10} className="text-amber-500" />}
                                                             {!isSystem && <span className="lowercase bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-md text-[9px] font-bold border border-slate-200 dark:border-white/10 tracking-normal">Tuỳ chỉnh</span>}
                                                             {isSystem && !isCore && <span className="lowercase bg-transparent text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-md text-[9px] font-bold border border-slate-200 dark:border-white/10 tracking-normal">Có sẵn</span>}
+                                                            {needsConfig && <span className="lowercase bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-300 px-1.5 py-0.5 rounded-md text-[9px] font-bold border border-amber-200 dark:border-amber-500/20 tracking-normal">Cần cấu hình</span>}
                                                         </div>
                                                         <div className={`font-semibold text-sm break-words leading-tight ${editingBlockId === block.id ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>{block.title || def.name}</div>
                                                     </div>
@@ -880,9 +2222,9 @@ export default function DisplayConfigPage() {
                                          <X size={16} />
                                      </button>
                                  </div>
-                                 <div className="flex-1 overflow-y-auto p-8 hidden-scroll relative">
+                                 <div className="flex-1 overflow-y-auto p-6 xl:p-8 hidden-scroll relative">
                                     {isCurrentlyEnabled ? (
-                                        <div className="max-w-2xl mx-auto pb-24 animation-fade-in">
+                                        <div className={`${['flash-sale', 'combo', 'best-sale'].includes(activeEditorBlock.type) ? 'max-w-none' : 'max-w-2xl mx-auto'} pb-24 animation-fade-in`}>
                                             <ModuleConfigForm 
                                                 block={activeEditorBlock} 
                                                 allMenuItems={allMenuItems} 
@@ -1024,4 +2366,3 @@ export default function DisplayConfigPage() {
 
     );
 }
-

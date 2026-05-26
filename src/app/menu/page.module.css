@@ -7544,6 +7544,28 @@
   margin-bottom: 1.25rem;
 }
 
+.sectionEyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-bottom: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #e11d48;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.sectionSubtitle {
+  margin-top: 4px;
+  color: var(--menu-text-secondary, #64748B);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
 .seeAll {
   display: flex;
   align-items: center;
