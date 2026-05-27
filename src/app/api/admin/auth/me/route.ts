@@ -43,20 +43,14 @@ export async function GET(request: Request) {
             [user.id]
         );
         if (assignedRestaurant) {
-            // Force demo-mock for default admin so reviewers see the mock data
-            if (user.phone === '0981112222' || user.email === 'admin@o2o.vn') {
-                user.restaurant_id = 'demo-mock';
-                user.restaurant_name = 'UI Reviewer Demo (Mock JSON)';
-            } else {
-                user.restaurant_id = assignedRestaurant.restaurant_id;
-                user.restaurant_name = assignedRestaurant.restaurant_name;
-            }
-        } else if (user.email === 'demo@o2o.vn' || user.phone === 'demo-mock' || user.phone === '0981112222') {
+            user.restaurant_id = assignedRestaurant.restaurant_id;
+            user.restaurant_name = assignedRestaurant.restaurant_name;
+        } else if (user.email === 'demo@o2o.vn' || user.phone === 'demo-mock') {
             user.restaurant_id = 'demo-mock';
             user.restaurant_name = 'UI Reviewer Demo (Mock JSON)';
-        } else if (user.email === 'admin@o2o.vn') {
-            user.restaurant_id = 'demo-mock';
-            user.restaurant_name = 'UI Reviewer Demo (Mock JSON)';
+        } else if (user.email === 'admin@o2o.vn' || user.phone === '0981112222') {
+            user.restaurant_id = '100';
+            user.restaurant_name = 'O2O Demo Restaurant';
         }
 
         // Update lastActive asynchronously
