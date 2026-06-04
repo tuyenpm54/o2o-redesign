@@ -87,6 +87,39 @@ export default function ProMaxAnalytics() {
       return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  const customerTimingMetrics = [
+    {
+      title: 'Tìm món đầu tiên',
+      value: fmtTime(menuEff.avgBrowse),
+      icon: <BookOpen size={16} />,
+      delta: menuEff.browseDelta,
+      highlight: true,
+      hint: 'Tìm món',
+    },
+    {
+      title: 'Giữ giỏ trước khi gửi',
+      value: fmtTime(menuEff.avgDecide),
+      icon: <ShoppingCart size={16} />,
+      delta: menuEff.decideDelta,
+      hint: 'Cân nhắc',
+    },
+    {
+      title: 'Tổng thời gian tự gọi',
+      value: fmtTime(menuEff.avgTotal),
+      icon: <Timer size={16} />,
+      delta: menuEff.totalDelta,
+      hint: 'Hoàn tất',
+    },
+    {
+      title: 'Rời menu không gọi',
+      value: `${menuEff.dropOffRate}%`,
+      icon: <XCircle size={16} />,
+      delta: menuEff.dropOffDelta,
+      hint: 'Không gọi',
+      inverse: true,
+    }
+  ];
+
   // Visual Helper 
   const getTrafficColor = (val: number) => {
     if (val === 0) return 'bg-slate-50 dark:bg-white/5 text-transparent';
@@ -520,25 +553,25 @@ export default function ProMaxAnalytics() {
             <Users size={22} className="text-cyan-600 dark:text-cyan-400" />
           </div>
           <div>
-            <h2 className="text-[22px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">Hành Vi Gọi Món Của Khách</h2>
-            <p className="text-slate-500 mt-1 font-medium text-[14px] leading-tight">Phân tích thói quen gọi món theo vòng và sự phụ thuộc vào tính năng tiện lợi.</p>
+            <h2 className="text-[22px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">Hành Vi Tự Gọi Món Tại Bàn</h2>
+            <p className="text-slate-500 mt-1 font-medium text-[14px] leading-tight">Theo dõi khách đi từ quét QR, chọn món, giữ giỏ đến gửi đơn cho bếp.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
             <div className="bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 transition-transform active:scale-[0.99] cursor-pointer">
                 <div className="mb-6">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">Mật Độ Chọn Món Tự Động O2O</h3>
-                    <p className="text-[13px] font-medium text-slate-500 mb-5">Cách khách hàng thêm thức ăn và gọi lại nhiều lần không cần phục vụ.</p>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">Mức Độ Khách Tự Gọi Thêm</h3>
+                    <p className="text-[13px] font-medium text-slate-500 mb-5">Cho biết khách có dùng QR như một kênh gọi món thật sự hay chỉ gọi một lần rồi quay lại gọi nhân viên.</p>
                 </div>
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="rounded-xl border border-slate-100 dark:border-white/5 p-4 text-center bg-slate-50/50 dark:bg-white/[0.02]">
-                            <p className="text-[12px] font-medium text-slate-500 mb-1">Quy mô món lần đầu / Bàn</p>
+                            <p className="text-[12px] font-medium text-slate-500 mb-1">Số món đơn đầu / Bàn</p>
                             <p className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{orderingBehavior.avgItemsFirstOrder}</p>
                         </div>
                         <div className="rounded-xl border border-slate-100 dark:border-white/5 p-4 text-center bg-slate-50/50 dark:bg-white/[0.02]">
-                            <p className="text-[12px] font-medium text-slate-500 mb-1">Tần suất gọi thêm trung bình</p>
+                            <p className="text-[12px] font-medium text-slate-500 mb-1">Số vòng gọi / Bàn</p>
                             <p className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{orderingBehavior.avgRoundsPerTable}</p>
                         </div>
                     </div>
@@ -554,33 +587,36 @@ export default function ProMaxAnalytics() {
                         </div>
                     </div>
                     <p className="text-[13px] font-medium text-slate-500 leading-relaxed px-2 mt-4 text-center">
-                        <strong className="text-cyan-700 dark:text-cyan-400">Đánh giá hành vi:</strong> Khách tự gọi vòng 3+ chiếm `{orderingBehavior.multiRoundRate}%`, minh chứng độ rào cản thấp của hệ thống Menu điện tử.
+                        <strong className="text-cyan-700 dark:text-cyan-400">Ý nghĩa vận hành:</strong> {orderingBehavior.multiRoundRate}% bàn gọi từ vòng 3 trở lên. Nếu chỉ số này tăng, QR đang giảm tải cho phục vụ và tạo thêm cơ hội bán món bổ sung.
                     </p>
                 </div>
             </div>
             
             <div className="bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 transition-transform active:scale-[0.99] cursor-pointer">
                 <div className="mb-6">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">Thời Gian Thao Tác (Giây)</h3>
-                    <p className="text-[13px] font-medium text-slate-500 mb-5">Đo lường thời lượng khách hàng dừng lại cân nhắc tại từng giai đoạn.</p>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">Thời Gian Theo Hành Trình Gọi Món</h3>
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-[13px] font-medium text-slate-500">Đo các điểm nghẽn từ mở menu đến gửi đơn.</p>
+                        <span className="shrink-0 rounded-full bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                            Giữ giỏ +{menuEff.decideDelta.toFixed(1)}%
+                        </span>
+                    </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    {[
-                        { title: 'Duyệt Menu', value: fmtTime(menuEff.avgBrowse), icon: <BookOpen size={16} />, delta: menuEff.browseDelta, highlight: true },
-                        { title: 'Chốt Món', value: fmtTime(menuEff.avgDecide), icon: <MousePointerClick size={16} />, delta: menuEff.decideDelta },
-                        { title: 'Lưu Giữ Thẻ', value: fmtTime(menuEff.avgTotal), icon: <Timer size={16} />, delta: menuEff.totalDelta },
-                        { title: 'Thoát (Ko Gọi)', value: `${menuEff.dropOffRate}%`, icon: <XCircle size={16} />, delta: menuEff.dropOffDelta }
-                    ].map(card => (
-                        <div key={card.title} className={`rounded-xl border ${card.highlight ? 'border-indigo-100 dark:border-indigo-500/20 bg-indigo-50/30 dark:bg-indigo-500/5' : 'border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]'} p-4 relative overflow-hidden group`}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {customerTimingMetrics.map(card => (
+                        <div key={card.title} className={`rounded-xl border ${card.highlight ? 'border-indigo-100 dark:border-indigo-500/20 bg-indigo-50/30 dark:bg-indigo-500/5' : 'border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]'} p-4 relative overflow-hidden group min-h-[92px]`}>
                             {card.highlight && <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500" />}
                             <div className="flex justify-between items-start mb-2">
                                 <div className={`p-1.5 rounded-lg ${card.highlight ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'bg-white dark:bg-white/10 text-slate-400'}`}>
                                     {card.icon}
                                 </div>
-                                <DeltaBadge value={card.delta} hideArrow={true}/>
+                                <DeltaBadge value={card.delta} hideArrow={true} inverse />
                             </div>
                             <p className="text-[12px] font-medium text-slate-500 mb-0.5">{card.title}</p>
-                            <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{card.value}</p>
+                            <div className="flex items-end justify-between gap-2">
+                                <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{card.value}</p>
+                                <p className="text-[11px] font-semibold text-slate-400 mb-1">{card.hint}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -591,8 +627,8 @@ export default function ProMaxAnalytics() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6">
             <div className="flex flex-col gap-6 lg:col-span-1">
                 <div className="bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 flex-1 transition-transform active:scale-[0.99] cursor-pointer">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">Hành Trình Gọi Món</h3>
-                    <p className="text-[13px] font-medium text-slate-500 mb-6">Tỉ lệ khách hàng đi từ bước quét mã đến lúc thanh toán.</p>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight mb-1">Phễu Gọi Món Tại Bàn</h3>
+                    <p className="text-[13px] font-medium text-slate-500 mb-6">Tỉ lệ khách đi từ quét QR đến gửi đơn. Bước rơi nhiều nhất là nơi cần ưu tiên sửa trước.</p>
                     <div className="space-y-3">
                         {menuEff.funnel.map((step: any, idx: number) => {
                             const isLast = idx === menuEff.funnel.length - 1;
@@ -625,8 +661,8 @@ export default function ProMaxAnalytics() {
             <div className="bg-white dark:bg-[#0c0c0e] rounded-[24px] p-6 shadow-[0_2px_20px_rgb(0,0,0,0.03)] dark:shadow-none dark:border dark:border-white/5 lg:col-span-2 flex flex-col min-h-[350px] transition-transform active:scale-[0.99] cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
                     <div>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Biểu Đồ Thời Gian Khách Hàng Gọi Món</h3>
-                        <p className="text-[13px] font-medium text-slate-500 mt-1">Phân bố thời gian quyết định thêm món của khách tại bàn (Đơn vị: Giây).</p>
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Xu Hướng Tốc Độ Tự Gọi Món</h3>
+                        <p className="text-[13px] font-medium text-slate-500 mt-1">Theo dõi thời gian tìm món, giữ giỏ và hoàn tất đơn theo ngày để biết cải tiến menu có hiệu quả không.</p>
                     </div>
                 </div>
                 <div className="flex-1 w-full relative mt-4">
@@ -650,8 +686,8 @@ export default function ProMaxAnalytics() {
                                 formatter={(val: any, name: any) => [`${Math.floor(Number(val) / 60)}:${(Number(val) % 60).toString().padStart(2, '0')}`, name]}
                             />
                             <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingBottom: 20 }} />
-                            <Area type="monotone" dataKey="browse" name="Duyệt menu" stroke={CHART_COLORS.orders} strokeWidth={2.5} fill="url(#gradBrowse)" dot={{ r: 4, fill: '#fff', stroke: CHART_COLORS.orders, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                            <Area type="monotone" dataKey="decide" name="Quyết định" stroke={CHART_COLORS.customers} strokeWidth={2.5} fill="url(#gradDecide)" dot={{ r: 4, fill: '#fff', stroke: CHART_COLORS.customers, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                            <Area type="monotone" dataKey="browse" name="Tìm món đầu tiên" stroke={CHART_COLORS.orders} strokeWidth={2.5} fill="url(#gradBrowse)" dot={{ r: 4, fill: '#fff', stroke: CHART_COLORS.orders, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                            <Area type="monotone" dataKey="decide" name="Giữ giỏ trước khi gửi" stroke={CHART_COLORS.customers} strokeWidth={2.5} fill="url(#gradDecide)" dot={{ r: 4, fill: '#fff', stroke: CHART_COLORS.customers, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>

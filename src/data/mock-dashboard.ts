@@ -79,10 +79,10 @@ export const MOCK_MENU_EFFICIENCY = {
   success: true,
   data: {
     // Hero metrics (average seconds)
-    avgBrowse: 165,       // 2:45 — QR scan → first cart add
-    avgDecide: 62,        // 1:02 — first cart add → submit order
-    avgTotal: 252,         // 4:12 — QR scan → submit order
-    dropOffRate: 4.2,     // % scanned but never ordered
+    avgBrowse: 165,       // 2:45 — menu_viewed → first_item_added
+    avgDecide: 62,        // 1:02 — first_item_added → order_submitted
+    avgTotal: 252,        // 4:12 — menu_viewed → order_submitted
+    dropOffRate: 4.2,     // % menu_viewed → session_timeout without order_submitted
     // Comparison vs previous period
     browseDelta: -12,     // % change vs last period (negative = improved)
     decideDelta: 3,

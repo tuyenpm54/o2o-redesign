@@ -44,6 +44,7 @@ import { OrderStepper } from "@/modules/customer/components/OrderStepper/OrderSt
 import { OrderHubCard } from "./components/OrderHubCard";
 import { ComboSection } from "./components/ComboSection";
 import { MenuGrid } from "./components/MenuGrid";
+import { MenuCard } from "./components/MenuCard";
 import { FeaturedSections } from "./components/FeaturedSections";
 import { SupportModal } from "./components/SupportModal";
 import { CheckoutSheet } from "./components/CheckoutSheet";
@@ -147,6 +148,76 @@ const filterItemsByScheduleGroups = (config: any, items: any[]) => {
   const ids = groups.flatMap((group: any) => group.itemIds || []).map(String);
   if (ids.length === 0) return [];
   return items.filter((item: any) => ids.includes(String(item.id)));
+};
+
+const normalizeDisplaySlot = (slot: any = {}, index = 0) => ({
+  id: slot.id || `slot_${index + 1}`,
+  name: slot.name || `Khung giờ ${index + 1}`,
+  isEnabled: slot.isEnabled !== false,
+  runMode: normalizeRunMode(slot.repeatMode || slot.runMode),
+  weekdays: slot.weekdays || [1, 2, 3, 4, 5, 6, 0],
+  startDate: slot.startDate,
+  startTime: slot.startTime || '00:00',
+  endTime: slot.endTime || '23:59',
+  itemIds: slot.itemIds || []
+});
+
+const normalizeMenuDisplayGroupsConfig = (config: any = {}, menuItems: any[] = []) => {
+  const configuredGroups = Array.isArray(config.groups) ? config.groups : [];
+  const normalizedGroups = configuredGroups.map((group: any, index: number) => ({
+    id: group.id || `group_${index + 1}`,
+    name: group.name || `Nhóm ${index + 1}`,
+    order: Number.isFinite(Number(group.order)) ? Number(group.order) : index + 1,
+    isEnabled: group.isEnabled !== false,
+    sourceType: group.sourceType || 'custom',
+    sourceCategory: group.sourceCategory,
+    isSpecial: group.isSpecial === true,
+    isHighlight: group.isHighlight ?? group.isSpecial === true,
+    backgroundImg: group.backgroundImg || '',
+    isCountdown: group.isCountdown === true,
+    countdownLabel: group.countdownLabel || 'Kết thúc sau',
+    scheduleSlots: (Array.isArray(group.scheduleSlots) && group.scheduleSlots.length > 0
+      ? group.scheduleSlots
+      : [{ itemIds: [] }]
+    ).map(normalizeDisplaySlot)
+  }));
+
+  const nativeCategories = Array.from(new Set(menuItems.map((item: any) => item.category).filter(Boolean)));
+  const existingNative = new Set(normalizedGroups.filter((group: any) => group.sourceType === 'native').map((group: any) => group.sourceCategory || group.name));
+  const missingNative = nativeCategories
+    .filter(category => !existingNative.has(category))
+    .map((category, index) => ({
+      id: `native_${String(category).toLowerCase().replace(/\s+/g, '_')}`,
+      name: category,
+      order: normalizedGroups.length + index + 1,
+      isEnabled: true,
+      sourceType: 'native',
+      sourceCategory: category,
+      isSpecial: false,
+      isHighlight: false,
+      backgroundImg: '',
+      isCountdown: false,
+      countdownLabel: 'Kết thúc sau',
+      scheduleSlots: [normalizeDisplaySlot({
+        id: `slot_${category}`,
+        name: 'Cả ngày',
+        itemIds: menuItems.filter((item: any) => item.category === category).map((item: any) => item.id)
+      }, 0)]
+    }));
+
+  return {
+    ...config,
+    isEnabled: config.isEnabled !== false,
+    groups: [...normalizedGroups, ...missingNative].sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0))
+  };
+};
+
+const getActiveDisplaySlot = (group: any, nowMs: number | null) => {
+  const slots = (group.scheduleSlots || [])
+    .filter((slot: any) => slot.isEnabled !== false)
+    .map((slot: any) => ({ ...getFlashCampaignStatus(slot, nowMs), slot }))
+    .filter((status: any) => status.active);
+  return slots[0] || null;
 };
 
 const getLocalDateKey = (date: Date) => {
@@ -320,6 +391,166 @@ function FlashSaleSection({ block, menuItems, searchQuery, setSelectedItem, proc
   );
 }
 
+function MenuDisplayGroupsSection({
+  block,
+  menuItems,
+  displayMenuItems,
+  searchQuery,
+  theme,
+  t,
+  language,
+  categoryRefs,
+  getConfirmedQty,
+  getDraftingUser,
+  getItemQuantity,
+  getPairingMessage,
+  setSelectedItem,
+  addToTotal,
+  removeFromTotal,
+  proceedAddToCart
+}: any) {
+  const [nowMs, setNowMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    const updateNow = () => setNowMs(Date.now());
+    updateNow();
+    const timer = window.setInterval(updateNow, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const config = normalizeMenuDisplayGroupsConfig(block?.config || {}, menuItems);
+  const renderedGroups = config.groups
+    .filter((group: any) => group.isEnabled !== false)
+    .map((group: any) => {
+      const activeSlot = getActiveDisplaySlot(group, nowMs);
+      if (!activeSlot) return null;
+      const ids = (activeSlot.slot.itemIds || []).map(String);
+      if (ids.length === 0) return null;
+      const sourceItems = group.sourceType === 'native' ? displayMenuItems : menuItems;
+      const items = ids
+        .map((id: string) => sourceItems.find((item: any) => String(item.id) === id))
+        .filter(Boolean)
+        .filter((item: any) => {
+          if (!searchQuery?.trim()) return true;
+          const q = searchQuery.toLowerCase();
+          return item.name.toLowerCase().includes(q)
+            || item.category?.toLowerCase().includes(q)
+            || item.tags?.some((tag: string) => tag.toLowerCase().includes(q));
+        });
+      if (items.length === 0) return null;
+      return { group, slot: activeSlot.slot, deadlineMs: activeSlot.deadlineMs, items };
+    })
+    .filter(Boolean);
+
+  if (renderedGroups.length === 0) return null;
+
+  return (
+    <>
+      {renderedGroups.map(({ group, slot, deadlineMs, items }: any) => {
+        const countdown = group.isCountdown ? formatRemainingTime(deadlineMs, nowMs) : '';
+        const sectionStyle = group.backgroundImg
+          ? {
+              backgroundImage: `linear-gradient(90deg, rgba(15,23,42,0.88), rgba(15,23,42,0.62)), url(${group.backgroundImg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }
+          : undefined;
+
+        if (group.isSpecial) {
+          return (
+            <section
+              key={group.id}
+              id={`category-${group.name}`}
+              className={styles.comboSection}
+              ref={(el) => {
+                if (categoryRefs.current) categoryRefs.current[group.name] = el;
+              }}
+              style={sectionStyle}
+              data-category={group.name}
+            >
+              <div className={styles.sectionHeader}>
+                <div>
+                  <span className={styles.sectionEyebrow}>{slot.name || 'Đang hiển thị'}</span>
+                  <h2 className={styles.sectionTitle}>{group.name}</h2>
+                </div>
+                {countdown && (
+                  <span className={styles.sectionEyebrow}>
+                    {group.countdownLabel || 'Kết thúc sau'} {countdown}
+                  </span>
+                )}
+              </div>
+              <div className={styles.comboScroll}>
+                {items.map((item: any) => (
+                  <div key={`${group.id}-${slot.id}-${item.id}`} className={styles.comboCard} onClick={() => setSelectedItem(item)}>
+                    <div className={styles.comboImgWrapper}>
+                      <img src={item.img} alt={item.name} className={styles.comboImg} />
+                    </div>
+                    <div className={styles.comboInfo}>
+                      <h3 className={styles.comboName}>{item.name}</h3>
+                      <p className={styles.comboDesc}>{item.desc || item.category}</p>
+                      <div className={styles.comboPriceRow}>
+                        <div>
+                          <span className={styles.comboPrice}>{Number(item.price || 0).toLocaleString('vi-VN')}đ</span>
+                          {item.originalPrice > item.price && <span className={styles.comboOriginal}>{Number(item.originalPrice || 0).toLocaleString('vi-VN')}đ</span>}
+                        </div>
+                        <button
+                          className={styles.addComboBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            proceedAddToCart(item, 1);
+                          }}
+                          style={{ background: theme.accent, color: theme.cartBarText }}
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        }
+
+        return (
+          <section
+            key={group.id}
+            id={`category-${group.name}`}
+            className={styles.menuGridSection}
+            ref={(el) => {
+              if (categoryRefs.current) categoryRefs.current[group.name] = el;
+            }}
+            data-category={group.name}
+          >
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>{group.name}</h2>
+              {countdown && <span className={styles.sectionEyebrow}>{group.countdownLabel || 'Kết thúc sau'} {countdown}</span>}
+            </div>
+            <div className={styles.menuGrid}>
+              {items.map((item: any) => (
+                <MenuCard
+                  key={`${group.id}-${slot.id}-${item.id}`}
+                  item={item}
+                  theme={theme}
+                  t={t}
+                  language={language}
+                  confirmedQty={getConfirmedQty(item.name)}
+                  draftingUser={getDraftingUser(item.id)}
+                  itemQuantity={getItemQuantity(item.id)}
+                  pairingMessage={getPairingMessage(item) || ""}
+                  onSelect={setSelectedItem}
+                  onAdd={addToTotal}
+                  onRemove={removeFromTotal}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </>
+  );
+}
+
 
 function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { isV3?: boolean, displayConfig?: any[], isPreview?: boolean }) {
   const router = useRouter();
@@ -482,6 +713,10 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
   const onboardingBlock = currentDisplayConfig?.find(b => b.type === 'onboarding-wizard');
   const supportOptionsBlock = currentDisplayConfig?.find(b => b.type === 'support-options');
   const checkoutAuthBlock = currentDisplayConfig?.find(b => b.type === 'checkout-auth');
+  const forYouBlock = currentDisplayConfig?.find(b => b.type === 'for-you');
+  const isForYouEnabled = Boolean(forYouBlock && forYouBlock.config?.isEnabled !== false);
+  const menuGroupsBlock = currentDisplayConfig?.find(b => b.type === 'menu-groups' && b.config?.isEnabled !== false);
+  const hasMenuGroupsConfig = Boolean(menuGroupsBlock);
   const allowOtpSkip = checkoutAuthBlock?.config?.isEnabled === false ? true : (checkoutAuthBlock?.config?.allowSkip !== false);
   const isWizardEnabled = onboardingBlock?.config?.isEnabled !== false;
   const wizardStyle = onboardingBlock?.config?.wizardStyle || 'v2';
@@ -642,12 +877,13 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
 
 
   const manualBestSaleIds = useMemo(() => {
+    if (hasMenuGroupsConfig) return [];
     const block = currentDisplayConfig?.find(b => b.type === 'best-sale' && b.config?.isEnabled !== false);
     if (!block?.config) return [];
     const groups = getActiveScheduleGroups(block.config);
     if (groups) return groups.flatMap((group: any) => group.itemIds || []);
     return block.config.itemIds || [];
-  }, [currentDisplayConfig]);
+  }, [currentDisplayConfig, hasMenuGroupsConfig]);
 
   const finalTopItems = useMemo(() => {
     if (manualBestSaleIds.length > 0) {
@@ -708,6 +944,22 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
     return sophisticatedCategories.filter((c: string) => catsWithMatches.has(c));
   }, [sophisticatedCategories, displayMenuItems, ui.searchQuery, table.personalizedItems, finalTopItems]);
 
+  const menuGroupCategories = useMemo(() => {
+    if (!menuGroupsBlock) return [];
+    const config = normalizeMenuDisplayGroupsConfig(menuGroupsBlock.config, table.menuItems);
+    return config.groups
+      .filter((group: any) => group.isEnabled !== false)
+      .filter((group: any) => (group.scheduleSlots || []).some((slot: any) => slot.isEnabled !== false && (slot.itemIds || []).length > 0))
+      .map((group: any) => group.name);
+  }, [menuGroupsBlock, table.menuItems]);
+
+  const forYouNavigationCategories = isForYouEnabled && personalizedItems.length > 0 && !ui.searchQuery.trim() ? ["Món bạn từng gọi"] : [];
+  const baseNavigationCategories = hasMenuGroupsConfig && menuGroupCategories.length > 0 ? menuGroupCategories : filteredCategories;
+  const navigationCategories = [
+    ...forYouNavigationCategories,
+    ...baseNavigationCategories.filter((category: string) => category !== "Món bạn từng gọi")
+  ];
+
   const scrollToCategory = (cat: string) => {
     const section = categoryRefs.current[cat];
     if (section) {
@@ -720,10 +972,10 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
   };
 
   useEffect(() => {
-    if (table.categories.length > 0 && !ui.activeCategory) {
-      ui.setActiveCategory(table.categories[0]);
+    if (navigationCategories.length > 0 && (!ui.activeCategory || !navigationCategories.includes(ui.activeCategory))) {
+      ui.setActiveCategory(navigationCategories[0]);
     }
-  }, [table.categories, ui.activeCategory]);
+  }, [navigationCategories, ui.activeCategory]);
 
   useEffect(() => {
     if (resid && tableid && isLoggedIn) {
@@ -971,7 +1223,7 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
       <MenuHeader 
         restaurant={restaurant} 
         tableid={tableid} 
-        categories={filteredCategories}
+        categories={navigationCategories}
         activeCategory={activeCategory}
         onCategorySelect={scrollToCategory}
         searchQuery={searchQuery}
@@ -1025,10 +1277,49 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
           />
         )}
 
+        {isForYouEnabled && (
+          <FeaturedSections
+            key={forYouBlock?.id || 'for-you-fixed'}
+            searchQuery={searchQuery}
+            userHistory={userHistory}
+            personalizedItems={personalizedItems}
+            topItems={[]}
+            filteredCategories={["Món bạn từng gọi"]}
+            theme={theme}
+            t={t}
+            categoryRefs={categoryRefs}
+            setSelectedItem={setSelectedItem}
+            proceedAddToCart={proceedAddToCart}
+          />
+        )}
+
         {/* --- DYNAMIC MODULE RENDERING LOOP --- */}
         {currentDisplayConfig?.filter((block: any) => block.config?.isEnabled !== false).map((block: any) => {
           switch (block.type) {
+            case 'menu-groups':
+              return (
+                <MenuDisplayGroupsSection
+                  key={block.id}
+                  block={block}
+                  menuItems={menuItems}
+                  displayMenuItems={displayMenuItems}
+                  searchQuery={searchQuery}
+                  theme={theme}
+                  t={t}
+                  language={language}
+                  categoryRefs={categoryRefs}
+                  getConfirmedQty={getConfirmedQty}
+                  getDraftingUser={getDraftingUser}
+                  getItemQuantity={getItemQuantity}
+                  getPairingMessage={getPairingMessage}
+                  setSelectedItem={setSelectedItem}
+                  addToTotal={addToTotal}
+                  removeFromTotal={removeFromTotal}
+                  proceedAddToCart={proceedAddToCart}
+                />
+              );
             case 'flash-sale':
+              if (hasMenuGroupsConfig) return null;
               return (
                 <FlashSaleSection
                   key={block.id}
@@ -1041,22 +1332,9 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
                 />
               );
             case 'for-you':
-              return (
-                <FeaturedSections
-                  key={block.id}
-                  searchQuery={searchQuery}
-                  userHistory={userHistory}
-                  personalizedItems={personalizedItems}
-                  topItems={[]} // Hide best sellers from this block
-                  filteredCategories={filteredCategories}
-                  theme={theme}
-                  t={t}
-                  categoryRefs={categoryRefs}
-                  setSelectedItem={setSelectedItem}
-                  proceedAddToCart={proceedAddToCart}
-                />
-              );
+              return null;
             case 'best-sale':
+              if (hasMenuGroupsConfig) return null;
               if (finalTopItems.length === 0) return null;
 
               return (
@@ -1076,6 +1354,7 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
                 />
               );
             case 'combo': {
+              if (hasMenuGroupsConfig) return null;
               const activeCombos = filterItemsByScheduleGroups(block.config, COMBOS);
               if (activeCombos.length === 0) return null;
               return (
@@ -1102,23 +1381,25 @@ function MenuPageContent({ isV3 = false, displayConfig, isPreview = false }: { i
         })}
 
         {/* --- STATIC BOTTOM: Core Menu Grid --- */}
-        <MenuGrid
-          filteredCategories={filteredCategories}
-          displayMenuItems={displayMenuItems}
-          pairingRecommendedItems={pairingRecommendedItems}
-          searchQuery={searchQuery}
-          theme={theme}
-          t={t}
-          language={language}
-          categoryRefs={categoryRefs}
-          getConfirmedQty={getConfirmedQty}
-          getDraftingUser={getDraftingUser}
-          getItemQuantity={getItemQuantity}
-          getPairingMessage={getPairingMessage}
-          setSelectedItem={setSelectedItem}
-          addToTotal={addToTotal}
-          removeFromTotal={removeFromTotal}
-        />
+        {!hasMenuGroupsConfig && (
+          <MenuGrid
+            filteredCategories={filteredCategories}
+            displayMenuItems={displayMenuItems}
+            pairingRecommendedItems={pairingRecommendedItems}
+            searchQuery={searchQuery}
+            theme={theme}
+            t={t}
+            language={language}
+            categoryRefs={categoryRefs}
+            getConfirmedQty={getConfirmedQty}
+            getDraftingUser={getDraftingUser}
+            getItemQuantity={getItemQuantity}
+            getPairingMessage={getPairingMessage}
+            setSelectedItem={setSelectedItem}
+            addToTotal={addToTotal}
+            removeFromTotal={removeFromTotal}
+          />
+        )}
         <MenuFooter />
       </main>
 

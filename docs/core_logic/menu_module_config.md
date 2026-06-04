@@ -1,41 +1,111 @@
-# Yêu cầu Kiến trúc & Logic Cấu hình Menu UI (Modular Design)
+# Logic Cấu Hình Hiển Thị Menu
 
-Tài liệu này ghi nhớ cấu trúc tuỳ biến thiết kế tại trang `Menu` / `Discovery` giúp người dùng/chủ quán có thể tự do **BẬT/TẮT, THÊM/BỚT** và **SẮP XẾP** linh hoạt.
+Tài liệu này thay thế cách hiểu cũ về các module riêng lẻ như `flash-sale`, `combo`, `best-sale`, `custom`, `menu-grid`.
 
-## Kiến trúc 5 Module Chính
-Toàn bộ luồng giao diện gọi món được phân mảnh thành 5 loại Module (Category) có thể tái sử dụng, trong đó **4 module đầu tiên có thể thay đổi thứ tự trên/dưới** tuỳ thuộc cấu hình:
+Chi tiết ranh giới giữa **Thực đơn**, **Cấu hình hiển thị** và **Promotion** được định nghĩa tại:
 
-### 1. Module "Dành cho bạn" (For You)
-- **Trạng thái:** Chỉ có thể cấu hình `BẬT` (ON) hoặc `TẮT` (OFF) (không thể đổi tên hệ thống).
-- **Thuật toán cá nhân hóa:** 
-  1. Chỉ hiển thị dựa trên thông tin phiên Đăng nhập (`user login`).
-  2. Truy vấn lịch sử Order của User: Mang ra những món có số lượng order cao nhất nằm top.
-  3. Quét thiếu hụt: NẾU danh sách tìm được **< 3 món**, hệ thống tự động bốc thêm món **Best Sale** hoặc **Món Mới** khớp với "Sở thích Tag" của user.
-  4. **Giới hạn hiển thị:** Tối đa 10 món.
-- **Thiết kế Tag (Đặc quyền):** *"Đã gọi 3 lần"* / *"Bạn thích chua cay"* (v.v.).
+- [menu_content_vs_display_configuration.md](./menu_content_vs_display_configuration.md)
 
-### 2. Module "Combo tiết kiệm" (Value Combos)
-- **Định nghĩa:** Tập hợp chung nhiều món được bán giảm giá so với mua lẻ.
-- **Thiết kế Tag (Đặc quyền):** *"Tiết kiệm xx.000đ"*.
+## Quyết Định Mới
 
-### 3. Module "Siêu phẩm bán chạy" (Best Sellers)
-- **Nguồn Dữ liệu linh hoạt:** Phương thức cấp dữ liệu có thể thiết lập:
-  - **Tự động:** Đẩy Data lên dựa theo lượt bán thực tế ghi nhận trên Database.
-  - **Chỉnh tay:** Chủ quán chủ động dán nhãn thủ công các món ưu tiên để thúc đẩy sale.
-- **Thiết kế Tag (Đặc quyền):** *"Đã bán xxx"* / *"Đang hot"*.
+Không còn coi `Flash Sale`, `Combo Tiết Kiệm`, `Món Bán Chạy`, `Danh Mục Tuỳ Chỉnh`, `Menu Chính` là các module có vai trò dữ liệu riêng.
 
-### 4. Module Custom Category (Danh mục tuỳ chỉnh)
-- **Định nghĩa:** Cụm module linh động nhất, nơi Chủ quán được quyền tự tạo, tự gom nhóm món ăn và **TỰ ĐẶT TÊN** danh mục (Ví dụ: Menu mùa hè, Set trưa đồng giá...).
-- **Giao diện:** Thiết kế trung tính (Neutral), kế thừa hệ style grid, không bị khóa cứng logic badge/tag hệ thống.
+Tất cả được quy về một cấu trúc chung:
 
----
+```ts
+type MenuDisplayGroup = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isEnabled: boolean;
 
-### 5. Module: "Menu Chính" (Core Menu Grid)
-- **Cố định Tuyệt đối:** Chứa toàn thể cấu trúc nhóm món ăn của nhà hàng, luôn luôn bị "khóa cứng" ở vị trí **DƯỚI CÙNG** (Anchor Bottom).
-- **Tuyệt đối không:** Không thể kéo thả Module này lên phía trên 4 nhóm Module Recommendation (đề xuất) ở bề mặt trên.
+  sourceType: 'native_category' | 'custom_group';
+  sourceCategoryId?: string;
 
-## Tổng kết Điểm mù (Review Note)
-Tôi đã hiểu toàn bộ logic yêu cầu:
-1. **Khóa 5:** Nhóm Menu gốc luôn nằm cố định để chốt hậu phương.
-2. **Kéo thả 1-2-3-4:** 4 phần trên hoàn toàn Free-form (tùy ý chủ quán dời đổi thứ tự lên xuống, bật tắt).
-3. **Module 1, 2, 3 "V.I.P":** Đã được dựng giao diện (UI) sẵn và mapping 1:1 với hệ thống Badge logic (Gắn cờ Tag theo thuật toán/Số liệu chứ không phải Badge tự gõ text thô).
+  isSpecial: boolean;
+  displayStyle?: 'default' | 'highlight' | 'hero' | 'compact';
+  backgroundImageUrl?: string;
+
+  isCountdown: boolean;
+  countdownText?: string;
+
+  scheduleSlots: MenuDisplaySlot[];
+};
+```
+
+Trong đó:
+
+- Nhóm gốc trong thực đơn cũng có thể được đưa vào cấu hình hiển thị.
+- Nhóm tự tạo cũng chỉ là một `MenuDisplayGroup`.
+- Nhóm đặc biệt không phải entity riêng; nó là `isSpecial = true`.
+- Countdown là thuộc tính hiển thị của group, đếm ngược theo `endTime` của slot đang active.
+- Giảm giá không nằm trong group; giảm giá thuộc Promotion/Campaign riêng.
+- `Dành cho bạn` không thuộc cấu trúc này; đây là tính năng phụ fixed-top, chỉ có bật/tắt.
+
+## Trách Nhiệm Của Cấu Hình Hiển Thị
+
+Cấu hình hiển thị chỉ quản lý presentation:
+
+- nhóm nào xuất hiện trên menu khách;
+- thứ tự các nhóm;
+- nhóm đang bật hay tắt;
+- nhóm thường hay nhóm đặc biệt;
+- style/background của nhóm đặc biệt;
+- lịch hiển thị theo ngày/giờ/thứ;
+- danh sách món được đưa vào từng khung giờ;
+- countdown của group.
+
+Nó không sửa dữ liệu gốc của món.
+
+## Trách Nhiệm Không Thuộc Cấu Hình Hiển Thị
+
+Không đặt các phần sau trong cấu hình hiển thị:
+
+- sửa tên món;
+- sửa ảnh món;
+- sửa mô tả món;
+- sửa giá mặc định;
+- tạo/sửa category gốc;
+- POS mapping;
+- đồng bộ POS;
+- campaign giảm giá;
+- số lượng/tồn kho thật.
+
+Các phần này thuộc:
+
+- **Thực đơn**: nội dung món, nhóm gốc, dữ liệu POS.
+- **Promotion**: giá giảm, chiến dịch sale, giới hạn số suất nếu là ưu đãi.
+
+## Luồng Render
+
+Storefront render theo thứ tự:
+
+1. Load thực đơn gốc.
+2. Load cấu hình hiển thị.
+3. Load promotion active.
+4. Nếu `Dành cho bạn` đang bật và khách có lịch sử, render block cá nhân hoá đầu tiên.
+5. Với từng `MenuDisplayGroup`, tìm slot đang active.
+6. Lấy `itemIds` trong slot, join sang thực đơn gốc.
+7. Áp promotion nếu có.
+8. Nếu còn món hợp lệ thì render group.
+9. Nếu `isSpecial = true`, dùng style đặc biệt.
+10. Nếu `isCountdown = true`, hiển thị countdown tới giờ kết thúc của slot active.
+
+## Migration Từ Model Cũ
+
+Các module cũ được migrate mềm như sau:
+
+- `menu-grid` -> các group source từ category gốc.
+- `custom` -> custom `MenuDisplayGroup`.
+- `combo` -> custom `MenuDisplayGroup` có style đặc biệt nếu cần.
+- `best-sale` -> custom `MenuDisplayGroup` hoặc group auto-generated từ analytics trong phase sau.
+- `flash-sale` -> custom `MenuDisplayGroup` có `isSpecial = true`, `isCountdown = true`; giá sale chuyển sang Promotion.
+- `for-you` -> tính năng phụ `Dành cho bạn`, không migrate thành `MenuDisplayGroup`.
+
+Mục tiêu là admin chỉ cần hiểu một mô hình:
+
+> Tạo nhóm, chọn món, đặt lịch, chọn cách hiển thị.
+
+Riêng `Dành cho bạn`, admin chỉ cần hiểu:
+
+> Bật lên thì hệ thống tự hiển thị món khách từng gọi ở đầu menu; tắt đi thì ẩn.

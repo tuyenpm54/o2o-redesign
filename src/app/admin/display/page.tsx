@@ -9,7 +9,7 @@ import { SurveyEditorInline, DEFAULT_SURVEY_CONFIG } from './SurveyEditorModal';
 import { IconDictionary } from '@/lib/icons';
 
 type OperatingModel = 'post-pay' | 'pre-pay-table' | 'pre-pay-counter';
-type ModuleType = 'menu-grid' | 'flash-sale' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'support-options' | 'checkout-auth' | 'custom' | 'bad-review-reasons' | 'payment-methods';
+type ModuleType = 'menu-groups' | 'menu-grid' | 'flash-sale' | 'for-you' | 'best-sale' | 'combo' | 'onboarding-wizard' | 'support-options' | 'checkout-auth' | 'custom' | 'bad-review-reasons' | 'payment-methods';
 
 interface StorefrontBlock {
     id: string;
@@ -26,8 +26,9 @@ interface StorefrontTemplate {
 }
 
 const MODULE_DEFINITIONS: Record<ModuleType, { name: string; description: string; category: 'layout' | 'action'; minTier?: 'FREE' | 'PRO' | 'PREMIUM'; supportedModels?: OperatingModel[] }> = {
+    'menu-groups': { name: 'Nhóm Hiển Thị Menu', description: 'Quản lý toàn bộ nhóm món trên menu: nhóm gốc, nhóm tự tạo và nhóm đặc biệt', category: 'layout', minTier: 'FREE' },
     'flash-sale': { name: 'Flash Sale / Ưu Đãi Giới Hạn', description: 'Đẩy món cần bán nhanh lên đầu menu trong một khung giờ nhất định', category: 'layout', minTier: 'PRO' },
-    'for-you': { name: 'Món Bạn Từng Gọi', description: 'Hiển thị tối đa 5 món khách đã từng gọi nhiều nhất (Chỉ On/Off)', category: 'layout', minTier: 'FREE' },
+    'for-you': { name: 'Dành Cho Bạn', description: 'Tự động hiển thị món khách từng gọi ở đầu menu khi có dữ liệu', category: 'action', minTier: 'FREE' },
     'combo': { name: 'Combo Tiết Kiệm', description: 'Hiển thị các gói combo giá tốt', category: 'layout', minTier: 'PRO' },
     'best-sale': { name: 'Siêu Phẩm Bán Chạy', description: 'Danh sách món bán chạy nhất', category: 'layout', minTier: 'PRO' },
     'custom': { name: 'Danh Mục Tuỳ Chỉnh', description: 'Tự cấu hình danh mục riêng', category: 'layout', minTier: 'PRO' },
@@ -38,6 +39,13 @@ const MODULE_DEFINITIONS: Record<ModuleType, { name: string; description: string
     'bad-review-reasons': { name: 'Lý Do Đánh Giá Xấu', description: 'Cấu hình các lựa chọn tag khi khách hàng chọn sao thấp, phục vụ báo cáo nội bộ', category: 'action', minTier: 'PRO' },
     'payment-methods': { name: 'Phương Thức Thanh Toán', description: 'Bật/Tắt các cổng thanh toán cho phép khách trả trước khi gọi món', category: 'action', minTier: 'FREE', supportedModels: ['pre-pay-table', 'pre-pay-counter'] }
 };
+
+const ACTION_GROUPS: Array<{ title: string; types: ModuleType[] }> = [
+    { title: 'Tự động gợi ý', types: ['for-you', 'onboarding-wizard'] },
+    { title: 'Hỗ trợ tại bàn', types: ['support-options'] },
+    { title: 'Thanh toán & đăng nhập', types: ['checkout-auth', 'payment-methods'] },
+    { title: 'Đánh giá sau bữa ăn', types: ['bad-review-reasons'] }
+];
 
 const createDefaultFlashSaleBlock = (): StorefrontBlock => ({
     id: 'b0',
@@ -72,11 +80,6 @@ const createDefaultFlashSaleCampaign = (index = 1) => ({
 });
 
 const normalizeRunMode = (runMode?: string) => runMode === 'weekly' ? 'weekly' : runMode === 'once' ? 'once' : 'daily';
-
-const ensureFlashSaleBlock = (incomingBlocks: StorefrontBlock[]) => {
-    if (incomingBlocks.some(block => block.type === 'flash-sale')) return incomingBlocks;
-    return [createDefaultFlashSaleBlock(), ...incomingBlocks];
-};
 
 const normalizeFlashSaleConfig = (config: any = {}) => {
     const legacyRunMode = config.runMode || (config.repeatMode === 'daily' ? 'daily' : 'once');
@@ -237,6 +240,185 @@ const getSchedulePreviewItems = (group: any, variant: 'flash-sale' | 'combo' | '
     });
 };
 
+const createDefaultDisplaySlot = (index = 1, itemIds: number[] = []) => ({
+    id: `slot_${Date.now()}_${index}`,
+    name: index === 1 ? 'Cả ngày' : `Khung giờ ${index}`,
+    isEnabled: true,
+    repeatMode: 'daily',
+    weekdays: [1, 2, 3, 4, 5, 6, 0],
+    startDate: new Date().toISOString().slice(0, 10),
+    startTime: '00:00',
+    endTime: '23:59',
+    specialDatesText: '',
+    itemIds
+});
+
+const createNativeMenuDisplayGroup = (category: string, order: number, allMenuItems: any[]) => ({
+    id: `native_${category.toLowerCase().replace(/\s+/g, '_')}`,
+    name: category,
+    order,
+    isEnabled: true,
+    sourceType: 'native',
+    sourceCategory: category,
+    isSpecial: false,
+    isHighlight: false,
+    backgroundImg: '',
+    isCountdown: false,
+    countdownLabel: 'Kết thúc sau',
+    scheduleSlots: [createDefaultDisplaySlot(1, allMenuItems.filter(item => item.category === category).map(item => item.id))]
+});
+
+const createCustomMenuDisplayGroup = (index: number) => ({
+    id: `custom_group_${Date.now()}_${index}`,
+    name: `Nhóm hiển thị ${index}`,
+    order: index,
+    isEnabled: true,
+    sourceType: 'custom',
+    isSpecial: true,
+    isHighlight: true,
+    backgroundImg: '',
+    isCountdown: false,
+    countdownLabel: 'Kết thúc sau',
+    scheduleSlots: [createDefaultDisplaySlot(1, [])]
+});
+
+const normalizeDisplaySlot = (slot: any, index: number) => ({
+    ...createDefaultDisplaySlot(index + 1, []),
+    ...slot,
+    id: slot?.id || `slot_${index + 1}`,
+    name: slot?.name || `Khung giờ ${index + 1}`,
+    isEnabled: slot?.isEnabled !== false,
+    repeatMode: normalizeRunMode(slot?.repeatMode || slot?.runMode),
+    weekdays: slot?.weekdays || [1, 2, 3, 4, 5, 6, 0],
+    itemIds: slot?.itemIds || []
+});
+
+const normalizeMenuDisplayGroupsConfig = (config: any = {}, allMenuItems: any[] = []) => {
+    const nativeCategories = Array.from(new Set(allMenuItems.map(item => item.category).filter(Boolean)));
+    const existingGroups = Array.isArray(config.groups) ? config.groups : [];
+    const normalizedGroups = existingGroups.map((group: any, index: number) => ({
+        ...group,
+        id: group.id || `group_${index + 1}`,
+        name: group.name || `Nhóm ${index + 1}`,
+        order: Number.isFinite(Number(group.order)) ? Number(group.order) : index + 1,
+        isEnabled: group.isEnabled !== false,
+        sourceType: group.sourceType || 'custom',
+        isSpecial: group.isSpecial === true,
+        isHighlight: group.isHighlight ?? group.isSpecial === true,
+        backgroundImg: group.backgroundImg || '',
+        isCountdown: group.isCountdown === true,
+        countdownLabel: group.countdownLabel || 'Kết thúc sau',
+        scheduleSlots: (Array.isArray(group.scheduleSlots) && group.scheduleSlots.length > 0 ? group.scheduleSlots : [createDefaultDisplaySlot(1, [])]).map(normalizeDisplaySlot)
+    }));
+    const existingNative = new Set(normalizedGroups.filter((group: any) => group.sourceType === 'native').map((group: any) => group.sourceCategory || group.name));
+    const missingNativeGroups = nativeCategories
+        .filter(category => !existingNative.has(category))
+        .map((category, index) => createNativeMenuDisplayGroup(category, normalizedGroups.length + index + 1, allMenuItems));
+    return {
+        ...config,
+        isEnabled: config.isEnabled !== false,
+        groups: [...normalizedGroups, ...missingNativeGroups].sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0))
+    };
+};
+
+const createDefaultMenuGroupsBlock = (allMenuItems: any[] = []): StorefrontBlock => ({
+    id: 'menu-groups',
+    type: 'menu-groups',
+    title: 'Nhóm Hiển Thị Menu',
+    config: normalizeMenuDisplayGroupsConfig({ isEnabled: true, groups: [] }, allMenuItems)
+});
+
+const migrateLegacyBlocksToMenuGroups = (incomingBlocks: StorefrontBlock[], allMenuItems: any[] = []) => {
+    const deprecatedTypes = new Set(['flash-sale', 'combo', 'best-sale', 'custom', 'menu-grid']);
+    const existing = incomingBlocks.find(block => block.type === 'menu-groups');
+    if (existing) {
+        const normalizedMenuGroups = { ...existing, config: normalizeMenuDisplayGroupsConfig(existing.config, allMenuItems) };
+        return [normalizedMenuGroups, ...incomingBlocks.filter(block => block.type !== 'menu-groups' && !deprecatedTypes.has(block.type))];
+    }
+
+    const groups: any[] = [];
+    const nativeCategories = Array.from(new Set(allMenuItems.map(item => item.category).filter(Boolean)));
+    nativeCategories.forEach((category, index) => groups.push(createNativeMenuDisplayGroup(category, index + 1, allMenuItems)));
+
+    const flashBlock = incomingBlocks.find(block => block.type === 'flash-sale');
+    if (flashBlock) {
+        const flashConfig = normalizeFlashSaleConfig(flashBlock.config);
+        const scheduleSlots = (flashConfig.campaigns || []).map((campaign: any, index: number) => normalizeDisplaySlot({
+                id: campaign.id,
+                name: campaign.name,
+                isEnabled: campaign.isEnabled,
+                repeatMode: campaign.runMode,
+                weekdays: campaign.weekdays,
+                startDate: campaign.startDate,
+                startTime: campaign.startTime,
+                endTime: campaign.endTime,
+                itemIds: (campaign.items || []).map((item: any) => item.itemId)
+            }, index));
+        if (scheduleSlots.some((slot: any) => (slot.itemIds || []).length > 0)) {
+            groups.unshift({
+                id: 'legacy_flash_sale',
+                name: flashBlock.title || flashConfig.displayTitle || 'Ưu đãi giới hạn',
+                order: 0,
+                isEnabled: flashBlock.config?.isEnabled !== false,
+                sourceType: 'custom',
+                isSpecial: true,
+                isHighlight: true,
+                backgroundImg: flashConfig.backgroundImg || '',
+                isCountdown: flashConfig.showCountdown !== false,
+                countdownLabel: 'Kết thúc sau',
+                scheduleSlots
+            });
+        }
+    }
+
+    (['combo', 'best-sale'] as ModuleType[]).forEach(type => {
+        const legacyBlock = incomingBlocks.find(block => block.type === type);
+        if (!legacyBlock) return;
+        const scheduledConfig = normalizeScheduledGroupConfig(legacyBlock.config, type);
+        const scheduleSlots = (scheduledConfig.scheduleGroups || []).map((group: any, index: number) => normalizeDisplaySlot(group, index));
+        if (!scheduleSlots.some((slot: any) => (slot.itemIds || []).length > 0)) return;
+        groups.push({
+            id: `legacy_${type}`,
+            name: legacyBlock.title || (type === 'combo' ? 'Combo Tiết Kiệm' : 'Siêu Phẩm Bán Chạy'),
+            order: groups.length + 1,
+            isEnabled: legacyBlock.config?.isEnabled !== false,
+            sourceType: 'custom',
+            isSpecial: true,
+            isHighlight: type === 'combo',
+            backgroundImg: '',
+            isCountdown: false,
+            countdownLabel: 'Kết thúc sau',
+            scheduleSlots
+        });
+    });
+
+    incomingBlocks.filter(block => block.type === 'custom').forEach((block, index) => {
+        const itemIds = allMenuItems.filter(item => item.category === block.config?.groupName).map(item => item.id);
+        if (itemIds.length === 0) return;
+        groups.push({
+            id: block.id,
+            name: block.config?.groupName || block.title || `Nhóm tuỳ chỉnh ${index + 1}`,
+            order: groups.length + 1,
+            isEnabled: block.config?.isEnabled !== false,
+            sourceType: 'custom',
+            isSpecial: true,
+            isHighlight: false,
+            backgroundImg: '',
+            isCountdown: false,
+            countdownLabel: 'Kết thúc sau',
+            scheduleSlots: [createDefaultDisplaySlot(1, itemIds)]
+        });
+    });
+
+    const menuGroupsBlock: StorefrontBlock = {
+        id: 'menu-groups',
+        type: 'menu-groups',
+        title: 'Nhóm Hiển Thị Menu',
+        config: normalizeMenuDisplayGroupsConfig({ isEnabled: true, groups }, allMenuItems)
+    };
+    return [menuGroupsBlock, ...incomingBlocks.filter(block => !deprecatedTypes.has(block.type))];
+};
+
 const statusDotClass = (tone: string) => {
     if (tone === 'green') return 'bg-emerald-500';
     if (tone === 'red') return 'bg-rose-500';
@@ -278,12 +460,8 @@ const SYSTEM_TEMPLATES: StorefrontTemplate[] = [
         name: 'Mẫu Ăn Tại Bàn (Dining)',
         isSystem: true,
         blocks: [
-            createDefaultFlashSaleBlock(),
-            { id: 'b1', type: 'for-you', title: 'Món Bạn Từng Gọi', config: { isEnabled: true } },
-            { id: 'b2', type: 'combo', title: 'Combo Tiết Kiệm', config: { isEnabled: true, limit: 10, itemIds: [701, 702, 703, 704, 705, 706] } },
-            { id: 'b3', type: 'best-sale', title: 'Siêu Phẩm Bán Chạy', config: { isEnabled: true } },
-            { id: 'b4', type: 'custom', title: 'Danh Mục Tuỳ Chỉnh', config: { isEnabled: true, groupName: '' } },
-            { id: 'b5', type: 'menu-grid', title: 'Thực Đơn Mặc Định', config: {} }
+            createDefaultMenuGroupsBlock(),
+            { id: 'b1', type: 'for-you', title: 'Dành Cho Bạn', config: { isEnabled: true } },
         ]
     }
 ];
@@ -292,6 +470,16 @@ const isBlockValid = (block: StorefrontBlock): boolean => {
     const { type, config } = block;
     if (type === 'custom') {
         return !!config.groupName && config.groupName.trim() !== '';
+    }
+    if (type === 'menu-groups') {
+        const menuGroupsConfig = normalizeMenuDisplayGroupsConfig(config);
+        const enabledGroups = (menuGroupsConfig.groups || []).filter((group: any) => group.isEnabled !== false);
+        if (enabledGroups.length === 0) return false;
+        return enabledGroups.every((group: any) => {
+            if (!group.name?.trim()) return false;
+            const enabledSlots = (group.scheduleSlots || []).filter((slot: any) => slot.isEnabled !== false);
+            return enabledSlots.length > 0 && enabledSlots.some((slot: any) => (slot.itemIds || []).length > 0);
+        });
     }
     if (type === 'flash-sale') {
         const flashConfig = normalizeFlashSaleConfig(config);
@@ -709,6 +897,380 @@ function ScheduleGroupDrawer({
     return createPortal(drawer, document.body);
 }
 
+function MenuDisplayGroupDrawer({
+    open,
+    draft,
+    setDraft,
+    allMenuItems,
+    onClose,
+    onSave,
+    onDelete,
+    canDelete
+}: {
+    open: boolean;
+    draft: any;
+    setDraft: (draft: any) => void;
+    allMenuItems: any[];
+    onClose: () => void;
+    onSave: () => void;
+    onDelete?: () => void;
+    canDelete?: boolean;
+}) {
+    const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
+    if (!open || !draft || typeof document === 'undefined') return null;
+
+    const slots = draft.scheduleSlots || [];
+    const activeSlot = slots.find((slot: any) => slot.id === activeSlotId) || slots[0] || createDefaultDisplaySlot(1, []);
+    const selectedItems = allMenuItems.filter(item => (activeSlot.itemIds || []).map(String).includes(String(item.id)));
+    const updateDraft = (patch: any) => setDraft({ ...draft, ...patch });
+    const updateSlot = (slotId: string, patch: any) => updateDraft({
+        scheduleSlots: slots.map((slot: any) => slot.id === slotId ? { ...slot, ...patch } : slot)
+    });
+    const addSlot = () => {
+        const nextSlot = createDefaultDisplaySlot(slots.length + 1, []);
+        updateDraft({ scheduleSlots: [...slots, nextSlot] });
+        setActiveSlotId(nextSlot.id);
+    };
+    const deleteSlot = (slotId: string) => {
+        if (slots.length <= 1) return;
+        const nextSlots = slots.filter((slot: any) => slot.id !== slotId);
+        updateDraft({ scheduleSlots: nextSlots });
+        setActiveSlotId(nextSlots[0]?.id || null);
+    };
+    const addItemToSlot = (rawId: string) => {
+        const id = Number(rawId);
+        if (!id || (activeSlot.itemIds || []).map(Number).includes(id)) return;
+        updateSlot(activeSlot.id, { itemIds: [...(activeSlot.itemIds || []), id] });
+    };
+    const removeItemFromSlot = (id: number) => updateSlot(activeSlot.id, {
+        itemIds: (activeSlot.itemIds || []).filter((itemId: number) => Number(itemId) !== Number(id))
+    });
+
+    const drawer = (
+        <div className="fixed inset-0 z-[9999] flex justify-end bg-slate-950/30 backdrop-blur-sm" onMouseDown={onClose}>
+            <div className="h-full w-full max-w-[720px] bg-slate-50 dark:bg-[#07070b] shadow-2xl flex flex-col" onMouseDown={e => e.stopPropagation()}>
+                <div className="px-6 py-5 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-[#111116] flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Nhóm hiển thị menu</p>
+                        <h3 className="text-lg font-black text-slate-950 dark:text-white mt-1">{draft.name || 'Nhóm mới'}</h3>
+                    </div>
+                    <button onClick={onClose} className="h-9 w-9 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center cursor-pointer">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                    <section className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-4 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_160px] gap-3">
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Tên nhóm</label>
+                                <input value={draft.name || ''} onChange={(e) => updateDraft({ name: e.target.value })} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm font-bold" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Loại nhóm</label>
+                                <div className="h-[42px] flex items-center rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 text-sm font-bold text-slate-600 dark:text-slate-300">
+                                    {draft.sourceType === 'native' ? 'Nhóm gốc' : 'Tự tạo'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 cursor-pointer">
+                                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Đang bật</span>
+                                <input type="checkbox" checked={draft.isEnabled !== false} onChange={(e) => updateDraft({ isEnabled: e.target.checked })} className="h-4 w-4 accent-[#DF1B41]" />
+                            </label>
+                            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 cursor-pointer">
+                                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Nhóm đặc biệt</span>
+                                <input type="checkbox" checked={draft.isSpecial === true} onChange={(e) => updateDraft({ isSpecial: e.target.checked, isHighlight: e.target.checked ? true : draft.isHighlight })} className="h-4 w-4 accent-[#DF1B41]" />
+                            </label>
+                            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 cursor-pointer">
+                                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Countdown</span>
+                                <input type="checkbox" checked={draft.isCountdown === true} onChange={(e) => updateDraft({ isCountdown: e.target.checked })} className="h-4 w-4 accent-[#DF1B41]" />
+                            </label>
+                        </div>
+
+                        {draft.isSpecial && (
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Ảnh nền nhóm đặc biệt</label>
+                                <input value={draft.backgroundImg || ''} onChange={(e) => updateDraft({ backgroundImg: e.target.value })} placeholder="https://... hoặc /images/..." className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm" />
+                            </div>
+                        )}
+
+                        {draft.isCountdown && (
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Nhãn countdown</label>
+                                <input value={draft.countdownLabel || ''} onChange={(e) => updateDraft({ countdownLabel: e.target.value })} placeholder="VD: Kết thúc sau" className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm" />
+                            </div>
+                        )}
+                    </section>
+
+                    <section className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 overflow-hidden">
+                        <div className="flex items-center justify-between gap-3 p-4 border-b border-slate-100 dark:border-white/10">
+                            <div>
+                                <h4 className="text-sm font-black text-slate-900 dark:text-white">Khung giờ hiển thị</h4>
+                                <p className="text-xs text-slate-500 mt-0.5">Mỗi khung giờ có danh sách món riêng.</p>
+                            </div>
+                            <button onClick={addSlot} className="inline-flex items-center gap-1.5 rounded-lg bg-[#DF1B41] px-3 py-2 text-xs font-black text-white cursor-pointer hover:bg-[#c81739]">
+                                <Plus size={14} /> Tạo khung giờ
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] min-h-[420px]">
+                            <div className="border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] p-3 space-y-2">
+                                {slots.map((slot: any) => (
+                                    <button key={slot.id} onClick={() => setActiveSlotId(slot.id)} className={`w-full text-left rounded-xl border p-3 cursor-pointer transition-colors ${activeSlot.id === slot.id ? 'bg-white dark:bg-white/10 border-[#DF1B41]/30 shadow-sm' : 'bg-white/70 dark:bg-black/20 border-slate-200 dark:border-white/10 hover:border-slate-300'}`}>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white truncate">{slot.name}</p>
+                                        <p className="text-[11px] font-semibold text-slate-500 mt-1">{describeSchedule({ ...slot, runMode: slot.repeatMode })}</p>
+                                        <p className="text-[11px] font-bold text-slate-400 mt-2">{(slot.itemIds || []).length} món</p>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="p-4 space-y-4">
+                                <div className="flex items-start justify-between gap-3">
+                                    <input value={activeSlot.name || ''} onChange={(e) => updateSlot(activeSlot.id, { name: e.target.value })} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm font-bold" />
+                                    <button onClick={() => deleteSlot(activeSlot.id)} disabled={slots.length <= 1} className="h-[42px] w-[42px] rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+
+                                <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 cursor-pointer">
+                                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Khung giờ đang bật</span>
+                                    <input type="checkbox" checked={activeSlot.isEnabled !== false} onChange={(e) => updateSlot(activeSlot.id, { isEnabled: e.target.checked })} className="h-4 w-4 accent-[#DF1B41]" />
+                                </label>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Lặp lại</label>
+                                        <select value={activeSlot.repeatMode || 'daily'} onChange={(e) => updateSlot(activeSlot.id, { repeatMode: e.target.value })} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm">
+                                            <option value="daily">Hằng ngày</option>
+                                            <option value="weekly">Chọn thứ</option>
+                                            <option value="once">Một lần</option>
+                                        </select>
+                                    </div>
+                                    {activeSlot.repeatMode === 'once' && (
+                                        <div>
+                                            <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Ngày chạy</label>
+                                            <input type="date" value={activeSlot.startDate || ''} onChange={(e) => updateSlot(activeSlot.id, { startDate: e.target.value })} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Bắt đầu</label>
+                                        <input type="time" value={activeSlot.startTime || ''} onChange={(e) => updateSlot(activeSlot.id, { startTime: e.target.value })} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Kết thúc</label>
+                                        <input type="time" value={activeSlot.endTime || ''} onChange={(e) => updateSlot(activeSlot.id, { endTime: e.target.value })} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm" />
+                                    </div>
+                                </div>
+
+                                {activeSlot.repeatMode === 'weekly' && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {WEEKDAY_LABELS.map(day => {
+                                            const selected = (activeSlot.weekdays || []).includes(day.id);
+                                            return (
+                                                <button key={day.id} onClick={() => {
+                                                    const current = activeSlot.weekdays || [];
+                                                    updateSlot(activeSlot.id, { weekdays: selected ? current.filter((id: number) => id !== day.id) : [...current, day.id] });
+                                                }} className={`px-3 py-2 rounded-lg text-xs font-black border cursor-pointer ${selected ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-950 dark:border-white' : 'bg-white dark:bg-black/20 border-slate-200 dark:border-white/10 text-slate-500'}`}>
+                                                    {day.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <details className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3">
+                                    <summary className="cursor-pointer text-xs font-black text-slate-500 uppercase tracking-wider">Ngày đặc biệt / Exception</summary>
+                                    <textarea value={activeSlot.specialDatesText || ''} onChange={(e) => updateSlot(activeSlot.id, { specialDatesText: e.target.value })} rows={2} className="mt-3 w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm resize-none" placeholder="VD: 2026-09-02: dùng danh sách món riêng" />
+                                </details>
+
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Chọn món hiển thị ({selectedItems.length})</label>
+                                    <select onChange={(e) => { addItemToSlot(e.target.value); e.target.value = ''; }} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 text-sm">
+                                        <option value="">-- Tìm món trong thực đơn --</option>
+                                        {allMenuItems.filter(item => !(activeSlot.itemIds || []).map(String).includes(String(item.id))).map(item => (
+                                            <option key={item.id} value={item.id}>{item.name} - {item.category}</option>
+                                        ))}
+                                    </select>
+                                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {selectedItems.map(item => (
+                                            <div key={item.id} className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-2">
+                                                <div className="h-10 w-10 shrink-0 rounded-lg overflow-hidden bg-slate-100 dark:bg-white/10">
+                                                    {item.img ? <img src={item.img} alt="" className="h-full w-full object-cover" /> : null}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">{item.name}</p>
+                                                    <p className="text-[11px] text-slate-400 truncate">{item.category}</p>
+                                                </div>
+                                                <button onClick={() => removeItemFromSlot(item.id)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center justify-center cursor-pointer">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {selectedItems.length === 0 && <div className="col-span-full rounded-xl border border-dashed border-slate-200 dark:border-white/10 p-6 text-center text-sm text-slate-400">Chưa chọn món cho khung giờ này.</div>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div className="border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#111116] px-6 py-4 flex items-center justify-between gap-3">
+                    <div>
+                        {onDelete && canDelete && (
+                            <button onClick={onDelete} className="text-sm font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-3 py-2 rounded-lg cursor-pointer">Xóa nhóm</button>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer">Huỷ</button>
+                        <button onClick={onSave} className="px-4 py-2 rounded-lg bg-[#DF1B41] text-white text-sm font-black hover:bg-[#c81739] cursor-pointer">Lưu nhóm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    return createPortal(drawer, document.body);
+}
+
+function MenuGroupsConfigForm({ config, onChange, allMenuItems }: { config: any; onChange: (newConfig: any) => void; allMenuItems: any[] }) {
+    const normalized = normalizeMenuDisplayGroupsConfig(config, allMenuItems);
+    const groups = normalized.groups || [];
+    const [drawerState, setDrawerState] = useState<{ mode: 'create' | 'edit'; draft: any } | null>(null);
+    const updateGroups = (nextGroups: any[]) => onChange({
+        ...normalized,
+        groups: nextGroups.map((group, index) => ({ ...group, order: index + 1 }))
+    });
+    const openCreate = () => setDrawerState({ mode: 'create', draft: createCustomMenuDisplayGroup(groups.length + 1) });
+    const openEdit = (group: any) => setDrawerState({ mode: 'edit', draft: JSON.parse(JSON.stringify(group)) });
+    const saveDrawer = () => {
+        if (!drawerState) return;
+        const draft = drawerState.draft;
+        updateGroups(drawerState.mode === 'create'
+            ? [...groups, draft]
+            : groups.map((group: any) => group.id === draft.id ? draft : group));
+        setDrawerState(null);
+    };
+    const deleteGroup = (groupId: string) => {
+        updateGroups(groups.filter((group: any) => group.id !== groupId));
+        if (drawerState?.draft?.id === groupId) setDrawerState(null);
+    };
+    const moveGroup = (groupId: string, direction: 'up' | 'down') => {
+        const idx = groups.findIndex((group: any) => group.id === groupId);
+        const target = direction === 'up' ? idx - 1 : idx + 1;
+        if (idx < 0 || target < 0 || target >= groups.length) return;
+        const next = [...groups];
+        [next[idx], next[target]] = [next[target], next[idx]];
+        updateGroups(next);
+    };
+    const getGroupPreview = (group: any) => {
+        const firstSlot = (group.scheduleSlots || [])[0];
+        const ids = (firstSlot?.itemIds || []).map(String);
+        return allMenuItems.filter(item => ids.includes(String(item.id))).slice(0, 6);
+    };
+
+    const activeGroups = groups.filter((group: any) => group.isEnabled !== false).length;
+    const specialGroups = groups.filter((group: any) => group.isSpecial).length;
+    const issueGroups = groups.filter((group: any) => !group.name?.trim() || !(group.scheduleSlots || []).some((slot: any) => (slot.itemIds || []).length > 0)).length;
+
+    return (
+        <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                    ['Đang bật', activeGroups],
+                    ['Nhóm đặc biệt', specialGroups],
+                    ['Cần cấu hình', issueGroups]
+                ].map(([label, value]) => (
+                    <div key={String(label)} className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-3">
+                        <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">{label}</p>
+                        <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{String(value)}</p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-slate-100 dark:border-white/10">
+                    <div>
+                        <h5 className="text-sm font-black text-slate-900 dark:text-white">Danh sách nhóm trên menu</h5>
+                        <p className="text-xs text-slate-500 mt-0.5">Nhóm gốc và nhóm tự tạo dùng chung một cấu trúc hiển thị.</p>
+                    </div>
+                    <button onClick={openCreate} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DF1B41] text-white hover:bg-[#c81739] rounded-lg text-xs font-black transition-colors cursor-pointer">
+                        <Plus size={14} /> Tạo nhóm mới
+                    </button>
+                </div>
+
+                <div className="space-y-3 bg-slate-50/80 dark:bg-white/[0.02] p-4">
+                    {groups.map((group: any, index: number) => {
+                        const preview = getGroupPreview(group);
+                        const slotCount = (group.scheduleSlots || []).length;
+                        const firstSlot = (group.scheduleSlots || [])[0];
+                        return (
+                            <div key={group.id} className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 p-4 shadow-sm">
+                                <div className="flex flex-wrap items-start justify-between gap-4">
+                                    <div className="flex min-w-0 items-start gap-3">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className="h-7 w-7 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 flex items-center justify-center text-xs font-black text-slate-500">{index + 1}</span>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => moveGroup(group.id, 'up')} disabled={index === 0} className="text-slate-300 hover:text-slate-700 disabled:opacity-20 cursor-pointer"><ChevronUp size={13} /></button>
+                                                <button onClick={() => moveGroup(group.id, 'down')} disabled={index === groups.length - 1} className="text-slate-300 hover:text-slate-700 disabled:opacity-20 cursor-pointer"><ChevronDown size={13} /></button>
+                                            </div>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h4 className="text-sm font-black text-slate-950 dark:text-white">{group.name}</h4>
+                                                <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-500">{group.sourceType === 'native' ? 'Gốc' : 'Tự tạo'}</span>
+                                                {group.isSpecial && <span className="rounded-full bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-300">Đặc biệt</span>}
+                                                {group.isCountdown && <span className="rounded-full bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">Countdown</span>}
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-1">{slotCount} khung giờ · {describeSchedule({ ...firstSlot, runMode: firstSlot?.repeatMode })}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
+                                            <input type="checkbox" checked={group.isEnabled !== false} onChange={(e) => updateGroups(groups.map((item: any) => item.id === group.id ? { ...item, isEnabled: e.target.checked } : item))} className="h-4 w-4 accent-[#DF1B41]" />
+                                            Bật
+                                        </label>
+                                        <button onClick={() => openEdit(group)} className="h-9 rounded-lg px-3 text-xs font-black text-slate-700 transition-colors hover:bg-rose-50 hover:text-[#DF1B41] dark:text-slate-300 dark:hover:bg-rose-500/10 cursor-pointer">Sửa</button>
+                                        {group.sourceType !== 'native' && (
+                                            <button onClick={() => deleteGroup(group.id)} className="h-9 w-9 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center justify-center cursor-pointer">
+                                                <Trash2 size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 flex gap-2 overflow-x-auto hidden-scroll">
+                                    {preview.map(item => (
+                                        <div key={item.id} className="w-[140px] shrink-0 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 overflow-hidden">
+                                            <div className="aspect-[5/3] bg-slate-100 dark:bg-white/10">
+                                                {item.img ? <img src={item.img} alt="" className="h-full w-full object-cover" /> : null}
+                                            </div>
+                                            <p className="line-clamp-2 p-2 text-[11px] font-black leading-snug text-slate-800 dark:text-slate-100">{item.name}</p>
+                                        </div>
+                                    ))}
+                                    {preview.length === 0 && <div className="rounded-xl border border-dashed border-slate-200 dark:border-white/10 px-4 py-3 text-xs font-semibold text-slate-400">Chưa có món trong khung giờ đầu tiên.</div>}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <MenuDisplayGroupDrawer
+                open={!!drawerState}
+                draft={drawerState?.draft}
+                setDraft={(draft) => setDrawerState(prev => prev ? { ...prev, draft } : prev)}
+                allMenuItems={allMenuItems}
+                onClose={() => setDrawerState(null)}
+                onSave={saveDrawer}
+                onDelete={drawerState?.draft ? () => deleteGroup(drawerState.draft.id) : undefined}
+                canDelete={drawerState?.draft?.sourceType !== 'native'}
+            />
+        </div>
+    );
+}
+
 function ModuleConfigForm({ block, onChange, allMenuItems = [], restaurantInfo, showToast }: { block: StorefrontBlock, onChange: (newConfig: any) => void, allMenuItems?: any[], restaurantInfo?: any, showToast?: (msg: string, type: 'success'|'error'|'info') => void }) {
     const { type, config } = block;
     const [previewStyle, setPreviewStyle] = useState<'v1' | 'v2' | null>(null);
@@ -716,6 +1278,10 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [], restaurantInfo, 
     const [selectedFlashCampaignId, setSelectedFlashCampaignId] = useState<string | null>(null);
     const [selectedScheduleGroupId, setSelectedScheduleGroupId] = useState<string | null>(null);
     const [scheduleDrawer, setScheduleDrawer] = useState<{ variant: 'flash-sale' | 'combo' | 'best-sale'; mode: 'create' | 'edit'; draft: any } | null>(null);
+
+    if (type === 'menu-groups') {
+        return <MenuGroupsConfigForm config={config} onChange={onChange} allMenuItems={allMenuItems} />;
+    }
 
     if (type === 'flash-sale') {
         {
@@ -1184,8 +1750,8 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [], restaurantInfo, 
                 <div className="text-sm text-slate-500 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 flex items-start gap-3">
                     <div className="mt-0.5 text-blue-500"><Settings2 size={16} /></div>
                     <div>
-                        <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Module Tự Động (Lịch Sử Gọi Món)</p>
-                        Khối nội dung này được hệ thống tự động lọc các món khách đã từng gọi trong quá khứ, sắp xếp theo số lượng gọi nhiều nhất. Khối sẽ tự ẩn nếu khách chưa có lịch sử.
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Tính năng tự động ở đầu menu</p>
+                        Khi bật, hệ thống tự đưa nhóm món khách từng gọi lên trên cùng menu. Chủ quán chỉ cần bật/tắt; nội dung được lấy từ lịch sử gọi món và tự ẩn nếu khách chưa có dữ liệu.
                     </div>
                 </div>
             </div>
@@ -1529,21 +2095,25 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [], restaurantInfo, 
                     <div 
                         onClick={() => onChange({ ...config, wizardStyle: 'v1' })}
                         className={`cursor-pointer rounded-xl border p-3 flex flex-col gap-3 transition-all ${wizardStyle === 'v1' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-white/10 opacity-70'}`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 flex items-center justify-center text-lg">📋</div>
-                            <div className="font-bold text-sm">Dạng Danh Sách (V1)</div>
-                        </div>
+	                    >
+	                        <div className="flex items-center gap-3">
+	                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                                    <LayoutTemplate size={16} />
+                                </div>
+	                            <div className="font-bold text-sm">Dạng Danh Sách (V1)</div>
+	                        </div>
                         <button onClick={(e) => { e.stopPropagation(); setPreviewStyle('v1'); }} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1 uppercase tracking-wider"><Eye size={12} /> Xem thử</button>
                     </div>
                     <div 
                         onClick={() => onChange({ ...config, wizardStyle: 'v2' })}
                         className={`cursor-pointer rounded-xl border p-3 flex flex-col gap-3 transition-all ${wizardStyle === 'v2' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-white/10 opacity-70'}`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 flex items-center justify-center text-lg">✨</div>
-                            <div className="font-bold text-sm">Dạng Lookbook (V2)</div>
-                        </div>
+	                    >
+	                        <div className="flex items-center gap-3">
+	                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                                    <MonitorSmartphone size={16} />
+                                </div>
+	                            <div className="font-bold text-sm">Dạng Lookbook (V2)</div>
+	                        </div>
                         <button onClick={(e) => { e.stopPropagation(); setPreviewStyle('v2'); }} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1 uppercase tracking-wider"><Eye size={12} /> Xem thử</button>
                     </div>
                 </div>
@@ -1626,14 +2196,15 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [], restaurantInfo, 
                         <div className="text-[11px] text-amber-500 font-medium">Đã đạt giới hạn tối đa</div>
                     )}
                 </div>
-                <div className="space-y-3">
-                    {options.map((opt: any) => {
-                        const IconComp = IconDictionary[opt.icon] || IconDictionary['HelpCircle'];
-                        return (
-                            <div key={opt.id} className="flex items-center gap-3 p-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl relative hover:border-slate-300 transition-all group shadow-sm hover:shadow-md">
-                                <button onClick={() => setIconPickerOpenForId(iconPickerOpenForId === opt.id ? null : opt.id)} className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10 hover:bg-slate-100 transition-colors text-slate-600 dark:text-slate-400">
-                                    <IconComp size={18} />
-                                </button>
+	                <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/20 shadow-sm overflow-visible">
+	                    {options.map((opt: any) => {
+	                        const IconComp = IconDictionary[opt.icon] || IconDictionary['HelpCircle'];
+                            const actionType = opt.actionType || 'normal';
+	                        return (
+	                            <div key={opt.id} className="flex items-center gap-3 p-3 relative group border-b border-slate-100 last:border-b-0 dark:border-white/5 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors">
+	                                <button onClick={() => setIconPickerOpenForId(iconPickerOpenForId === opt.id ? null : opt.id)} className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors text-slate-600 dark:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DF1B41]/30" title="Đổi icon">
+	                                    <IconComp size={18} />
+	                                </button>
                                 {iconPickerOpenForId === opt.id && (
                                     <div className="absolute top-14 left-0 w-64 p-3 bg-white dark:bg-[#1A1D27] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl z-50 grid grid-cols-6 gap-1">
                                         {Object.keys(IconDictionary).slice(0, 30).map(k => (
@@ -1644,27 +2215,34 @@ function ModuleConfigForm({ block, onChange, allMenuItems = [], restaurantInfo, 
                                     </div>
                                 )}
                                 
-                                <div className="flex-1 flex flex-col gap-2 min-w-0">
-                                    <input 
-                                        type="text" 
-                                        value={opt.label} 
-                                        onChange={(e) => handleOptionChange(opt.id, 'label', e.target.value)} 
-                                        placeholder="Tên yêu cầu..."
-                                        className="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400" 
-                                    />
-                                    <select 
-                                        value={opt.actionType || 'normal'}
-                                        onChange={(e) => handleOptionChange(opt.id, 'actionType', e.target.value)}
-                                        className="text-xs bg-slate-50 border border-slate-200 rounded-md py-1 px-2 text-slate-600 outline-none w-fit font-medium hover:border-slate-300 cursor-pointer dark:bg-white/5 dark:border-white/10 dark:text-slate-300"
-                                    >
-                                        <option value="normal">Action: Gửi lên quán</option>
-                                        <option value="wifi">Action: Lấy mã Wifi</option>
-                                    </select>
-                                </div>
-                                <button onClick={() => onChange({ ...config, options: options.filter((o: any) => o.id !== opt.id) })} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg shrink-0 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></button>
-                            </div>
-                        );
-                    })}
+	                                <div className="flex-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 min-w-0">
+	                                    <input 
+	                                        type="text" 
+	                                        value={opt.label} 
+	                                        onChange={(e) => handleOptionChange(opt.id, 'label', e.target.value)} 
+	                                        placeholder="Tên yêu cầu..."
+	                                        className="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 focus-visible:ring-0" 
+	                                    />
+                                        <div className="inline-flex rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-1">
+                                            {[
+                                                { value: 'normal', label: 'Gửi yêu cầu' },
+                                                { value: 'wifi', label: 'Lấy mã Wifi' }
+                                            ].map(action => (
+                                                <button
+                                                    key={action.value}
+                                                    type="button"
+                                                    onClick={() => handleOptionChange(opt.id, 'actionType', action.value)}
+                                                    className={`px-2.5 py-1.5 rounded-md text-[11px] font-bold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DF1B41]/30 ${actionType === action.value ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                                                >
+                                                    {action.label}
+                                                </button>
+                                            ))}
+                                        </div>
+	                                </div>
+	                                <button onClick={() => onChange({ ...config, options: options.filter((o: any) => o.id !== opt.id) })} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/20" title="Xóa yêu cầu"><Trash2 size={16} /></button>
+	                            </div>
+	                        );
+	                    })}
                 </div>
             </div>
         );
@@ -1881,8 +2459,16 @@ export default function DisplayConfigPage() {
     useEffect(() => {
         const fetchDisplay = async () => {
             try {
-                const res = await fetch('/api/admin/display?resid=100');
+                const [res, resMenu] = await Promise.all([
+                    fetch('/api/admin/display?resid=100'),
+                    fetch('/api/restaurants/100')
+                ]);
                 const data = await res.json();
+                const menuData = await resMenu.json();
+                const menuItems = menuData?.menu?.items || [];
+                setAllMenuItems(menuItems);
+                setRestaurantInfo(menuData);
+
                 if (data.success) {
                     if (data.data.operating_model) {
                          const model = OPERATING_MODELS.find(m => m.id === data.data.operating_model);
@@ -1891,17 +2477,13 @@ export default function DisplayConfigPage() {
                          }
                     }
                     if (data.data.draft && data.data.draft.length > 0) {
-                        setBlocks(ensureFlashSaleBlock(data.data.draft));
+                        setBlocks(migrateLegacyBlocksToMenuGroups(data.data.draft, menuItems));
                         setActiveTemplateId('custom-db');
                     } else {
-                        setBlocks(ensureFlashSaleBlock(SYSTEM_TEMPLATES[0].blocks));
+                        setBlocks(migrateLegacyBlocksToMenuGroups(SYSTEM_TEMPLATES[0].blocks, menuItems));
                         setActiveTemplateId(SYSTEM_TEMPLATES[0].id);
                     }
                 }
-                const resMenu = await fetch('/api/restaurants/100');
-                const menuData = await resMenu.json();
-                if (menuData?.menu?.items) setAllMenuItems(menuData.menu.items);
-                setRestaurantInfo(menuData);
             } catch (error) { 
                 console.error(error); 
             } finally {
@@ -1936,18 +2518,20 @@ export default function DisplayConfigPage() {
         const newBlocks = [...blocks];
         const targetIndex = direction === 'up' ? index - 1 : index + 1;
         if (targetIndex < 0 || targetIndex >= newBlocks.length) return;
-        if (newBlocks[targetIndex].type === 'menu-grid') return;
+        if (newBlocks[targetIndex].type === 'menu-groups') return;
         [newBlocks[index], newBlocks[targetIndex]] = [newBlocks[targetIndex], newBlocks[index]];
         setBlocks(newBlocks);
     };
 
     const handleAddBlock = (type: ModuleType) => {
-        const newBlock = type === 'flash-sale'
+        const newBlock = type === 'menu-groups'
+            ? { ...createDefaultMenuGroupsBlock(allMenuItems), id: 'block-' + Date.now() }
+            : type === 'flash-sale'
             ? { ...createDefaultFlashSaleBlock(), id: 'block-' + Date.now() }
             : { id: 'block-' + Date.now(), type, title: MODULE_DEFINITIONS[type].name, config: {} };
-        const menuIdx = blocks.findIndex(b => b.type === 'menu-grid');
+        const menuIdx = blocks.findIndex(b => b.type === 'menu-groups');
         const newBlocks = [...blocks];
-        if (menuIdx !== -1) newBlocks.splice(menuIdx, 0, newBlock); else newBlocks.push(newBlock);
+        if (menuIdx !== -1 && type !== 'menu-groups') newBlocks.splice(menuIdx, 0, newBlock); else newBlocks.push(newBlock);
         setBlocks(newBlocks);
         setIsAddBlockModalOpen(false);
         setEditingBlockId(newBlock.id);
@@ -2069,7 +2653,7 @@ export default function DisplayConfigPage() {
                                         const def = MODULE_DEFINITIONS[block.type];
                                         const isLocked = isModuleLocked(block.type);
                                         const isSystem = block.type !== 'custom';
-                                        const isCore = block.type === 'menu-grid';
+                                        const isCore = block.type === 'menu-groups';
                                         const isEnabled = block.config?.isEnabled !== false; // default true
                                         const needsConfig = isEnabled && !isBlockValid(block);
                                         
@@ -2133,57 +2717,89 @@ export default function DisplayConfigPage() {
                             </div>
                         )}
 
-                        {/* ACTION TAB */}
-                        {activeTab === 'action' && (
-                            <div className="space-y-1">
-                                {(Object.keys(MODULE_DEFINITIONS) as ModuleType[]).filter(k => {
+	                        {/* ACTION TAB */}
+	                        {activeTab === 'action' && (() => {
+                                const actionTypes = (Object.keys(MODULE_DEFINITIONS) as ModuleType[]).filter(k => {
                                     const def = MODULE_DEFINITIONS[k];
                                     if (def.category !== 'action') return false;
                                     if (def.supportedModels && !def.supportedModels.includes(selectedModel?.id as OperatingModel)) return false;
                                     return true;
-                                }).map((type, idx) => {
-                                    const def = MODULE_DEFINITIONS[type];
+	                                });
+                                const enabledActionCount = actionTypes.filter(type => {
                                     const activeBlock = blocks.find(b => b.type === type);
-                                    const isLocked = isModuleLocked(type);
-                                    const isEnabled = activeBlock?.config?.isEnabled || false;
-                                    
-                                    return (
-                                        <div key={type} className={`transition-colors flex flex-col relative group rounded-xl ${isLocked ? 'opacity-80' : 'hover:bg-slate-100 dark:hover:bg-white/5'} ${editingBlockId === type ? 'bg-slate-100 dark:bg-white/10 ring-1 ring-slate-200 dark:ring-white/10' : ''}`}>
-                                            <div className="flex items-center justify-between p-4 cursor-pointer" onClick={() => !isLocked && setEditingBlockId(editingBlockId === type ? null : type)}>
-                                                <div className="flex-1 pr-4 relative z-10 min-w-0">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 ${editingBlockId === type ? 'text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 group-hover:text-slate-800 group-hover:shadow-sm'}`}><Settings2 size={16} /></div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className={`font-semibold text-sm break-words leading-tight flex items-center flex-wrap gap-2 ${editingBlockId === type ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'}`}>
-                                                                {def.name}
-                                                                {isLocked && <div className="flex items-center gap-1 text-[9px] font-black uppercase text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full"><Lock size={10} /> {def.minTier}</div>}
-                                                            </div>
-                                                        </div>
+                                    return activeBlock ? activeBlock.config?.isEnabled !== false : false;
+                                }).length;
+
+                                return (
+                                    <div className="space-y-4">
+                                        <div className="rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-white/5 p-3 shadow-sm">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-900 dark:text-white">Tính năng phụ</p>
+                                                    <p className="mt-1 text-xs font-medium leading-relaxed text-slate-500 dark:text-slate-400">Bật các điểm chạm bổ trợ cho gợi ý món, hỗ trợ tại bàn, thanh toán và đánh giá.</p>
+                                                </div>
+                                                <span className="shrink-0 rounded-full bg-slate-100 dark:bg-white/10 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-300">{enabledActionCount}/{actionTypes.length} bật</span>
+                                            </div>
+                                        </div>
+
+                                        {ACTION_GROUPS.map(group => {
+                                            const groupTypes = group.types.filter(type => actionTypes.includes(type));
+                                            if (groupTypes.length === 0) return null;
+
+                                            return (
+                                                <div key={group.title} className="space-y-2">
+                                                    <p className="px-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{group.title}</p>
+                                                    <div className="overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-white/5 shadow-sm">
+                                                        {groupTypes.map(type => {
+                                                            const def = MODULE_DEFINITIONS[type];
+                                                            const activeBlock = blocks.find(b => b.type === type);
+                                                            const isLocked = isModuleLocked(type);
+                                                            const isEnabled = activeBlock ? activeBlock.config?.isEnabled !== false : false;
+                                                            const selected = editingBlockId === type;
+                                                            
+                                                            return (
+                                                                <div key={type} className={`transition-colors flex flex-col relative group border-b border-slate-100 last:border-b-0 dark:border-white/5 ${isLocked ? 'opacity-80' : 'hover:bg-slate-50 dark:hover:bg-white/[0.03]'} ${selected ? 'bg-slate-50 dark:bg-white/10' : ''}`}>
+                                                                    <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => !isLocked && setEditingBlockId(editingBlockId === type ? null : type)}>
+                                                                        <div className="flex-1 pr-4 relative z-10 min-w-0">
+                                                                            <div className="flex items-start gap-3">
+                                                                                <div className={`mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 ${selected ? 'text-[#DF1B41] shadow-sm' : 'text-slate-500 group-hover:text-slate-800 dark:group-hover:text-white group-hover:shadow-sm'}`}><Settings2 size={15} /></div>
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    <div className={`font-semibold text-sm break-words leading-tight flex items-center flex-wrap gap-2 ${selected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'}`}>
+                                                                                        {def.name}
+                                                                                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md ${def.minTier === 'FREE' ? 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300'}`}>{def.minTier}</span>
+                                                                                        {isLocked && <span className="flex items-center gap-1 text-[9px] font-black uppercase text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full"><Lock size={10} /> Cần nâng cấp</span>}
+                                                                                    </div>
+                                                                                    <p className="mt-1 text-[11px] leading-snug text-slate-500 dark:text-slate-400 line-clamp-2">{def.description}</p>
+                                                                                    <p className={`mt-1.5 text-[10px] font-bold ${isEnabled ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-400 dark:text-slate-500'}`}>{isEnabled ? 'Đang bật' : 'Đang tắt'}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        <div className="shrink-0 flex items-center pl-2">
+                                                                            {isLocked ? (
+                                                                                <Link href="/admin/settings/billing" className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border border-amber-200/50" onClick={e => e.stopPropagation()}>Mở Khóa</Link>
+                                                                            ) : (
+                                                                                <label className="relative inline-flex items-center cursor-pointer scale-[0.8] origin-right ml-1" onClick={(e) => e.stopPropagation()}>
+                                                                                    <input type="checkbox" className="sr-only peer" checked={isEnabled} onChange={(e) => {
+                                                                                        const newConf = { ...(activeBlock?.config || {}), isEnabled: e.target.checked };
+                                                                                        if (!activeBlock) setBlocks([...blocks, { id: 'act-' + type, type, title: def.name, config: newConf }]);
+                                                                                        else setBlocks(blocks.map(b => b.type === type ? { ...b, config: newConf } : b));
+                                                                                    }} />
+                                                                                    <div className="w-11 h-6 bg-slate-200 dark:bg-white/20 rounded-full peer peer-checked:bg-slate-900 dark:peer-checked:bg-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-slate-900 after:border-slate-300 dark:after:border-transparent after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:after:translate-x-full peer-focus-visible:ring-2 peer-focus-visible:ring-[#DF1B41]/30"></div>
+                                                                                </label>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
-                                                
-                                                <div className="shrink-0 flex items-center pl-2">
-                                                    {isLocked ? (
-                                                        <Link href="/admin/settings/billing" className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border border-amber-200/50" onClick={e => e.stopPropagation()}>Mở Khóa</Link>
-                                                    ) : (
-                                                        <label className="relative inline-flex items-center cursor-pointer scale-[0.8] origin-right ml-1">
-                                                            <input type="checkbox" className="sr-only peer" checked={isEnabled} onChange={(e) => {
-                                                                e.stopPropagation();
-                                                                const newConf = { ...(activeBlock?.config || {}), isEnabled: e.target.checked };
-                                                                if (!activeBlock) setBlocks([...blocks, { id: 'act-' + type, type, title: def.name, config: newConf }]);
-                                                                else setBlocks(blocks.map(b => b.type === type ? { ...b, config: newConf } : b));
-                                                            }} />
-                                                            <div className="w-11 h-6 bg-slate-200 dark:bg-white/20 rounded-full peer peer-checked:bg-slate-900 dark:peer-checked:bg-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-slate-900 after:border-slate-300 dark:after:border-transparent after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:after:translate-x-full"></div>
-                                                        </label>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })()}
                     </div>
                 </div>
 
@@ -2224,7 +2840,7 @@ export default function DisplayConfigPage() {
                                  </div>
                                  <div className="flex-1 overflow-y-auto p-6 xl:p-8 hidden-scroll relative">
                                     {isCurrentlyEnabled ? (
-                                        <div className={`${['flash-sale', 'combo', 'best-sale'].includes(activeEditorBlock.type) ? 'max-w-none' : 'max-w-2xl mx-auto'} pb-24 animation-fade-in`}>
+                                        <div className={`${['menu-groups', 'flash-sale', 'combo', 'best-sale'].includes(activeEditorBlock.type) ? 'max-w-none' : 'max-w-2xl mx-auto'} pb-24 animation-fade-in`}>
                                             <ModuleConfigForm 
                                                 block={activeEditorBlock} 
                                                 allMenuItems={allMenuItems} 
@@ -2272,15 +2888,60 @@ export default function DisplayConfigPage() {
                                </div>
                             );
                         })()
-                    ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
-                            <div className="w-16 h-16 mb-4 rounded-[1.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-center">
-                                <Settings2 size={24} className="text-slate-400 dark:text-slate-500" />
+	                    ) : activeTab === 'action' ? (() => {
+                            const actionTypes = (Object.keys(MODULE_DEFINITIONS) as ModuleType[]).filter(type => {
+                                const def = MODULE_DEFINITIONS[type];
+                                if (def.category !== 'action') return false;
+                                if (def.supportedModels && !def.supportedModels.includes(selectedModel?.id as OperatingModel)) return false;
+                                return true;
+                            });
+                            const enabledActionCount = actionTypes.filter(type => {
+                                const activeBlock = blocks.find(b => b.type === type);
+                                return activeBlock ? activeBlock.config?.isEnabled !== false : false;
+                            }).length;
+                            const lockedActionCount = actionTypes.filter(type => isModuleLocked(type)).length;
+                            const firstEditableAction = actionTypes.find(type => !isModuleLocked(type));
+
+                            return (
+                                <div className="flex-1 flex items-center justify-center p-8">
+                                    <div className="w-full max-w-lg rounded-[24px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.04] p-8 text-center shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+                                        <div className="w-16 h-16 mb-5 mx-auto rounded-[1.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-center">
+                                            <Settings2 size={24} className="text-slate-400 dark:text-slate-500" />
+                                        </div>
+                                        <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-2">Chọn tính năng để cấu hình</h3>
+                                        <p className="text-sm font-medium text-slate-500 text-center max-w-sm mx-auto">Các tính năng này bổ sung trải nghiệm gọi món nhưng không thay đổi bố cục menu chính.</p>
+                                        <div className="mt-6 grid grid-cols-3 gap-2 text-left">
+                                            {[
+                                                ['Đang bật', enabledActionCount],
+                                                ['Khả dụng', actionTypes.length - lockedActionCount],
+                                                ['Cần nâng cấp', lockedActionCount]
+                                            ].map(([label, value]) => (
+                                                <div key={String(label)} className="rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 p-3">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+                                                    <p className="mt-1 text-xl font-black text-slate-900 dark:text-white">{String(value)}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {firstEditableAction && (
+                                            <button
+                                                onClick={() => setEditingBlockId(firstEditableAction)}
+                                                className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                                            >
+                                                Cấu hình {MODULE_DEFINITIONS[firstEditableAction].name}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })() : (
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
+                                <div className="w-16 h-16 mb-4 rounded-[1.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-center">
+                                    <Settings2 size={24} className="text-slate-400 dark:text-slate-500" />
+                                </div>
+                                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-2">Chưa chọn hiển thị</h3>
+                                <p className="text-sm font-medium text-slate-500 text-center max-w-sm">Chọn một mục bên trái để cấu hình.</p>
                             </div>
-                            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-2">Chưa chọn tính năng</h3>
-                            <p className="text-sm font-medium text-slate-500 text-center max-w-sm">Chọn một module bên trái để cấu hình.</p>
-                        </div>
-                    )}
+                        )}
                 </div> {/* End Center Column */}
                 
             </div> {/* END OF MAIN FLEX */}
